@@ -1,0 +1,18 @@
+===>these files are generated at compilation but should not versioned because they don t exists in the source to begin with. find a way to build them at application launch
+convert graphicsSource/font_32_64.png -type truecolormatte graphics/font_32_64.tga
+convert graphicsSource/font_handwriting_32_32.png -type truecolormatte graphics/font_handwriting_32_32.tga
+convert graphicsSource/font_pencil_32_32.png -type truecolormatte graphics/font_pencil_32_32.tga
+convert graphicsSource/font_pencil_erased_32_32.png -type truecolormatte graphics/font_pencil_erased_32_32.tga
+
+===> last version of task_cleaning addition
+server/application/exception/configuration.cpp \
+server/application/exception/configuration.h \
+server/application/settings.cpp \
+server/application/settings.h \
+third_party/openLife/base/entity/exception.cpp \
+third_party/openLife/base/entity/exception.h \
+third_party/openLife/base/process/io/textFile.cpp \
+third_party/openLife/base/process/io/textFile.h
+
+===> generate ini file if not exists
+
