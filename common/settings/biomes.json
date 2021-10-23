@@ -1,0 +1,34 @@
+[
+  {
+    "id": 0,
+    "name": "meadow"
+  },
+  {
+    "id": 1,
+    "name": "swamp"
+  },
+  {
+    "id": 2,
+    "name": "savannah"
+  },
+  {
+    "id": 3,
+    "name": "mountain"
+  },
+  {
+    "id": 4,
+    "name": "snow"
+  },
+  {
+    "id": 5,
+    "name": "desert"
+  },
+  {
+    "id": 6,
+    "name": "jungle"
+  },
+  {
+    "id": 7,
+    "name": "water"
+  }
+]
