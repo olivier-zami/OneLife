@@ -49,6 +49,7 @@
 
 #include <stdlib.h>//#include <math.h>
 #include <string>
+#include "OneLife/gameSource/procedures/graphics/drawGround.h"
 
 
 #define OHOL_NON_EDITOR 1
@@ -154,7 +155,7 @@ static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
 
 
-static JenkinsRandomSource randSource( 340403 );
+/*static */JenkinsRandomSource randSource2( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
 
 
@@ -2346,15 +2347,15 @@ void LivingLifePage::clearMap() {
         mMapBiomes[i] = -1;
         mMapFloors[i] = -1;
         
-        mMapAnimationFrameCount[i] = randSource.getRandomBoundedInt( 0, 10000 );
+        mMapAnimationFrameCount[i] = randSource2.getRandomBoundedInt( 0, 10000 );
         mMapAnimationLastFrameCount[i] = 
-            randSource.getRandomBoundedInt( 0, 10000 );
+            randSource2.getRandomBoundedInt( 0, 10000 );
         
         mMapAnimationFrozenRotFrameCount[i] = 0;
         mMapAnimationFrozenRotFrameCountUsed[i] = false;
         
         mMapFloorAnimationFrameCount[i] = 
-            randSource.getRandomBoundedInt( 0, 10000 );
+            randSource2.getRandomBoundedInt( 0, 10000 );
 
         mMapCurAnimType[i] = ground;
         mMapLastAnimType[i] = ground;
@@ -3179,10 +3180,10 @@ void LivingLifePage::drunkWalk( GridPos *path, int pathLen, bool actionMove ) {
 					if( xDis != 0 ) signX = xDis / abs(xDis);
 					if( yDis != 0 ) signY = yDis / abs(yDis);
 				
-					if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
-					if( abs(xDis) == 1 ) newXDis = signX * randSource.getRandomBoundedInt( 0, 1 );
-					if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
-					if( abs(yDis) == 1 ) newYDis = signY * randSource.getRandomBoundedInt( 0, 1 );
+					if( abs(xDis) == 0 ) newXDis = randSource2.getRandomBoundedInt( -1, 1 );
+					if( abs(xDis) == 1 ) newXDis = signX * randSource2.getRandomBoundedInt( 0, 1 );
+					if( abs(yDis) == 0 ) newYDis = randSource2.getRandomBoundedInt( -1, 1 );
+					if( abs(yDis) == 1 ) newYDis = signY * randSource2.getRandomBoundedInt( 0, 1 );
 					
 					int newX = path[ i ].x;
 					int newY = path[ i ].y;
@@ -3202,8 +3203,8 @@ void LivingLifePage::drunkWalk( GridPos *path, int pathLen, bool actionMove ) {
 		int newXDis = 2;
 		int newYDis = 2;
 		
-		if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
-		if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
+		if( abs(xDis) == 0 ) newXDis = randSource2.getRandomBoundedInt( -1, 1 );
+		if( abs(yDis) == 0 ) newYDis = randSource2.getRandomBoundedInt( -1, 1 );
 		
 		int newX = path[ 1 ].x;
 		int newY = path[ 1 ].y;
@@ -9666,7 +9667,7 @@ void LivingLifePage::step() {
                                 if( animR != NULL && 
                                     animR->randomStartPhase ) {
                                     mMapAnimationFrameCount[mapI] = 
-                                        randSource.getRandomBoundedInt( 
+                                        randSource2.getRandomBoundedInt(
                                             0, 10000 );
                                     mMapAnimationLastFrameCount[i] = 
                                         mMapAnimationFrameCount[mapI];
@@ -14336,9 +14337,9 @@ void LivingLifePage::step() {
                     
                     playPendingReceivedMessages( o );
                     
-                    //trailColor.r = randSource.getRandomBoundedDouble( 0, .5 );
-                    //trailColor.g = randSource.getRandomBoundedDouble( 0, .5 );
-                    //trailColor.b = randSource.getRandomBoundedDouble( 0, .5 );
+                    //trailColor.r = randSource2.getRandomBoundedDouble( 0, .5 );
+                    //trailColor.g = randSource2.getRandomBoundedDouble( 0, .5 );
+                    //trailColor.b = randSource2.getRandomBoundedDouble( 0, .5 );
                     
 
                     if( ( o->id != ourID && 

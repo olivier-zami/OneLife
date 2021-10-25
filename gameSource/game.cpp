@@ -70,7 +70,7 @@ extern char lShiftDown;
 extern char rShiftDown;
 
 // static seed
-static CustomRandomSource randSource( 34957197 );
+CustomRandomSource randSource( 34957197 );
 
 
 #ifdef RASPBIAN
