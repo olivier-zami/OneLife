@@ -87,35 +87,22 @@ CustomRandomSource randSource( 34957197 );
 // should we pull the map
 static char mapPullMode = 0;
 static char autoLogIn = 0;
-
-
 char loginEditOverride = false;
-
-
 // start at reflector URL
 char *reflectorURL = NULL;
-
 char usingCustomServer = false;
 char *serverIP = NULL;
 int serverPort = 0;
-
-
 char *userEmail = NULL;
 char *accountKey = NULL;
 char *userTwinCode = NULL;
 int userTwinCount = 0;
 char userReconnect = false;
-
-
 // these are needed by ServerActionPage, but we don't use them
 int userID = -1;
 int serverSequenceNumber = 0;
-
-
 FinalMessagePage *finalMessagePage;
-
 ServerActionPage *getServerAddressPage;
-
 LoadingPage *loadingPage;
 AutoUpdatePage *autoUpdatePage;
 LivingLifePage *livingLifePage;
@@ -127,20 +114,11 @@ ReviewPage *reviewPage;
 TwinPage *twinPage;
 PollPage *pollPage;
 GeneticHistoryPage *geneticHistoryPage;
-//TestPage *testPage = NULL;
-
-
-GamePage *currentGamePage = NULL;
-
+GamePage *currentGamePage = NULL;//TestPage *testPage = NULL;
 int loadingPhase = 0;
-
 int loadingStepBatchSize = 1;
 double loadingPhaseStartTime;
-
 int numLoadingSteps = 20;
-
-
-
 SpriteHandle instructionsSprite;
 
 
@@ -373,7 +351,6 @@ const char *getDemoCodeServerURL() {
 
 char gamePlayingBack = false;
 
-
 Font *mainFont;
 Font *mainFontFixed;
 // closer spacing
@@ -382,24 +359,13 @@ Font *numbersFontFixed;
 Font *handwritingFont;
 Font *pencilFont;
 Font *pencilErasedFont;
-
 Font *smallFont;
-
 Font *titleFont;
-
-
-char *shutdownMessage = NULL;
-
-
-
-
-
-
 
 
 static float pauseScreenFade = 0;
 
-static char *currentUserTypedMessage = NULL;
+char *currentUserTypedMessage = NULL;
 
 
 
@@ -763,111 +729,6 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
 
     initDone = true;
     }
-
-
-
-void freeFrameDrawer() {
-
-
-    freeSprite( instructionsSprite );
-    
-    delete mainFontReview;
-    delete mainFontFixed;
-    delete numbersFontFixed;
-    
-    delete handwritingFont;
-    delete pencilFont;
-    delete pencilErasedFont;
-    
-    delete smallFont;
-    
-    if( currentUserTypedMessage != NULL ) {
-        delete [] currentUserTypedMessage;
-        currentUserTypedMessage = NULL;
-        }
-
-    
-
-    if( shutdownMessage != NULL ) {
-        delete [] shutdownMessage;
-        shutdownMessage = NULL;
-        }
-    
-
-    delete getServerAddressPage;
-    
-    delete finalMessagePage;
-    delete loadingPage;
-    delete autoUpdatePage;
-    if( livingLifePage != NULL ) {
-        delete livingLifePage;
-        livingLifePage = NULL;
-        }
-
-    delete existingAccountPage;
-    delete extendedMessagePage;
-    delete rebirthChoicePage;
-    delete settingsPage;
-    delete reviewPage;
-    delete twinPage;
-    delete pollPage;
-    delete geneticHistoryPage;
-    
-    //if( testPage != NULL ) {
-    //    delete testPage;
-    //    testPage = NULL;
-    //    }
-
-    
-    freeGroundSprites();
-
-    freeAnimationBank();
-    freeObjectBank();
-    freeSpriteBank();
-
-    freeTransBank();
-    
-    freeCategoryBank();
-
-    freeLiveObjectSet();
-
-    freeSoundBank();
-    
-    freeMusicPlayer();
-    freeEmotion();
-    
-    freePhotos();
-    freeLifeTokens();
-    freeFitnessScore();
-
-    if( reflectorURL != NULL ) {
-        delete [] reflectorURL;
-        reflectorURL = NULL;
-        }
-
-    if( serverIP != NULL ) {
-        delete [] serverIP;
-        serverIP = NULL;
-        }
-    
-
-    if( userEmail != NULL ) {
-        delete [] userEmail;
-        }
-    if( accountKey != NULL ) {
-        delete [] accountKey;
-        }
-    if( userTwinCode != NULL ) {
-        delete [] userTwinCode;
-        }
-    }
-
-
-
-
-
-    
-
 
 // draw code separated from updates
 // some updates are still embedded in draw code, so pass a switch to 
@@ -2433,79 +2294,12 @@ void specialKeyDown( int inKey ) {
 
 
 
-void specialKeyUp( int inKey ) {
-    if( isPaused() ) {
-        return;
-        }
-
-    if( currentGamePage != NULL ) {
-        currentGamePage->base_specialKeyUp( inKey );
-        }
-	} 
-
-
-
 
 char getUsesSound() {
     
     return ! musicOff;
     }
 
-
-
-
-
-
-
-
-
-void drawString( const char *inString, char inForceCenter ) {
-    
-    setDrawColor( 1, 1, 1, 0.75 );
-
-    doublePair messagePos = lastScreenViewCenter;
-
-    TextAlignment align = alignCenter;
-    
-    if( initDone && !inForceCenter ) {
-        // transparent message
-        setDrawColor( 1, 1, 1, 0.75 );
-
-        // stick messages in corner
-        messagePos.x -= viewWidth / 2;
-        
-        messagePos.x +=  20;
-    
-
-    
-        messagePos.y += (viewWidth * viewHeightFraction) /  2;
-    
-        messagePos.y -= 32;
-
-        align = alignLeft;
-        }
-    else {
-        // fully opaque message
-        setDrawColor( 1, 1, 1, 1 );
-
-        // leave centered
-        }
-    
-
-    int numLines;
-    
-    char **lines = split( inString, "\n", &numLines );
-    
-    for( int i=0; i<numLines; i++ ) {
-        
-
-        mainFont->drawString( lines[i], messagePos, align );
-        messagePos.y -= 32;
-        
-        delete [] lines[i];
-        }
-    delete [] lines;
-    }
 
 
 
