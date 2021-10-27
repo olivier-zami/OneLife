@@ -50,6 +50,8 @@
 #include <stdlib.h>//#include <math.h>
 #include <string>
 #include "OneLife/gameSource/procedures/graphics/drawGround.h"
+#include "OneLife/gameSource/procedures/graphics/drawAgent.h"
+#include "OneLife/gameSource/dataTypes/animation.h"
 
 
 #define OHOL_NON_EDITOR 1
@@ -2784,6 +2786,8 @@ LivingLifePage::LivingLifePage()
 		pathFindingD, 
 		mMapContainedStacks, 
 		mMapSubContainedStacks);
+
+	this->feature.debugMessageEnabled = false;
     }
 
 
@@ -5130,25 +5134,6 @@ static void drawGraph( SimpleVector<double> *inHistory, doublePair inPos,
                   inPos.y + scaledVal * graphHeight );
         }
     }
-
-
-
-typedef struct DrawOrderRecord {
-        char person;
-        // if person
-        LiveObject *personO;
-        
-        // if cell
-        int mapI;
-        int screenX, screenY;
-
-        char extraMovingObj;
-        // if extra moving obj
-        int extraMovingIndex;
-        
-    } DrawOrderRecord;
-        
-
 
 char drawAdd = true;
 char drawMult = true;

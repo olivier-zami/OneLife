@@ -573,6 +573,10 @@ class LivingLifePage : public GamePage, public ActionListener {
         
 	protected:
 
+		struct {
+			bool debugMessageEnabled;
+		}feature;
+
 		client::component::Socket* socket;
         
         int *mMapBiomes;

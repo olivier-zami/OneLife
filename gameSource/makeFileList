@@ -19,6 +19,7 @@ game.cpp \
 components/gameSceneHandler.cpp \
 components/socket.cpp \
 procedures/animations/special.cpp \
+procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/game.cpp \
