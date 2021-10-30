@@ -59,6 +59,7 @@ int main( int inArgCount, char **inArgs )
 #include "OneLife/gameSource/components/gameSceneHandler.h"
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
+#include "OneLife/gameSource/application.h"
 
 extern char rCtrlDown;
 extern char lCtrlDown;
@@ -95,7 +96,8 @@ void freeWriteFailedPanel() {
 
 #else
 
-#include "minorGems/game/platforms/SDL/demoCodePanel.h"
+//#include "minorGems/game/platforms/SDL/demoCodePanel.h"//legacy
+#include "OneLife/gameSource/components/pages/demoPanelPage.h"
 
 #endif
 
@@ -149,7 +151,8 @@ char shouldTakeScreenshot = false;// should screenshot be taken at end of next r
 char manualScreenShot = false;
 extern char *screenShotPrefix;
 GameSceneHandler *sceneHandler;
-ScreenGL *screen;
+
+
 // how many pixels wide is each game pixel drawn as?
 int pixelZoomFactor;
 SimpleVector<WebRequestRecord> webRequestRecords;
@@ -175,6 +178,8 @@ SDL_Cursor *ourCursor = NULL;
 static int nextSoundSpriteHandle;
 static double soundSpriteRateMax = 1.0;
 static double soundSpriteRateMin = 1.0;
+
+OneLife::game::Application *screen;
 
 
 void setSoundSpriteRateRange( double inMin, double inMax ) {
@@ -1491,8 +1496,7 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 
 	char *hashSalt = getHashSalt();
 
-	screen =
-			new ScreenGL( screenWidth, screenHeight, fullscreen,
+	screen = new OneLife::game::Application( screenWidth, screenHeight, fullscreen,
 						  shouldNativeScreenResolutionBeUsed(),
 						  targetFrameRate,
 						  recordGame,

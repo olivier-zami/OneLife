@@ -18,6 +18,7 @@
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/game.h"//Uint8
+#include "OneLife/gameSource/application.h"
 
 
 class GameSceneHandler :
@@ -32,7 +33,7 @@ public:
 	 * @param inScreen the screen to interact with.
 	 *   Must be destroyed by caller after this class is destroyed.
 	 */
-	GameSceneHandler( ScreenGL *inScreen );
+	GameSceneHandler( OneLife::game::Application *inScreen );
 
 	virtual ~GameSceneHandler();
 
@@ -50,7 +51,7 @@ public:
 
 
 
-	ScreenGL *mScreen;
+	OneLife::game::Application *mScreen;
 
 
 

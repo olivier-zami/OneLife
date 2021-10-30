@@ -7,7 +7,7 @@
 #include "minorGems/graphics/openGL/ScreenGL.h"
 #include "OneLife/gameSource/components/asyncFileRecord.h"
 
-extern ScreenGL *screen;
+extern OneLife::game::Application *screen;
 
 //TODO: newFileToReadSem, newFileDoneReadingSem, asyncFiles, asyncLock must be declared before fileReadThread => improve modularity
 BinarySemaphore newFileToReadSem;

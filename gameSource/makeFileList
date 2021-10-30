@@ -16,6 +16,7 @@ ROOT_PATH = ../..
 LAYER_SOURCE = \
 minitech.cpp \
 game.cpp \
+application.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
 components/gameSceneHandler.cpp \
@@ -166,7 +167,6 @@ NEEDED_MINOR_GEMS_OBJECTS = \
  ${FILE_LOG_O} \
  ${PRINT_LOG_O} \
  ${PRINT_UTILS_O} \
- ${GAME_SDL_O} \
  ${GAME_GRAPHICS_GL_O} \
  ${SPRITE_GL_O} \
  ${DOUBLE_PAIR_O} \

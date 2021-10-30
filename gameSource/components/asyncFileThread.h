@@ -10,6 +10,7 @@
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/system/MutexLock.h"
 #include "minorGems/io/file/File.h"
+#include "OneLife/gameSource/application.h"
 #include "OneLife/gameSource/components/asyncFileRecord.h"
 
 extern BinarySemaphore newFileToReadSem;

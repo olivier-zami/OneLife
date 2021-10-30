@@ -74,7 +74,7 @@ extern int targetFrameRate;
 extern GamePage *currentGamePage;
 extern char demoMode;
 extern char *loadingFailedMessage;
-extern ScreenGL *screen;
+extern OneLife::game::Application *screen;
 extern char writeFailed;
 extern double *soundSpriteMixingBufferL;
 extern double *soundSpriteMixingBufferR;
@@ -192,7 +192,7 @@ static int outputFrameCount = 0;
 static unsigned int frameNumber = 0;
 
 
-GameSceneHandler::GameSceneHandler( ScreenGL *inScreen )
+GameSceneHandler::GameSceneHandler( OneLife::game::Application *inScreen )
 		: mScreen( inScreen ),
 		  mPaused( false ),
 		  mPausedDuringFrameBatch( true ),
