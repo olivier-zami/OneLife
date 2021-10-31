@@ -4,6 +4,7 @@
 
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/game.h"
+#include "OneLife/gameSource/dataTypes/hardware.h"
 
 
 

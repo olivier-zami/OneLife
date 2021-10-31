@@ -9,6 +9,7 @@
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
+#include "OneLife/gameSource/dataTypes/hardware.h"
 
 
 

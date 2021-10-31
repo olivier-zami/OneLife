@@ -4,7 +4,7 @@
 
 #include "asyncFileThread.h"
 
-#include "minorGems/graphics/openGL/ScreenGL.h"
+//#include "minorGems/graphics/openGL/ScreenGL.h"
 #include "OneLife/gameSource/components/asyncFileRecord.h"
 
 extern OneLife::game::Application *screen;

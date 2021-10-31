@@ -3,6 +3,7 @@
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/game.h"
 #include "minorGems/util/stringUtils.h"
+#include "OneLife/gameSource/dataTypes/hardware.h"
 
 #include <math.h>
 

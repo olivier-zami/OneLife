@@ -539,8 +539,8 @@ ENCODING_UTILS_O = ${ENCODING_UTILS}.o
 
 SCREEN_GL = ${ROOT_PATH}/minorGems/graphics/openGL/ScreenGL
 SCREEN_GL_H = ${SCREEN_GL}.h
-SCREEN_GL_CPP = ${SCREEN_GL}.cpp
-SCREEN_GL_O = ${SCREEN_GL}.o
+#SCREEN_GL_CPP = ${SCREEN_GL}.cpp
+#SCREEN_GL_O = ${SCREEN_GL}.o
 
 SCREEN_GL_SDL_CPP = ${SCREEN_GL}_SDL.cpp
 SCREEN_GL_SDL_O = ${SCREEN_GL}_SDL.o
@@ -942,7 +942,6 @@ s/^ConnectionPermissionHandler.*\.o/$${CONNECTION_PERMISSION_HANDLER_O}/; \
 s/^StopSignalThread.*\.o/$${STOP_SIGNAL_THREAD_O}/; \
 s/^FinishedSignalThreadManager.*\.o/$${FINISHED_SIGNAL_THREAD_MANAGER_O}/; \
 s/^FinishedSignalThread.*\.o/$${FINISHED_SIGNAL_THREAD_O}/; \
-s/^ScreenGL.*\.o/$${SCREEN_GL_O}/; \
 s/^ScreenGLSDL.*\.o/$${SCREEN_GL_SDL_O}/; \
 s/^SingleTextureGL.*\.o/$${SINGLE_TEXTURE_GL_O}/; \
 s/^JPEGImageConverter.*\.o/$${JPEG_IMAGE_CONVERTER_O}/; \

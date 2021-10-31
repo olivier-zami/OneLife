@@ -17,4 +17,20 @@ typedef struct SocketConnectionRecord {
 	Socket *sock;
 } SocketConnectionRecord;
 
+typedef struct WebEvent {
+	int handle;
+	int type;
+	char *bodyText;
+	int bodyLength;
+} WebEvent;
+
+typedef struct SocketEvent {
+	int handle;
+	int type;
+	int numBodyBytes;
+	// can be NULL even if numBodyBytes not 0 (in case of
+	// recorded send, where we don't need to record what was sent)
+	char *bodyBytesHex;
+} SocketEvent;
+
 #endif //ONELIFE_DATA_WEB_H

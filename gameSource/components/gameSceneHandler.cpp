@@ -13,7 +13,7 @@
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/graphics/converters/TGAImageConverter.h"
-#include "minorGems/graphics/openGL/ScreenGL.h"
+//#include "minorGems/graphics/openGL/ScreenGL.h"
 #include "minorGems/util/TranslationManager.h"
 #include "minorGems/util/log/AppLog.h"
 #include "minorGems/game/gameGraphics.h"

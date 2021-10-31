@@ -9,7 +9,7 @@
 #include "minorGems/graphics/openGL/MouseHandlerGL.h"
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 #include "minorGems/graphics/openGL/RedrawListenerGL.h"
-#include "minorGems/graphics/openGL/ScreenGL.h"
+//#include "minorGems/graphics/openGL/ScreenGL.h"
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/ui/GUIComponent.h"
 #include "minorGems/graphics/Color.h"

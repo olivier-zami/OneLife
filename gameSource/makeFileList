@@ -20,6 +20,7 @@ application.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
 components/gameSceneHandler.cpp \
+components/keyboard.cpp \
 components/socket.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
@@ -136,7 +137,6 @@ graphics/photoBorder.tga \
 
 
 NEEDED_MINOR_GEMS_OBJECTS = \
- ${SCREEN_GL_SDL_O} \
  ${SINGLE_TEXTURE_GL_O} \
  ${TYPE_IO_O} \
  ${STRING_UTILS_O} \

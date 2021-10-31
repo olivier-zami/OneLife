@@ -23,7 +23,7 @@ int main( int inArgCount, char **inArgs )
 
 
 #include <SDL/SDL.h>
-#include "minorGems/graphics/openGL/ScreenGL.h"
+//#include "minorGems/graphics/openGL/ScreenGL.h"
 #include "minorGems/graphics/openGL/SceneHandlerGL.h"
 #include "minorGems/graphics/Color.h"
 #include "minorGems/graphics/openGL/gui/GUIComponentGL.h"

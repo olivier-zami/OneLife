@@ -4,6 +4,7 @@
 
 #include "minorGems/game/Font.h"
 #include "minorGems/ui/event/ActionListenerList.h"
+#include "OneLife/gameSource/dataTypes/hardware.h"
 
 #include "PageComponent.h"
 

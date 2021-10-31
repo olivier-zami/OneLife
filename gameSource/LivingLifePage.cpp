@@ -52,6 +52,7 @@
 #include "OneLife/gameSource/procedures/graphics/drawGround.h"
 #include "OneLife/gameSource/procedures/graphics/drawAgent.h"
 #include "OneLife/gameSource/dataTypes/animation.h"
+#include "OneLife/gameSource/dataTypes/hardware.h"
 
 
 #define OHOL_NON_EDITOR 1

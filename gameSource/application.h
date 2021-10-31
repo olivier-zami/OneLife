@@ -5,11 +5,18 @@
 #ifndef ONELIFE_GAME_APPLICATION_H
 #define ONELIFE_GAME_APPLICATION_H
 
-#include "minorGems/graphics/openGL/ScreenGL.h"
+//#include "minorGems/graphics/openGL/ScreenGL.h"
 
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 #include "minorGems/graphics/openGL/MouseHandlerGL.h"
 #include "minorGems/graphics/openGL/SceneHandlerGL.h"
+#include "minorGems/graphics/openGL/RedrawListenerGL.h"
+#include "minorGems/math/geometry/Vector3D.h"
+#include "minorGems/math/geometry/Angle3D.h"
+#include "minorGems/util/SimpleVector.h"
+#include "minorGems/system/Time.h"
+#include "OneLife/gameSource/dataTypes/web.h"
+#include "OneLife/gameSource/dataTypes/hardware.h"
 
 namespace OneLife::game
 {
@@ -34,13 +41,6 @@ namespace OneLife::game
 			char shouldShowPlaybackDisplay();
 			char isMinimized();
 			void start();
-
-		private:
-			ScreenGL *screenGL;
-
-			/*********************************************************************/
-
-		public:
 
 
 			// can avoid recording/playback during certain "front matter"
@@ -424,8 +424,8 @@ namespace OneLife::game
 			int getLastMouseButton();
 
 
-
-		private :
+		//private:
+			//ScreenGL *screenGL;
 
 			void setupSurface();
 
@@ -607,5 +607,21 @@ namespace OneLife::game
 			char mLastMinimizedStatus;
 	};
 }
+
+// prototypes
+void callbackResize( int inW, int inH );
+void callbackKeyboard( unsigned char  inKey, int inX, int inY );
+void callbackKeyboardUp( unsigned char  inKey, int inX, int inY );
+void callbackSpecialKeyboard( int inKey, int inX, int inY );
+void callbackSpecialKeyboardUp( int inKey, int inX, int inY );
+void callbackMotion( int inX, int inY );
+void callbackPassiveMotion( int inX, int inY );
+void callbackMouse( int inButton, int inState, int inX, int inY );
+void callbackPreDisplay();
+void callbackDisplay();
+void callbackIdle();
+
+//!Screen
+int computeAspectRatio( int inW, int inH );
 
 #endif //ONELIFE_GAME_APPLICATION_H
