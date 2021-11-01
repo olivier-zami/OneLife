@@ -241,8 +241,6 @@ static void panelCommonInit( OneLife::game::Application *inScreen, const char *i
 			codeCheckerWidth );
 
 
-
-	codeCheckerScreen->addSceneHandler( codeCheckerGuiTranslator );
 	codeCheckerScreen->addKeyboardHandler( codeCheckerGuiTranslator );
 	codeCheckerScreen->addMouseHandler( codeCheckerGuiTranslator );
 
@@ -411,7 +409,7 @@ char isDemoCodePanelShowing() {
 
 
 static void panelCommonFree() {
-	codeCheckerScreen->removeSceneHandler( codeCheckerGuiTranslator );
+	//codeCheckerScreen->removeSceneHandler( codeCheckerGuiTranslator );//TODO: remove this since unique ScreenHandler system
 	codeCheckerScreen->removeKeyboardHandler( codeCheckerGuiTranslator );
 	codeCheckerScreen->removeMouseHandler( codeCheckerGuiTranslator );
 

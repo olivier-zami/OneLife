@@ -35,12 +35,13 @@ namespace OneLife::game
 						SceneHandlerGL *inSceneHandler = NULL  );
 			~Application();
 
+			void start();
+
 			const char *getCustomRecordedGameData();
 			char isPlayingBack();
 			float getPlaybackDoneFraction();
 			char shouldShowPlaybackDisplay();
 			char isMinimized();
-			void start();
 
 
 			// can avoid recording/playback during certain "front matter"
@@ -353,18 +354,6 @@ namespace OneLife::game
 
 
 			/**
-			 * Adds a scene handler.
-			 *
-			 * @param inHandler the handler to add  Must
-			 *   be destroyed by caller.
-			 *
-			 * Must not be called after calling start().
-			 */
-			void addSceneHandler( SceneHandlerGL *inHandler );
-
-
-
-			/**
 			 * Removes a scene handler.
 			 *
 			 * @param inHandler the handler to remove.  Must
@@ -372,7 +361,7 @@ namespace OneLife::game
 			 *
 			 * Must not be called after calling start().
 			 */
-			void removeSceneHandler( SceneHandlerGL *inHandler );
+			//void removeSceneHandler( SceneHandlerGL *inHandler );//TODO: remove this since unique sceneHandler system
 
 
 
@@ -509,7 +498,7 @@ namespace OneLife::game
 			// vectors of handlers and listeners
 			SimpleVector<MouseHandlerGL*> *mMouseHandlerVector;
 			SimpleVector<KeyboardHandlerGL*> *mKeyboardHandlerVector;
-			SimpleVector<SceneHandlerGL*> *mSceneHandlerVector;
+			//SimpleVector<SceneHandlerGL*> *mSceneHandlerVector;
 			SimpleVector<RedrawListenerGL*> *mRedrawListenerVector;
 
 

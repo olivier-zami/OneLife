@@ -20,6 +20,7 @@
 #include "minorGems/crypto/hashes/sha1.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "OneLife/gameSource/components/keyboard.h"
+#include "OneLife/gameSource/components/gameSceneHandler.h"
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
@@ -31,6 +32,7 @@
 
 extern unsigned char keyMap[256];
 extern char keyMapOn;
+extern GameSceneHandler *sceneHandler;
 
 OneLife::game::Application *currentScreenGL;
 long timeSinceLastFrameMS = 0;// FOVMOD NOTE:  Change 1/3 - Take these lines during the merge process
@@ -62,25 +64,9 @@ OneLife::game::Application::Application(
 		mViewOrientation( new Angle3D( 0, 0, 0 ) ),
 		mMouseHandlerVector( new SimpleVector<MouseHandlerGL*>() ),
 		mKeyboardHandlerVector( new SimpleVector<KeyboardHandlerGL*>() ),
-		mSceneHandlerVector( new SimpleVector<SceneHandlerGL*>() ),
+		//mSceneHandlerVector( new SimpleVector<SceneHandlerGL*>() ),
 		mRedrawListenerVector( new SimpleVector<RedrawListenerGL*>() )
 {
-	/*
-	this->screenGL = new ScreenGL(
-		inWide,
-		inHigh,
-		inFullScreen,
-		inDoNotChangeNativeResolution,
-		inMaxFrameRate,
-		inRecordEvents,
-		inCustomRecordedGameData,
-		inHashSalt,
-		inWindowName,
-		inKeyHandler,
-		inMouseHandler,
-		inSceneHandler);
-	 */
-
 	mWantToMimimize = false;
 	mMinimized = false;
 	mWasFullScreenBeforeMinimize = false;
@@ -106,9 +92,6 @@ OneLife::game::Application::Application(
 	}
 	if( inKeyHandler != NULL ) {
 		addKeyboardHandler( inKeyHandler );
-	}
-	if( inSceneHandler != NULL ) {
-		addSceneHandler( inSceneHandler );
 	}
 
 
@@ -347,7 +330,7 @@ OneLife::game::Application::~Application()
 	delete mRedrawListenerVector;
 	delete mMouseHandlerVector;
 	delete mKeyboardHandlerVector;
-	delete mSceneHandlerVector;
+	//delete mSceneHandlerVector;
 
 	if( mRecordingEvents && mRecordingOrPlaybackStarted ) {
 		writeEventBatchToFile();
@@ -387,96 +370,6 @@ OneLife::game::Application::~Application()
 	}
 }
 
-
-
-
-/**
-* Gets data read from a recorded game file.
-*
-* Not destroyed by caller.
-*/
-const char* OneLife::game::Application::getCustomRecordedGameData()
-{
-	//return this->screenGL->getCustomRecordedGameData();
-	return mCustomRecordedGameData;
-}
-
-/**
-* True if currently in playback mode.
-*/
-char OneLife::game::Application::isPlayingBack()
-{
-	//return this->screenGL->isPlayingBack();
-	return mPlaybackEvents;
-}
-
-/**
-* Returns an estimate of playback fraction complete.
-*/
-float OneLife::game::Application::getPlaybackDoneFraction()
-{
-	//return this->screenGL->getPlaybackDoneFraction();
-	if( mEventFileNumBatches == 0 || mEventFile == NULL ) {
-		return 0;
-	}
-
-	return mNumBatchesPlayed / (float)mEventFileNumBatches;
-}
-
-/**
-* Returns whether playback display is on or off.
-*/
-char OneLife::game::Application::shouldShowPlaybackDisplay()
-{
-	//return this->screenGL->shouldShowPlaybackDisplay();
-	return mShouldShowPlaybackDisplay;
-}
-
-/**
-* True if minimized.
-*/
-char OneLife::game::Application::isMinimized()
-{
-	//return this->screenGL->isMinimized();
-	// we use mMinimized internally to keep track of whether we ever
-	// minimized ourself and were properly restored from that minimization
-	// (to do the things that we need to do when we come out of minimization)
-
-	// HOWEVER, on some platforms, we don't receive proper events when we
-	// come out of minimization, so we can't count on mMinimized to be
-	// correct.
-
-	// Actually test for real here.
-
-
-
-	if( mPlaybackEvents && mRecordingOrPlaybackStarted &&
-		mEventFile != NULL ) {
-
-
-		return mLastMinimizedStatus;
-	}
-
-
-	// non-playback behavior
-	char isMin = ( ( SDL_GetAppState() & SDL_APPACTIVE ) == 0 );
-
-	if( isMin &&
-		mRecordingEvents &&
-		mRecordingOrPlaybackStarted ) {
-
-		// record it
-
-		char *eventString = stringDuplicate( "v" );
-
-		mEventBatch.push_back( eventString );
-	}
-
-
-	return isMin;
-}
-
-
 /**
 * Starts the GLUT main loop.
 *
@@ -484,7 +377,6 @@ char OneLife::game::Application::isMinimized()
 */
 void OneLife::game::Application::start()
 {
-	//this->screenGL->start();
 	currentScreenGL = this;
 
 	// call our resize callback (GLUT used to do this for us when the
@@ -1004,6 +896,93 @@ void OneLife::game::Application::start()
 
 
 	}
+}
+
+
+/**
+* Gets data read from a recorded game file.
+*
+* Not destroyed by caller.
+*/
+const char* OneLife::game::Application::getCustomRecordedGameData()
+{
+	//return this->screenGL->getCustomRecordedGameData();
+	return mCustomRecordedGameData;
+}
+
+/**
+* True if currently in playback mode.
+*/
+char OneLife::game::Application::isPlayingBack()
+{
+	//return this->screenGL->isPlayingBack();
+	return mPlaybackEvents;
+}
+
+/**
+* Returns an estimate of playback fraction complete.
+*/
+float OneLife::game::Application::getPlaybackDoneFraction()
+{
+	//return this->screenGL->getPlaybackDoneFraction();
+	if( mEventFileNumBatches == 0 || mEventFile == NULL ) {
+		return 0;
+	}
+
+	return mNumBatchesPlayed / (float)mEventFileNumBatches;
+}
+
+/**
+* Returns whether playback display is on or off.
+*/
+char OneLife::game::Application::shouldShowPlaybackDisplay()
+{
+	//return this->screenGL->shouldShowPlaybackDisplay();
+	return mShouldShowPlaybackDisplay;
+}
+
+/**
+* True if minimized.
+*/
+char OneLife::game::Application::isMinimized()
+{
+	//return this->screenGL->isMinimized();
+	// we use mMinimized internally to keep track of whether we ever
+	// minimized ourself and were properly restored from that minimization
+	// (to do the things that we need to do when we come out of minimization)
+
+	// HOWEVER, on some platforms, we don't receive proper events when we
+	// come out of minimization, so we can't count on mMinimized to be
+	// correct.
+
+	// Actually test for real here.
+
+
+
+	if( mPlaybackEvents && mRecordingOrPlaybackStarted &&
+		mEventFile != NULL ) {
+
+
+		return mLastMinimizedStatus;
+	}
+
+
+	// non-playback behavior
+	char isMin = ( ( SDL_GetAppState() & SDL_APPACTIVE ) == 0 );
+
+	if( isMin &&
+		mRecordingEvents &&
+		mRecordingOrPlaybackStarted ) {
+
+		// record it
+
+		char *eventString = stringDuplicate( "v" );
+
+		mEventBatch.push_back( eventString );
+	}
+
+
+	return isMin;
 }
 
 // can avoid recording/playback during certain "front matter"
@@ -2149,22 +2128,6 @@ void OneLife::game::Application::removeKeyboardHandler( KeyboardHandlerGL *inLis
 	mKeyboardHandlerVector->deleteElementEqualTo( inListener );
 }
 
-
-/**
- * Adds a scene handler.
- *
- * @param inHandler the handler to add  Must
- *   be destroyed by caller.
- *
- * Must not be called after calling start().
- */
-void OneLife::game::Application::addSceneHandler( SceneHandlerGL *inListener )
-{
-	mSceneHandlerVector->push_back( inListener );
-}
-
-
-
 /**
  * Removes a scene handler.
  *
@@ -2173,10 +2136,12 @@ void OneLife::game::Application::addSceneHandler( SceneHandlerGL *inListener )
  *
  * Must not be called after calling start().
  */
+/*
 void OneLife::game::Application::removeSceneHandler( SceneHandlerGL *inListener )
 {
-	mSceneHandlerVector->deleteElementEqualTo( inListener );
+	//mSceneHandlerVector->deleteElementEqualTo( inListener );
 }
+*/
 
 
 /**
@@ -3127,25 +3092,28 @@ void callbackPreDisplay() {
 	}
 }
 
-void callbackDisplay() {
+void callbackDisplay() {//TODO change callbackDisplay() for renderer->render(screen);
 	OneLife::game::Application *s = currentScreenGL;
 
 	if( ! s->m2DMode ) {
 		// apply our view transform
-		s->applyViewTransform();
+		//s->applyViewTransform();
 	}
 
 
 	// fire to all handlers
-	for( int h=0; h<currentScreenGL->mSceneHandlerVector->size(); h++ ) {
-		SceneHandlerGL *handler
-				= *( currentScreenGL->mSceneHandlerVector->getElement( h ) );
+	/*TODO: delete all reference of mSceneHandlerVector since we need only one sceneHandler
+	for( int h=0; h<currentScreenGL->mSceneHandlerVector->size(); h++ )
+	{
+		SceneHandlerGL *handler = *( currentScreenGL->mSceneHandlerVector->getElement( h ) );
 		handler->drawScene();
 	}
+	 */
+	sceneHandler->drawScene();//TODO: screenHandler/this->handle/update(screen)->readMessage(message);
 
-	for( int r=0; r<s->mRedrawListenerVector->size(); r++ ) {
-		RedrawListenerGL *listener
-				= *( s->mRedrawListenerVector->getElement( r ) );
+	for( int r=0; r<s->mRedrawListenerVector->size(); r++ )
+	{
+		RedrawListenerGL *listener = *( s->mRedrawListenerVector->getElement( r ) );
 		listener->postRedraw();
 	}
 

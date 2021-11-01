@@ -216,15 +216,13 @@ GameSceneHandler::GameSceneHandler( OneLife::game::Application *inScreen )
 	// set external pointer so it can be used in calls below
 	sceneHandler = this;
 
-
-	mScreen->addSceneHandler( sceneHandler );
 	mScreen->addRedrawListener( sceneHandler );
 }
 
 
 GameSceneHandler::~GameSceneHandler() {
 	mScreen->removeMouseHandler( this );
-	mScreen->removeSceneHandler( this );
+	//mScreen->removeSceneHandler( this );
 	mScreen->removeRedrawListener( this );
 
 	if( demoMode ) {
@@ -309,7 +307,7 @@ void GameSceneHandler::drawScene() {
 	glDisable( GL_CULL_FACE );
 	glDisable( GL_DEPTH_TEST );
 
-
+	//!Screen selection
 	if( demoMode ) {
 
 		if( ! isDemoCodePanelShowing() ) {
@@ -668,7 +666,8 @@ void GameSceneHandler::drawScene() {
 		}
 
 
-		if( screen->isPlayingBack() && screen->shouldShowPlaybackDisplay() ) {
+		if( screen->isPlayingBack() && screen->shouldShowPlaybackDisplay() )
+		{
 
 			char *progressString = autoSprintf(
 					"%s %.1f\n%s\n%s",
@@ -684,11 +683,8 @@ void GameSceneHandler::drawScene() {
 		}
 
 
-		if( screen->isPlayingBack() &&
-			screen->shouldShowPlaybackDisplay() &&
-			showMouseDuringPlayback() ) {
-
-
+		if( screen->isPlayingBack() && screen->shouldShowPlaybackDisplay() && showMouseDuringPlayback() )
+		{
 			// draw mouse position info
 
 			if( mouseDown ) {
@@ -829,7 +825,8 @@ void GameSceneHandler::drawScene() {
 	}
 
 
-	if( visibleWidth != -1 && visibleHeight != -1 ) {
+	if( visibleWidth != -1 && visibleHeight != -1 )
+	{
 		// draw letterbox
 
 		// On most platforms, glViewport will clip image for us.
