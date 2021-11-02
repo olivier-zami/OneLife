@@ -23,6 +23,7 @@ components/engines/screenRenderer.cpp \
 components/gameSceneHandler.cpp \
 components/keyboard.cpp \
 components/socket.cpp \
+dataTypes/exception/exception.cpp \
 dataTypes/screen/loadingScreen.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \

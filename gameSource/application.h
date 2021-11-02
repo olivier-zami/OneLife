@@ -18,6 +18,7 @@
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
+#include "OneLife/gameSource/components/socket.h"
 
 namespace OneLife::game
 {
@@ -35,6 +36,9 @@ namespace OneLife::game
 						MouseHandlerGL *inMouseHandler = NULL,
 						SceneHandlerGL *inSceneHandler = NULL  );
 			~Application();
+
+			void setConnection();
+			OneLife::game::component::Socket* getConnection();
 
 			OneLife::game::Application* selectScreen(unsigned int idScreen =0);
 			void start();
@@ -416,7 +420,7 @@ namespace OneLife::game
 
 
 		//private:
-			OneLife::game::ScreenRenderer* screenRenderer;
+
 
 			void setupSurface();
 
@@ -596,6 +600,9 @@ namespace OneLife::game
 
 			// for playing back minimized window state
 			char mLastMinimizedStatus;
+		private:
+			OneLife::game::component::Socket* connection;
+			OneLife::game::ScreenRenderer* screenRenderer;
 	};
 }
 

@@ -49,10 +49,12 @@
 
 #include <stdlib.h>//#include <math.h>
 #include <string>
+#include "OneLife/gameSource/application.h"
 #include "OneLife/gameSource/procedures/graphics/drawGround.h"
 #include "OneLife/gameSource/procedures/graphics/drawAgent.h"
 #include "OneLife/gameSource/dataTypes/animation.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
+#include "OneLife/gameSource/dataTypes/exception/exception.h"
 
 
 #define OHOL_NON_EDITOR 1
@@ -64,6 +66,11 @@ static ObjectPickable objectPickable;
 
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096
+
+extern OneLife::game::Application *screen;
+
+int overheadServerBytesRead = 0;
+int overheadServerBytesSent = 0;
 
 extern int versionNumber;
 extern int dataVersionNumber;
@@ -720,21 +727,9 @@ char *getRelationName( LiveObject *inOurObject, LiveObject *inTheirObject ) {
 // when player moving at a different speed, anim speed is modified
 #define BASE_SPEED 3.75
 
-
-int numServerBytesRead = 0;
 int numServerBytesSent = 0;
-
-int overheadServerBytesSent = 0;
-int overheadServerBytesRead = 0;
-
-
 static char hideGuiPanel = false;
-
-
-
-
 static char *lastMessageSentToServer = NULL;
-
 
 // destroyed internally if not NULL
 static void replaceLastMessageSent( char *inNewMessage ) {
@@ -746,56 +741,36 @@ static void replaceLastMessageSent( char *inNewMessage ) {
 
 
 SimpleVector<unsigned char> serverSocketBuffer;
-static char serverSocketConnected = false;
 static float connectionMessageFade = 1.0f;
-static double connectedTime = 0;
-static char forceDisconnect = false;
-static double timeLastMessageSent = 0;
 
 
 
-void LivingLifePage::sendToServerSocket( char *inMessage ) {
-    timeLastMessageSent = game_getCurrentTime();
-    
-    printf( "Sending message to server: %s\n", inMessage );
-    
-    replaceLastMessageSent( stringDuplicate( inMessage ) );    
+void LivingLifePage::sendToServerSocket( char *inMessage )
+{
+	OneLife::game::dataType::Message message;
+	message.body = inMessage;
+	try
+	{
+		this->socket->sendMessage(message);
+	}
+	catch(OneLife::game::dataType::Exception* e)
+	{
+		if( mFirstServerMessagesReceived  )
+		{
 
-    int len = strlen( inMessage );
-    
-    int numSent = sendToSocket( mServerSocket, (unsigned char*)inMessage, len );
-    
-    if( numSent == len ) {
-        numServerBytesSent += len;
-        overheadServerBytesSent += 52;
-        
-        messagesOutCount++;
-        bytesOutCount += len;
-        }
-    else {
-        printf( "Failed to send message to server socket "
-                "at time %f "
-                "(tried to send %d, but numSent=%d)\n", 
-                game_getCurrentTime(), len, numSent );
-        closeSocket( mServerSocket );
-        mServerSocket = -1;
+			if( mDeathReason != NULL ) {
+				delete [] mDeathReason;
+			}
+			mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
 
-        if( mFirstServerMessagesReceived  ) {
-            
-            if( mDeathReason != NULL ) {
-                delete [] mDeathReason;
-                }
-            mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
-            
-            handleOurDeath( true );
-            }
-        else {
-            setWaiting( false );
-            setSignal( "loginFailed" );
-            }
-        }
-    
-    }
+			handleOurDeath( true );
+		}
+		else {
+			setWaiting( false );
+			setSignal( "loginFailed" );
+		}
+	}
+}
 
 
 
@@ -2413,13 +2388,10 @@ LivingLifePage::LivingLifePage()
           mZKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 ) {
 
-	this->socket = new client::component::Socket(
-		&forceDisconnect,
-		&serverSocketConnected,
-		&connectedTime,
+	this->socket = new OneLife::game::component::Socket(
 		&serverSocketBuffer,
-		&numServerBytesRead,
-		&bytesInCount);
+		&bytesInCount,
+		&mServerSocket);
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
@@ -2845,8 +2817,10 @@ void LivingLifePage::clearLiveObjects() {
 LivingLifePage::~LivingLifePage() {
     printf( "Total received = %d bytes (+%d in headers), "
             "total sent = %d bytes (+%d in headers)\n",
-            numServerBytesRead, overheadServerBytesRead,
-            numServerBytesSent, overheadServerBytesSent );
+            this->socket->getTotalServerBytesRead(),
+			this->socket->getTotalServerOverheadBytesRead(),
+            numServerBytesSent,
+			this->socket->getTotalServerOverheadBytesSent() );
     
     mGlobalMessagesToDestroy.deallocateStringElements();
 
@@ -6516,14 +6490,13 @@ void LivingLifePage::step() {
         mouseDownFrames++;
         }
     
-    if( mServerSocket == -1 ) {
-        serverSocketConnected = false;
-        connectionMessageFade = 1.0f;
-        mServerSocket = openSocketConnection( serverIP, serverPort );
-        timeLastMessageSent = game_getCurrentTime();
-        
+    if( !this->socket->isConnected() )
+	{
+		OneLife::game::dataType::ServerSocket serverSocket = {serverIP, serverPort};
+		this->socket->connect(serverSocket);
+		connectionMessageFade = 1.0f;
         return;
-        }
+	}
     
 
     double pageLifeTime = game_getCurrentTime() - mPageStartTime;
@@ -6534,13 +6507,15 @@ void LivingLifePage::step() {
         }
     
 
-    if( serverSocketConnected ) {
+    if( this->socket->isConnected() )
+	{
         // we've heard from server, not waiting to connect anymore
         setWaiting( false );
-        }
-    else {
-        
-        if( pageLifeTime > 10 ) {
+	}
+    else
+	{
+        if( pageLifeTime > 10 )
+		{
             // having trouble connecting.
             closeSocket( mServerSocket );
             mServerSocket = -1;
@@ -6549,25 +6524,26 @@ void LivingLifePage::step() {
             setSignal( "connectionFailed" );
             
             return;
-            }
-        }
+		}
+	}
     
 
     // first, read all available data from server
-    char readSuccess = this->socket->readServerSocketFull( mServerSocket );
+    char readSuccess = this->socket->readMessage();
     
 
-    if( ! readSuccess ) {
+    if( ! readSuccess )
+	{
         
-        if( serverSocketConnected ) {    
-            double connLifeTime = game_getCurrentTime() - connectedTime;
-            
-            if( connLifeTime < 1 ) {
+        if( this->socket->isConnected() )
+		{
+            if( this->socket->getLastQueryLifeTime() < 1 )
+			{
                 // let player at least see waiting page
                 // avoid flicker
                 return;
-                }
-            }
+			}
+		}
         
 
         closeSocket( mServerSocket );
@@ -6587,7 +6563,7 @@ void LivingLifePage::step() {
             setSignal( "loginFailed" );
             }
         return;
-        }
+	}
     
     if( mLastMouseOverID != 0 ) {
         mLastMouseOverFade -= 0.01 * frameRateFactor;
@@ -7577,12 +7553,10 @@ void LivingLifePage::step() {
         }
     
     
-    if( serverSocketConnected && 
-        game_getCurrentTime() - timeLastMessageSent > 15 ) {
-        // more than 15 seconds without client making a move
-        // send KA to keep connection open
+    if( this->socket->isConnected() && this->socket->getTimeLastMessageSent() > 15 ) // more than 15 seconds without client making a move// send KA to keep connection open
+	{
         sendToServerSocket( (char*)"KA 0 0#" );
-        }
+	}
     
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) movementStep();
 	
@@ -14889,9 +14863,8 @@ void LivingLifePage::makeActive( char inFresh ) {
     
     waitForFrameMessages = false;
 
-    serverSocketConnected = false;
+    this->socket->disconnect();
     connectionMessageFade = 1.0f;
-    connectedTime = 0;
 
     
     mPreviousHomeDistStrings.deallocateStringElements();
@@ -17726,7 +17699,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         */
         case 'V':
             if( ! mSayField.isFocused() &&
-                serverSocketConnected &&
+                this->socket->isConnected() &&
                 SettingsManager::getIntSetting( "vogModeOn", 0 ) ) {
                 
                 if( ! vogMode ) {
@@ -17771,14 +17744,14 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             break;
         case 'N':
             if( ! mSayField.isFocused() &&
-                serverSocketConnected &&
+                this->socket->isConnected() &&
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGP 0 0#" );
                 }
             break;
         case 'M':
             if( ! mSayField.isFocused() &&
-                serverSocketConnected &&
+                this->socket->isConnected() &&
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGN 0 0#" );
                 }
@@ -18052,7 +18025,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                             else if( strstr( typedText,
                                              translate( "disconnectCommand" ) ) 
                                      == typedText ) {
-                                forceDisconnect = true;
+                                this->socket->close();
                                 }
                             else if( strstr( typedText,
                                              translate( "helpCommand" ) ) 

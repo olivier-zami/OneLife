@@ -112,6 +112,7 @@ OneLife::game::Application::Application(
 		mKeyboardHandlerVector( new SimpleVector<KeyboardHandlerGL*>() ),
 		mRedrawListenerVector( new SimpleVector<RedrawListenerGL*>() )
 {
+	this->connection = nullptr;
 	this->screenRenderer = new OneLife::game::ScreenRenderer();
 	mWantToMimimize = false;
 	mMinimized = false;
@@ -415,6 +416,21 @@ OneLife::game::Application::~Application()
 
 	}
 }
+
+void OneLife::game::Application::setConnection()
+{
+	/*TODO: uncomment when modification is finished
+	this->connection = new OneLife::game::component::Socket(
+			&serverSocketBuffer,
+			&bytesInCount);
+	*/
+}
+
+OneLife::game::component::Socket* OneLife::game::Application::getConnection()
+{
+	return this->connection;
+}
+
 
 OneLife::game::Application* OneLife::game::Application::selectScreen(unsigned int idScreen)
 {

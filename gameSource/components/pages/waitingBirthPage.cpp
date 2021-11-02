@@ -25,7 +25,7 @@ doublePair pos = { lastScreenViewCenter.x, lastScreenViewCenter.y };
 
 if( connectionMessageFade > 0 ) {
 
-if( serverSocketConnected ) {
+if( this->socket->isConnected() ) {
 connectionMessageFade -= 0.05 * frameRateFactor;
 
 if( connectionMessageFade < 0 ) {
@@ -58,7 +58,7 @@ delete [] message;
 
 
 
-if( ! serverSocketConnected ) {
+if( ! this->socket->isConnected() ) {
 // don't draw waiting message, not connected yet
 if( userReconnect ) {
 drawMessage( "waitingReconnect", pos );

@@ -6,34 +6,59 @@
 #define ONELIFE_SOCKET_H
 
 #include "../../../minorGems/util/SimpleVector.h"
+#include "OneLife/gameSource/dataTypes/web.h"
+#include "minorGems/network/SocketClient.h"
 
-namespace client::component
+namespace OneLife::game::component
 {
 	class Socket
 	{
 		public:
 			Socket(
-				char* forceDisconnect,
-				char* serverSocketConnected,
-				double* connectedTime,
 				SimpleVector<unsigned char>* serverSocketBuffer,
-				int* numServerBytesRead,
-				int* bytesInCount);
+				int* bytesInCount,
+				int* idServerSocket);
 
 			~Socket();
 
-			char readServerSocketFull( int inServerSocket );
+			void connect(OneLife::game::dataType::ServerSocket socket);
+			bool isConnected();
+			void sendMessage(OneLife::game::dataType::Message message);
+			char readMessage();
+			double getLastQueryLifeTime();
+			double getTimeLastMessageSent();
+			void disconnect();
+			void close();
+
+			void resetStats();
+			int getTotalServerBytesRead();
+			int getTotalServerBytesSent();
+			int getTotalServerOverheadBytesRead();
+			int getTotalServerOverheadBytesSent();
+			int getTotalServerMessageSent();
 
 		private:
-			char* forceDisconnect;
-			char* serverSocketConnected;
-			double* connectedTime;
+			int* idServerSocket;
+			char forceDisconnect;
+			char serverSocketConnected;
+			double connectedTime;
+			double timeLastMessageSent;
 			SimpleVector<unsigned char>* serverSocketBuffer;
-			int* numServerBytesRead;
+			int numServerBytesRead;
+			int numServerBytesSent;
+			int overheadServerBytesRead;
+			int overheadServerBytesSent;
+			int numServerMessageSent;
+			int bytesOutCount = 0;
 			int* bytesInCount;
 	};
 }
 
+int readFromSocket( int inHandle, unsigned char *inDataBuffer, int inBytesToRead );
+int openSocketConnection( const char *inNumericalAddress, int inPort );
+int sendToSocket( int inHandle, unsigned char *inData, int inDataLength );
+void closeSocket( int inHandle );
+Socket *getSocketByHandle( int inHandle );
 int readFromSocket( int inHandle, unsigned char *inDataBuffer, int inBytesToRead );
 
 #endif //ONELIFE_SOCKET_H

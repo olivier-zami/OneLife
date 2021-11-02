@@ -577,7 +577,7 @@ class LivingLifePage : public GamePage, public ActionListener {
 			bool debugMessageEnabled;
 		}feature;
 
-		client::component::Socket* socket;
+		OneLife::game::component::Socket* socket;
         
         int *mMapBiomes;
         int *mMapFloors;

@@ -7,6 +7,20 @@
 
 #include "minorGems/network/web/WebRequest.h"
 
+namespace OneLife::game::dataType
+{
+	typedef struct serverSocket
+	{
+		char* ip;
+		int port;
+	}ServerSocket;
+
+	typedef struct message
+	{
+		char* body;
+	}Message;
+}
+
 typedef struct WebRequestRecord {
 	int handle;
 	WebRequest *request;
