@@ -17,6 +17,7 @@
 #include "minorGems/system/Time.h"
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
+#include "OneLife/gameSource/components/engines/screenRenderer.h"
 
 namespace OneLife::game
 {
@@ -35,6 +36,7 @@ namespace OneLife::game
 						SceneHandlerGL *inSceneHandler = NULL  );
 			~Application();
 
+			OneLife::game::Application* selectScreen(unsigned int idScreen =0);
 			void start();
 
 			const char *getCustomRecordedGameData();
@@ -414,7 +416,7 @@ namespace OneLife::game
 
 
 		//private:
-			//ScreenGL *screenGL;
+			OneLife::game::ScreenRenderer* screenRenderer;
 
 			void setupSurface();
 

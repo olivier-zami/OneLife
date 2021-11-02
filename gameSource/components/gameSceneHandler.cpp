@@ -55,6 +55,8 @@
 #include "OneLife/gameSource/TwinPage.h"
 #include "OneLife/gameSource/PollPage.h"
 #include "OneLife/gameSource/GeneticHistoryPage.h"
+#include "OneLife/gameSource/dataTypes/screen/loadingScreen.h"
+#include "OneLife/gameSource/procedures/graphics/screens.h"
 
 
 #ifdef USE_JPEG
@@ -94,16 +96,8 @@ extern SDL_Cursor *ourCursor;
 extern Image **screenShotImageDest;
 extern char measureFrameRate;
 extern SimpleVector<int> possibleFrameRates;
-extern int idealTargetFrameRate;
 extern int targetFrameRate;
 extern char countingOnVsync;
-extern int pixelZoomFactor;
-extern int gameWidth;
-extern int gameHeight;
-extern int pauseOnMinimize;
-extern int cursorMode;
-extern double emulatedCursorScale;
-extern int soundSampleRate;
 extern char shouldTakeScreenshot;
 extern char manualScreenShot;
 extern char loadingDone;
@@ -140,6 +134,9 @@ extern char *userTwinCode;
 extern char blendOutputFramePairs;
 extern Font *numbersFontFixed;
 extern float blendOutputFrameFraction;
+extern doublePair lastScreenViewCenter;
+extern double viewWidth;
+extern char measureRecorded;
 
 // need to track these separately from SDL_GetModState so that
 // we replay isCommandKeyDown properly during recorded game playback
@@ -153,14 +150,12 @@ char lShiftDown = false;
 char rShiftDown = false;
 char *screenShotPrefix = NULL;//TODO camera var ?
 char outputAllFrames = false;// should each and every frame be saved to disk? // useful for making videos//TODO camera !
-char loadingMessageShown = false;
 char loadingFailedFlag = false;
 char *shutdownMessage = NULL;
 int numPixelsDrawn = 0;
+int mouseDownSteps = 1000;
 
 // show measure screen longer if there's a vsync warning
-static double noWarningSecondsToMeasure = 1;
-static double secondsToMeasure = noWarningSecondsToMeasure;
 static float viewCenterX = 0;
 static float viewCenterY = 0;
 char mouseWorldCoordinates = true;
@@ -170,20 +165,11 @@ int screenHeight = 480;
 float visibleWidth = -1;
 float visibleHeight = -1;
 static char ignoreNextMouseEvent = false;
-static int mouseDownSteps = 1000;
-static char mouseRightDown = false;
 static char mouseDown = false;
 static int lastMouseX = 0;
 static int lastMouseY = 0;
 static int lastMouseDownX = 0;
 static int lastMouseDownY = 0;
-static char measureRecorded = false;
-static int numFramesSkippedBeforeMeasure = 0;
-static int numFramesToSkipBeforeMeasure = 30;
-static double startMeasureTime = 0;
-static double warningSecondsToMeasure = 3;
-static int numFramesMeasured = 0;
-static char startMeasureTimeRecorded = false;
 char frameDrawerInited = false;
 static int xCoordToIgnore, yCoordToIgnore;// start with last click expired
 static int nextShotNumber = -1;
@@ -247,582 +233,18 @@ void GameSceneHandler::initFromFiles() {
 
 void GameSceneHandler::drawScene() {
 	numPixelsDrawn = 0;
-	/*
-	glClearColor( mBackgroundColor->r,
-				  mBackgroundColor->g,
-				  mBackgroundColor->b,
-				  mBackgroundColor->a );
-	*/
+	//!Screen selection
+	//!FIND LEG000001
 
 
-
-
-	// do this here, because it involves game_getCurrentTime() calls
-	// which are recorded, and aren't available for playback in fireRedraw
-	mNumFrames ++;
-
-	if( mPrintFrameRate ) {
-
-		if( mFrameBatchStartTimeSeconds == -1 ) {
-			mFrameBatchStartTimeSeconds = game_getCurrentTime();
-		}
-
-		if( mNumFrames % mFrameBatchSize == 0 ) {
-			// finished a batch
-
-			double timeDelta =
-					game_getCurrentTime() - mFrameBatchStartTimeSeconds;
-
-			double actualFrameRate =
-					(double)mFrameBatchSize / (double)timeDelta;
-
-			//AppLog::getLog()->logPrintf(
-			//    Log::DETAIL_LEVEL,
-			printf(
-					"Frame rate = %f frames/second\n", actualFrameRate );
-
-			mFrameBatchStartTimeSeconds = game_getCurrentTime();
-
-			// don't update reported framerate if this batch involved a pause
-			// or if still loading
-			if( !mPausedDuringFrameBatch && !mLoadingDuringFrameBatch ) {
-				mLastFrameRate = actualFrameRate;
-			}
-			else {
-				// consider measuring next frame batch
-				// (unless a pause or loading occurs there too)
-				mPausedDuringFrameBatch = false;
-				mLoadingDuringFrameBatch = false;
-			}
-		}
-	}
-
-
-
-
+	this->doFeatureComputeFrame();
 
 	redoDrawMatrix();
-
 
 	glDisable( GL_CULL_FACE );
 	glDisable( GL_DEPTH_TEST );
 
-	//!Screen selection
-	if( demoMode ) {
 
-		if( ! isDemoCodePanelShowing() ) {
-
-			// stop demo mode when panel done
-			demoMode = false;
-
-			mScreen->addMouseHandler( this );
-			mScreen->addKeyboardHandler( this );
-
-			screen->startRecordingOrPlayback();
-		}
-	}
-	else if( writeFailed ) {
-		drawString( translate( "writeFailed" ), true );
-	}
-	else if( !screen->isPlayingBack() && measureFrameRate ) {
-		if( !measureRecorded ) {
-			screen->useFrameSleep( false );
-		}
-
-
-		if( numFramesSkippedBeforeMeasure < numFramesToSkipBeforeMeasure ) {
-			numFramesSkippedBeforeMeasure++;
-
-			drawString( translate( "measuringFPS" ), true );
-		}
-		else if( ! startMeasureTimeRecorded ) {
-			startMeasureTime = Time::getCurrentTime();
-			startMeasureTimeRecorded = true;
-
-			drawString( translate( "measuringFPS" ), true );
-		}
-		else {
-
-			numFramesMeasured++;
-
-			double totalTime = Time::getCurrentTime() - startMeasureTime;
-
-			double timePerFrame = totalTime / ( numFramesMeasured );
-
-			double frameRate = 1 / timePerFrame;
-
-
-			int closestTargetFrameRate = 0;
-			double closestFPSDiff = 9999999;
-
-			for( int i=0; i<possibleFrameRates.size(); i++ ) {
-
-				int v = possibleFrameRates.getElementDirect( i );
-
-				double diff = fabs( frameRate - v );
-
-				if( diff < closestFPSDiff ) {
-					closestTargetFrameRate = v;
-					closestFPSDiff = diff;
-				}
-			}
-
-			double overAllowFactor = 1.05;
-
-
-
-			if( numFramesMeasured > 10 &&
-				frameRate > overAllowFactor * closestTargetFrameRate ) {
-
-				secondsToMeasure = warningSecondsToMeasure;
-			}
-			else {
-				secondsToMeasure = noWarningSecondsToMeasure;
-			}
-
-			if( totalTime <= secondsToMeasure ) {
-				char *message = autoSprintf( "%s\n%0.2f\nFPS",
-											 translate( "measuringFPS" ),
-											 frameRate );
-
-
-				drawString( message, true );
-
-				delete [] message;
-			}
-
-			if( totalTime > secondsToMeasure ) {
-
-				if( ! measureRecorded ) {
-
-					if( targetFrameRate == idealTargetFrameRate ) {
-						// not invoking halfFrameRate
-
-						AppLog::infoF( "Measured frame rate = %f fps\n",
-									   frameRate );
-						AppLog::infoF(
-								"Closest possible frame rate = %d fps\n",
-								closestTargetFrameRate );
-
-						if( frameRate >
-							overAllowFactor * closestTargetFrameRate ) {
-
-							AppLog::infoF(
-									"Vsync to enforce closested frame rate of "
-									"%d fps doesn't seem to be in effect.\n",
-									closestTargetFrameRate );
-
-							AppLog::infoF(
-									"Will sleep each frame to enforce desired "
-									"frame rate of %d fps\n",
-									idealTargetFrameRate );
-
-							targetFrameRate = idealTargetFrameRate;
-
-							screen->useFrameSleep( true );
-							countingOnVsync = false;
-						}
-						else {
-							AppLog::infoF(
-									"Vsync seems to be enforcing an allowed frame "
-									"rate of %d fps.\n", closestTargetFrameRate );
-
-							targetFrameRate = closestTargetFrameRate;
-
-							screen->useFrameSleep( false );
-							countingOnVsync = true;
-						}
-					}
-					else {
-						// half frame rate must be set
-
-						AppLog::infoF(
-								"User has halfFrameRate set, so we're going "
-								"to manually sleep to enforce a target "
-								"frame rate of %d fps.\n", targetFrameRate );
-						screen->useFrameSleep( true );
-						countingOnVsync = false;
-					}
-
-
-					screen->setFullFrameRate( targetFrameRate );
-					measureRecorded = true;
-				}
-
-				if( !countingOnVsync ) {
-					// show warning message
-					char *message =
-							autoSprintf( "%s\n%s\n\n%s\n\n\n%s",
-										 translate( "vsyncWarning" ),
-										 translate( "vsyncWarning2" ),
-										 translate( "vsyncWarning3" ),
-										 translate( "vsyncContinueMessage" ) );
-					drawString( message, true );
-
-					delete [] message;
-				}
-				else {
-					// auto-save it now
-					saveFrameRateSettings();
-					screen->startRecordingOrPlayback();
-					measureFrameRate = false;
-				}
-			}
-		}
-
-		return;
-	}
-	else if( !loadingMessageShown ) {
-		drawString( translate( "loading" ), true );
-
-		loadingMessageShown = true;
-	}
-	else if( loadingFailedFlag ) {
-		drawString( loadingFailedMessage, true );
-	}
-	else if( !writeFailed && !loadingFailedFlag && !frameDrawerInited ) {
-		drawString( translate( "loading" ), true );
-
-		initFrameDrawer( pixelZoomFactor * gameWidth,
-						 pixelZoomFactor * gameHeight,
-						 targetFrameRate,
-						 screen->getCustomRecordedGameData(),
-						 screen->isPlayingBack() );
-
-		int readCursorMode = SettingsManager::getIntSetting( "cursorMode", -1 );
-
-
-		if( readCursorMode < 0 ) {
-			// never set before
-
-			// check if we are ultrawidescreen
-			char ultraWide = false;
-
-			const SDL_VideoInfo* currentScreenInfo = SDL_GetVideoInfo();
-
-			int currentW = currentScreenInfo->current_w;
-			int currentH = currentScreenInfo->current_h;
-
-			double aspectRatio = (double)currentW / (double)currentH;
-
-			// give a little wiggle room above 16:9
-			// ultrawide starts at 21:9
-			if( aspectRatio > 18.0 / 9.0 ) {
-				ultraWide = true;
-			}
-
-			if( ultraWide ) {
-				// drawn cursor, because system native cursor
-				// is off-target on ultrawide displays
-
-				setCursorMode( 1 );
-
-				double startingScale = 1.0;
-
-				int forceBigPointer =
-						SettingsManager::getIntSetting( "forceBigPointer", 0 );
-				if( forceBigPointer ||
-					screenWidth > 1920 || screenHeight > 1080 ) {
-
-					startingScale *= 2;
-				}
-				setEmulatedCursorScale( startingScale );
-			}
-		}
-		else {
-			setCursorMode( readCursorMode );
-
-			double readCursorScale =
-					SettingsManager::
-					getDoubleSetting( "emulatedCursorScale", -1.0 );
-
-			if( readCursorScale >= 1 ) {
-				setEmulatedCursorScale( readCursorScale );
-			}
-		}
-
-
-
-		frameDrawerInited = true;
-
-		// this is a good time, a while after launch, to do the post
-		// update step
-		postUpdate();
-	}
-	else if( !writeFailed && !loadingFailedFlag  ) {
-		// demo mode done or was never enabled
-
-		// carry on with game
-
-
-		// auto-pause when minimized
-		if( pauseOnMinimize && screen->isMinimized() ) {
-			mPaused = true;
-		}
-
-
-		// don't update while paused
-		char update = !mPaused;
-
-		drawFrame( update );
-
-		if( cursorMode > 0 ) {
-			// draw emulated cursor
-
-			// draw using same projection used to drawFrame
-			// so that emulated cursor lines up with screen position of buttons
-
-			float xf, yf;
-			screenToWorld( lastMouseX, lastMouseY, &xf, &yf );
-
-			double x = xf;
-			double y = yf;
-
-			double sizeFactor = 25 * emulatedCursorScale;
-
-			// white border of pointer
-
-			setDrawColor( 1, 1, 1, 1 );
-
-			double vertsA[18] =
-					{ // body of pointer
-							x, y,
-							x, y - sizeFactor * 0.8918,
-							x + sizeFactor * 0.6306, y - sizeFactor * 0.6306,
-							// left collar of pointer
-							x, y,
-							x, y - sizeFactor * 1.0,
-							x + sizeFactor * 0.2229, y - sizeFactor * 0.7994,
-							// right collar of pointer
-							x + sizeFactor * 0.4077, y - sizeFactor * 0.7229,
-							x + sizeFactor * 0.7071, y - sizeFactor * 0.7071,
-							x, y };
-
-			drawTriangles( 3, vertsA );
-
-			// neck of pointer
-			double vertsB[8] = {
-					x + sizeFactor * 0.2076, y - sizeFactor * 0.7625,
-					x + sizeFactor * 0.376, y - sizeFactor * 1.169,
-					x + sizeFactor * 0.5607, y - sizeFactor * 1.0924,
-					x + sizeFactor * 0.3924, y - sizeFactor * 0.6859 };
-
-			drawQuads( 1, vertsB );
-
-
-			// black fill of pointer
-			setDrawColor( 0, 0, 0, 1 );
-
-			double vertsC[18] =
-					{ // body of pointer
-							x + sizeFactor * 0.04, y - sizeFactor * 0.0966,
-							x + sizeFactor * 0.04, y - sizeFactor * 0.814,
-							x + sizeFactor * 0.5473, y - sizeFactor * 0.6038,
-							// left collar of pointer
-							x + sizeFactor * 0.04, y - sizeFactor * 0.0966,
-							x + sizeFactor * 0.04, y - sizeFactor * 0.9102,
-							x + sizeFactor * 0.2382, y - sizeFactor * 0.7319,
-							// right collar of pointer
-							x + sizeFactor * 0.3491, y - sizeFactor * 0.6859,
-							x + sizeFactor * 0.6153, y - sizeFactor * 0.6719,
-							x + sizeFactor * 0.04, y - sizeFactor * 0.0966 };
-
-			drawTriangles( 3, vertsC );
-
-			// neck of pointer
-			double vertsD[8] = {
-					x + sizeFactor * 0.2229, y - sizeFactor * 0.6949,
-					x + sizeFactor * 0.3976, y - sizeFactor * 1.1167,
-					x + sizeFactor * 0.5086, y - sizeFactor * 1.0708,
-					x + sizeFactor * 0.3338, y - sizeFactor * 0.649 };
-
-			drawQuads( 1, vertsD );
-		}
-
-
-		if( recordAudio ) {
-			// frame-accurate audio recording
-			int samplesPerFrame = soundSampleRate / targetFrameRate;
-
-			// stereo 16-bit
-			int bytesPerSample = 4;
-
-			int numSampleBytes = bytesPerSample * samplesPerFrame;
-
-			Uint8 *bytes = new Uint8[ numSampleBytes ];
-
-			if( !bufferSizeHinted ) {
-				hintBufferSize( numSampleBytes );
-
-				soundSpriteMixingBufferL = new double[ samplesPerFrame ];
-				soundSpriteMixingBufferR = new double[ samplesPerFrame ];
-
-				bufferSizeHinted = true;
-			}
-
-			audioCallback( NULL, bytes, numSampleBytes );
-
-			delete [] bytes;
-		}
-
-
-		if( screen->isPlayingBack() && screen->shouldShowPlaybackDisplay() )
-		{
-
-			char *progressString = autoSprintf(
-					"%s %.1f\n%s\n%s",
-					translate( "playbackTag" ),
-					screen->getPlaybackDoneFraction() * 100,
-					translate( "playbackToggleMessage" ),
-					translate( "playbackEndMessage" ) );
-
-			drawString( progressString );
-
-			delete [] progressString;
-
-		}
-
-
-		if( screen->isPlayingBack() && screen->shouldShowPlaybackDisplay() && showMouseDuringPlayback() )
-		{
-			// draw mouse position info
-
-			if( mouseDown ) {
-				if( isLastMouseButtonRight() ) {
-					mouseRightDown = true;
-					setDrawColor( 1, 0, 1, 0.5 );
-				}
-				else {
-					mouseRightDown = false;
-					setDrawColor( 1, 0, 0, 0.5 );
-				}
-			}
-			else {
-				setDrawColor( 1, 1, 1, 0.5 );
-			}
-
-			// step mouse click animation even after mouse released
-			// (too hard to see it otherwise for fast clicks)
-			mouseDownSteps ++;
-
-
-			float sizeFactor = 5.0f;
-			float clickSizeFactor = 5.0f;
-			char showClick = false;
-			float clickFade = 1.0f;
-
-			int mouseClickDisplayDuration = 20 * targetFrameRate / 60.0;
-
-			if( mouseDownSteps < mouseClickDisplayDuration ) {
-
-				float mouseClickProgress =
-						mouseDownSteps / (float)mouseClickDisplayDuration;
-
-				clickSizeFactor *= 5 * mouseClickProgress;
-				showClick = true;
-
-				clickFade *= 1.0f - mouseClickProgress;
-			}
-
-
-			// mouse coordinates in screen space
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
-
-
-			// viewport is square of largest dimension, centered on screen
-
-			int bigDimension = screenWidth;
-
-			if( screenHeight > bigDimension ) {
-				bigDimension = screenHeight;
-			}
-
-			float excessX = ( bigDimension - screenWidth ) / 2;
-			float excessY = ( bigDimension - screenHeight ) / 2;
-
-			glOrtho( -excessX, -excessX + bigDimension,
-					 -excessY + bigDimension, -excessY,
-					 -1.0f, 1.0f );
-
-			glViewport( -excessX,
-						-excessY,
-						bigDimension,
-						bigDimension );
-
-			glMatrixMode(GL_MODELVIEW);
-
-
-			double verts[8] =
-					{lastMouseX - sizeFactor, lastMouseY - sizeFactor,
-					 lastMouseX - sizeFactor, lastMouseY + sizeFactor,
-					 lastMouseX + sizeFactor, lastMouseY + sizeFactor,
-					 lastMouseX + sizeFactor, lastMouseY - sizeFactor};
-
-			drawQuads( 1, verts );
-
-
-			double centerSize = 2;
-
-
-			if( showClick ) {
-				double clickVerts[8] =
-						{lastMouseDownX - clickSizeFactor,
-						 lastMouseDownY - clickSizeFactor,
-						 lastMouseDownX - clickSizeFactor,
-						 lastMouseDownY + clickSizeFactor,
-						 lastMouseDownX + clickSizeFactor,
-						 lastMouseDownY + clickSizeFactor,
-						 lastMouseDownX + clickSizeFactor,
-						 lastMouseDownY - clickSizeFactor};
-
-				if( mouseDown ) {
-					if( isLastMouseButtonRight() ) {
-						setDrawColor( 1, 0, 1, clickFade );
-					}
-					else {
-						setDrawColor( 1, 0, 0, clickFade );
-					}
-				}
-				else {
-					if( mouseRightDown ) {
-						setDrawColor( 1, 1, 0, clickFade );
-					}
-					else {
-						setDrawColor( 0, 1, 0, clickFade );
-					}
-				}
-
-				drawQuads( 1, clickVerts );
-
-				// draw pin-point at center of click
-				double clickCenterVerts[8] =
-						{lastMouseDownX - centerSize,
-						 lastMouseDownY - centerSize,
-						 lastMouseDownX - centerSize,
-						 lastMouseDownY + centerSize,
-						 lastMouseDownX + centerSize,
-						 lastMouseDownY + centerSize,
-						 lastMouseDownX + centerSize,
-						 lastMouseDownY - centerSize};
-
-				drawQuads( 1, clickCenterVerts );
-			}
-
-
-			// finally, darker black center over whole thing
-			double centerVerts[8] =
-					{lastMouseX - centerSize, lastMouseY - centerSize,
-					 lastMouseX - centerSize, lastMouseY + centerSize,
-					 lastMouseX + centerSize, lastMouseY + centerSize,
-					 lastMouseX + centerSize, lastMouseY - centerSize};
-
-			setDrawColor( 0, 0, 0, 0.5 );
-			drawQuads( 1, centerVerts );
-
-		}
-
-	}
 
 
 	if( visibleWidth != -1 && visibleHeight != -1 )
@@ -923,6 +345,48 @@ void GameSceneHandler::drawScene() {
 	//printf( "%d pixels drawn (%.2F MB textures resident)\n",
 	//        numPixelsDrawn, totalLoadedTextureBytes / ( 1024.0 * 1024.0 ) );
 }
+
+void GameSceneHandler::doFeatureComputeFrame()
+{
+	// do this here, because it involves game_getCurrentTime() calls
+	// which are recorded, and aren't available for playback in fireRedraw
+	mNumFrames ++;
+
+	if( mPrintFrameRate ) {
+
+		if( mFrameBatchStartTimeSeconds == -1 ) {
+			mFrameBatchStartTimeSeconds = game_getCurrentTime();
+		}
+
+		if( mNumFrames % mFrameBatchSize == 0 ) {
+			// finished a batch
+
+			double timeDelta = game_getCurrentTime() - mFrameBatchStartTimeSeconds;
+
+			double actualFrameRate = (double)mFrameBatchSize / (double)timeDelta;
+
+			//AppLog::getLog()->logPrintf(
+			//    Log::DETAIL_LEVEL,
+			printf(
+					"Frame rate = %f frames/second\n", actualFrameRate );
+
+			mFrameBatchStartTimeSeconds = game_getCurrentTime();
+
+			// don't update reported framerate if this batch involved a pause
+			// or if still loading
+			if( !mPausedDuringFrameBatch && !mLoadingDuringFrameBatch ) {
+				mLastFrameRate = actualFrameRate;
+			}
+			else {
+				// consider measuring next frame batch
+				// (unless a pause or loading occurs there too)
+				mPausedDuringFrameBatch = false;
+				mLoadingDuringFrameBatch = false;
+			}
+		}
+	}
+}
+
 
 void GameSceneHandler::mouseMoved( int inX, int inY ) {
 	if( ignoreNextMouseEvent ) {

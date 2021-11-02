@@ -19,12 +19,15 @@ game.cpp \
 application.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
+components/engines/screenRenderer.cpp \
 components/gameSceneHandler.cpp \
 components/keyboard.cpp \
 components/socket.cpp \
+dataTypes/screen/loadingScreen.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
+procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/game.cpp \
 spriteBank.cpp \

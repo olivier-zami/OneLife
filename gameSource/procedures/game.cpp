@@ -1212,8 +1212,6 @@ void drawFrame( char inUpdate ) {
 
 
     // not paused
-
-
     // fade pause screen out
     if( pauseScreenFade > 0 ) {
         pauseScreenFade -= ( 1.0 / 30 ) * frameRateFactor;
@@ -1291,7 +1289,8 @@ void drawFrame( char inUpdate ) {
     stepPhotos();
     
 
-    if( currentGamePage != NULL ) {
+    if( currentGamePage != NULL )
+	{
         currentGamePage->base_step();
 
 
@@ -1304,6 +1303,7 @@ void drawFrame( char inUpdate ) {
                         progress = initSpriteBankStep();
                         loadingPage->setCurrentProgress( progress );
                         }
+
                     
                     if( progress == 1.0 ) {
                         initSpriteBankFinish();
@@ -1566,10 +1566,8 @@ void drawFrame( char inUpdate ) {
                     initMusicPlayer();
                     setMusicLoudness( musicLoudness );
                     
-                    mapPullMode = 
-                        SettingsManager::getIntSetting( "mapPullMode", 0 );
-                    autoLogIn = 
-                        SettingsManager::getIntSetting( "autoLogIn", 0 );
+                    mapPullMode = SettingsManager::getIntSetting( "mapPullMode", 0 );
+                    autoLogIn = SettingsManager::getIntSetting( "autoLogIn", 0 );
 
                     if( userEmail == NULL || accountKey == NULL ) {
                         autoLogIn = false;
@@ -1578,6 +1576,7 @@ void drawFrame( char inUpdate ) {
                     currentGamePage = existingAccountPage;
                     currentGamePage->base_makeActive( true );
                 }
+
             }
         else if( currentGamePage == settingsPage ) {
             if( settingsPage->checkSignal( "back" ) ) {
@@ -2021,23 +2020,13 @@ void drawFrame( char inUpdate ) {
                 quitGame();
                 }
             }
-        }
-    
+	}
 
-
-    // now draw stuff AFTER all updates
-    drawFrameNoUpdate( true );
-
-
-
-
-
-
-    // draw tail end of pause screen, if it is still visible
-    if( pauseScreenFade > 0 ) {
-        drawPauseScreen();
-        }
-    }
+	printf("\n=======>render frame (0)");
+    //drawFrameNoUpdate( true );// now draw stuff AFTER all updates
+	printf("\n=======>render frame (1)");
+    if( pauseScreenFade > 0 ) drawPauseScreen(); // draw tail end of pause screen, if it is still visible
+}
 
 
 

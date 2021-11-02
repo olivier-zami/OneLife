@@ -19,8 +19,10 @@
 #include "minorGems/system/Thread.h"
 #include "minorGems/crypto/hashes/sha1.h"
 #include "minorGems/formats/encodingUtils.h"
+#include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "OneLife/gameSource/components/keyboard.h"
 #include "OneLife/gameSource/components/gameSceneHandler.h"
+#include "OneLife/gameSource/components/engines/screenRenderer.h"
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
@@ -34,9 +36,53 @@ extern unsigned char keyMap[256];
 extern char keyMapOn;
 extern GameSceneHandler *sceneHandler;
 
+//!globals screen selection
+extern char demoMode;
+extern char writeFailed;
+extern SimpleVector<int> possibleFrameRates;
+extern int idealTargetFrameRate;
+extern int targetFrameRate;
+extern char countingOnVsync;
+extern char loadingFailedFlag;
+extern char *loadingFailedMessage;
+extern char frameDrawerInited;
+extern int gameWidth;
+extern int gameHeight;
+extern int pixelZoomFactor;
+extern int pauseOnMinimize;
+extern int cursorMode;
+extern double emulatedCursorScale;
+extern char recordAudio;
+extern int soundSampleRate;
+extern char bufferSizeHinted;
+extern double *soundSpriteMixingBufferL;
+extern double *soundSpriteMixingBufferR;
+extern int mouseDownSteps;
+extern int screenWidth;
+extern int screenHeight;
+extern char measureFrameRate;
+
 OneLife::game::Application *currentScreenGL;
 long timeSinceLastFrameMS = 0;// FOVMOD NOTE:  Change 1/3 - Take these lines during the merge process
 char screenGLStencilBufferSupported = false;
+char measureRecorded = false;
+char loadingMessageShown = false;
+
+static int numFramesSkippedBeforeMeasure = 0;
+static int numFramesToSkipBeforeMeasure = 30;
+static char startMeasureTimeRecorded = false;
+static double startMeasureTime = 0;
+static int numFramesMeasured = 0;
+static double noWarningSecondsToMeasure = 1;
+static double secondsToMeasure = noWarningSecondsToMeasure;
+static double warningSecondsToMeasure = 3;
+static char mouseDown = false;//TODO: get mouse position
+static char mouseRightDown = false;
+static int lastMouseX = 0;
+static int lastMouseY = 0;
+static int lastMouseDownX = 0;
+static int lastMouseDownY = 0;
+static char mPaused = false;
 
 OneLife::game::Application::Application(
 		int inWide, int inHigh, char inFullScreen,
@@ -64,9 +110,9 @@ OneLife::game::Application::Application(
 		mViewOrientation( new Angle3D( 0, 0, 0 ) ),
 		mMouseHandlerVector( new SimpleVector<MouseHandlerGL*>() ),
 		mKeyboardHandlerVector( new SimpleVector<KeyboardHandlerGL*>() ),
-		//mSceneHandlerVector( new SimpleVector<SceneHandlerGL*>() ),
 		mRedrawListenerVector( new SimpleVector<RedrawListenerGL*>() )
 {
+	this->screenRenderer = new OneLife::game::ScreenRenderer();
 	mWantToMimimize = false;
 	mMinimized = false;
 	mWasFullScreenBeforeMinimize = false;
@@ -368,6 +414,517 @@ OneLife::game::Application::~Application()
 		}
 
 	}
+}
+
+OneLife::game::Application* OneLife::game::Application::selectScreen(unsigned int idScreen)
+{
+	printf("\n\n====>Select screen !!!!");
+	//!SEARCH LEG000001 for legacy place
+	if( demoMode )
+	{
+		if( ! isDemoCodePanelShowing() )
+		{
+			demoMode = false;// stop demo mode when panel done
+			//mScreen->addMouseHandler( this );
+			//mScreen->addKeyboardHandler( this );
+			//screen->startRecordingOrPlayback();
+		}
+	}
+	else if( writeFailed )
+	{
+		drawString( translate( "writeFailed" ), true );
+	}
+	else if( !this->isPlayingBack() && measureFrameRate ) {
+		if( !measureRecorded )
+		{
+			this->useFrameSleep( false );
+		}
+
+		if( numFramesSkippedBeforeMeasure < numFramesToSkipBeforeMeasure ) {
+			numFramesSkippedBeforeMeasure++;
+
+			drawString( translate( "measuringFPS" ), true );
+		}
+		else if( ! startMeasureTimeRecorded ) {
+			startMeasureTime = Time::getCurrentTime();
+			startMeasureTimeRecorded = true;
+
+			drawString( translate( "measuringFPS" ), true );
+		}
+		else {
+
+			numFramesMeasured++;
+
+			double totalTime = Time::getCurrentTime() - startMeasureTime;
+
+			double timePerFrame = totalTime / ( numFramesMeasured );
+
+			double frameRate = 1 / timePerFrame;
+
+
+			int closestTargetFrameRate = 0;
+			double closestFPSDiff = 9999999;
+
+			for( int i=0; i<possibleFrameRates.size(); i++ ) {
+
+				int v = possibleFrameRates.getElementDirect( i );
+
+				double diff = fabs( frameRate - v );
+
+				if( diff < closestFPSDiff ) {
+					closestTargetFrameRate = v;
+					closestFPSDiff = diff;
+				}
+			}
+
+			double overAllowFactor = 1.05;
+
+
+
+			if( numFramesMeasured > 10 &&
+				frameRate > overAllowFactor * closestTargetFrameRate ) {
+
+				secondsToMeasure = warningSecondsToMeasure;
+			}
+			else {
+				secondsToMeasure = noWarningSecondsToMeasure;
+			}
+
+			if( totalTime <= secondsToMeasure ) {
+				char *message = autoSprintf( "%s\n%0.2f\nFPS",
+						translate( "measuringFPS" ),
+						frameRate );
+
+
+				drawString( message, true );
+
+				delete [] message;
+			}
+
+			if( totalTime > secondsToMeasure ) {
+
+				if( ! measureRecorded ) {
+
+					if( targetFrameRate == idealTargetFrameRate ) {
+						// not invoking halfFrameRate
+
+						AppLog::infoF( "Measured frame rate = %f fps\n",
+								frameRate );
+						AppLog::infoF(
+								"Closest possible frame rate = %d fps\n",
+								closestTargetFrameRate );
+
+						if( frameRate >
+							overAllowFactor * closestTargetFrameRate ) {
+
+							AppLog::infoF(
+									"Vsync to enforce closested frame rate of "
+									"%d fps doesn't seem to be in effect.\n",
+									closestTargetFrameRate );
+
+							AppLog::infoF(
+									"Will sleep each frame to enforce desired "
+									"frame rate of %d fps\n",
+									idealTargetFrameRate );
+
+							targetFrameRate = idealTargetFrameRate;
+
+							this->useFrameSleep( true );
+							countingOnVsync = false;
+						}
+						else {
+							AppLog::infoF(
+									"Vsync seems to be enforcing an allowed frame "
+									"rate of %d fps.\n", closestTargetFrameRate );
+
+							targetFrameRate = closestTargetFrameRate;
+
+							this->useFrameSleep( false );
+							countingOnVsync = true;
+						}
+					}
+					else {
+						// half frame rate must be set
+
+						AppLog::infoF(
+								"User has halfFrameRate set, so we're going "
+								"to manually sleep to enforce a target "
+								"frame rate of %d fps.\n", targetFrameRate );
+						this->useFrameSleep( true );
+						countingOnVsync = false;
+					}
+
+
+					this->setFullFrameRate( targetFrameRate );
+					measureRecorded = true;
+				}
+
+				if( !countingOnVsync ) {
+					// show warning message
+					char *message =
+							autoSprintf( "%s\n%s\n\n%s\n\n\n%s",
+									translate( "vsyncWarning" ),
+									translate( "vsyncWarning2" ),
+									translate( "vsyncWarning3" ),
+									translate( "vsyncContinueMessage" ) );
+					drawString( message, true );
+
+					delete [] message;
+				}
+				else {
+					// auto-save it now
+					saveFrameRateSettings();
+					this->startRecordingOrPlayback();
+					measureFrameRate = false;
+				}
+			}
+		}
+		//return;
+	}
+	else if( !loadingMessageShown ) {
+		drawString( translate( "loading" ), true );
+
+		loadingMessageShown = true;
+	}
+	else if( loadingFailedFlag ) {
+		drawString( loadingFailedMessage, true );
+	}
+	else if( !writeFailed && !loadingFailedFlag && !frameDrawerInited ) {
+		drawString( translate( "loading" ), true );
+
+		initFrameDrawer( pixelZoomFactor * gameWidth,
+				pixelZoomFactor * gameHeight,
+				targetFrameRate,
+				this->getCustomRecordedGameData(),
+				this->isPlayingBack() );//!currentGamePage initialized inside
+
+		int readCursorMode = SettingsManager::getIntSetting( "cursorMode", -1 );
+
+
+		if( readCursorMode < 0 ) {
+			// never set before
+
+			// check if we are ultrawidescreen
+			char ultraWide = false;
+
+			const SDL_VideoInfo* currentScreenInfo = SDL_GetVideoInfo();
+
+			int currentW = currentScreenInfo->current_w;
+			int currentH = currentScreenInfo->current_h;
+
+			double aspectRatio = (double)currentW / (double)currentH;
+
+			// give a little wiggle room above 16:9
+			// ultrawide starts at 21:9
+			if( aspectRatio > 18.0 / 9.0 ) {
+				ultraWide = true;
+			}
+
+			if( ultraWide ) {
+				// drawn cursor, because system native cursor
+				// is off-target on ultrawide displays
+
+				setCursorMode( 1 );
+
+				double startingScale = 1.0;
+
+				int forceBigPointer =
+						SettingsManager::getIntSetting( "forceBigPointer", 0 );
+				if( forceBigPointer ||
+					screenWidth > 1920 || screenHeight > 1080 ) {
+
+					startingScale *= 2;
+				}
+				setEmulatedCursorScale( startingScale );
+			}
+		}
+		else {
+			setCursorMode( readCursorMode );
+
+			double readCursorScale =
+					SettingsManager::
+					getDoubleSetting( "emulatedCursorScale", -1.0 );
+
+			if( readCursorScale >= 1 ) {
+				setEmulatedCursorScale( readCursorScale );
+			}
+		}
+
+
+
+		frameDrawerInited = true;
+
+		// this is a good time, a while after launch, to do the post
+		// update step
+		postUpdate();
+	}
+	else if( !writeFailed && !loadingFailedFlag  )// demo mode done or was never enabled
+	{
+		if( pauseOnMinimize && this->isMinimized() ) mPaused = true;// auto-pause when minimized
+		char update = !mPaused;//TODO: paused is triggered in gameSceneHandler => change this! // don't update while paused
+
+		printf("\n==========>render scene !!!!");
+		drawFrame( update );//TODO: screenSelection separation <========================================================
+
+		/**************************************************************************************************************/
+		if( cursorMode > 0 ) {
+			int lastMouseX = 0;//TODO: get last mouse position
+			int lastMouseY = 0;//TODO: get last mouse position
+			// draw emulated cursor
+
+			// draw using same projection used to drawFrame
+			// so that emulated cursor lines up with screen position of buttons
+
+			float xf, yf;
+			screenToWorld( lastMouseX, lastMouseY, &xf, &yf );
+
+			double x = xf;
+			double y = yf;
+
+			double sizeFactor = 25 * emulatedCursorScale;
+
+			// white border of pointer
+
+			setDrawColor( 1, 1, 1, 1 );
+
+			double vertsA[18] =
+					{ // body of pointer
+							x, y,
+							x, y - sizeFactor * 0.8918,
+							x + sizeFactor * 0.6306, y - sizeFactor * 0.6306,
+							// left collar of pointer
+							x, y,
+							x, y - sizeFactor * 1.0,
+							x + sizeFactor * 0.2229, y - sizeFactor * 0.7994,
+							// right collar of pointer
+							x + sizeFactor * 0.4077, y - sizeFactor * 0.7229,
+							x + sizeFactor * 0.7071, y - sizeFactor * 0.7071,
+							x, y };
+
+			drawTriangles( 3, vertsA );
+
+			// neck of pointer
+			double vertsB[8] = {
+					x + sizeFactor * 0.2076, y - sizeFactor * 0.7625,
+					x + sizeFactor * 0.376, y - sizeFactor * 1.169,
+					x + sizeFactor * 0.5607, y - sizeFactor * 1.0924,
+					x + sizeFactor * 0.3924, y - sizeFactor * 0.6859 };
+
+			drawQuads( 1, vertsB );
+
+
+			// black fill of pointer
+			setDrawColor( 0, 0, 0, 1 );
+
+			double vertsC[18] =
+					{ // body of pointer
+							x + sizeFactor * 0.04, y - sizeFactor * 0.0966,
+							x + sizeFactor * 0.04, y - sizeFactor * 0.814,
+							x + sizeFactor * 0.5473, y - sizeFactor * 0.6038,
+							// left collar of pointer
+							x + sizeFactor * 0.04, y - sizeFactor * 0.0966,
+							x + sizeFactor * 0.04, y - sizeFactor * 0.9102,
+							x + sizeFactor * 0.2382, y - sizeFactor * 0.7319,
+							// right collar of pointer
+							x + sizeFactor * 0.3491, y - sizeFactor * 0.6859,
+							x + sizeFactor * 0.6153, y - sizeFactor * 0.6719,
+							x + sizeFactor * 0.04, y - sizeFactor * 0.0966 };
+
+			drawTriangles( 3, vertsC );
+
+			// neck of pointer
+			double vertsD[8] = {
+					x + sizeFactor * 0.2229, y - sizeFactor * 0.6949,
+					x + sizeFactor * 0.3976, y - sizeFactor * 1.1167,
+					x + sizeFactor * 0.5086, y - sizeFactor * 1.0708,
+					x + sizeFactor * 0.3338, y - sizeFactor * 0.649 };
+
+			drawQuads( 1, vertsD );
+		}
+
+		if( recordAudio ) {
+			// frame-accurate audio recording
+			int samplesPerFrame = soundSampleRate / targetFrameRate;
+
+			// stereo 16-bit
+			int bytesPerSample = 4;
+
+			int numSampleBytes = bytesPerSample * samplesPerFrame;
+
+			Uint8 *bytes = new Uint8[ numSampleBytes ];
+
+			if( !bufferSizeHinted ) {
+				hintBufferSize( numSampleBytes );
+
+				soundSpriteMixingBufferL = new double[ samplesPerFrame ];
+				soundSpriteMixingBufferR = new double[ samplesPerFrame ];
+
+				bufferSizeHinted = true;
+			}
+
+			audioCallback( NULL, bytes, numSampleBytes );
+
+			delete [] bytes;
+		}
+
+		if( this->isPlayingBack() && this->shouldShowPlaybackDisplay() )
+		{
+
+			char *progressString = autoSprintf(
+					"%s %.1f\n%s\n%s",
+					translate( "playbackTag" ),
+					this->getPlaybackDoneFraction() * 100,
+					translate( "playbackToggleMessage" ),
+					translate( "playbackEndMessage" ) );
+
+			drawString( progressString );
+
+			delete [] progressString;
+
+		}
+
+		if( this->isPlayingBack() && this->shouldShowPlaybackDisplay() && showMouseDuringPlayback() )
+		{
+			// draw mouse position info
+
+			if( mouseDown ) {
+				if( isLastMouseButtonRight() ) {
+					mouseRightDown = true;
+					setDrawColor( 1, 0, 1, 0.5 );
+				}
+				else {
+					mouseRightDown = false;
+					setDrawColor( 1, 0, 0, 0.5 );
+				}
+			}
+			else {
+				setDrawColor( 1, 1, 1, 0.5 );
+			}
+
+			// step mouse click animation even after mouse released
+			// (too hard to see it otherwise for fast clicks)
+			mouseDownSteps ++;
+
+
+			float sizeFactor = 5.0f;
+			float clickSizeFactor = 5.0f;
+			char showClick = false;
+			float clickFade = 1.0f;
+
+			int mouseClickDisplayDuration = 20 * targetFrameRate / 60.0;
+
+			if( mouseDownSteps < mouseClickDisplayDuration ) {
+
+				float mouseClickProgress =
+						mouseDownSteps / (float)mouseClickDisplayDuration;
+
+				clickSizeFactor *= 5 * mouseClickProgress;
+				showClick = true;
+
+				clickFade *= 1.0f - mouseClickProgress;
+			}
+
+
+			// mouse coordinates in screen space
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+
+
+			// viewport is square of largest dimension, centered on screen
+
+			int bigDimension = screenWidth;
+
+			if( screenHeight > bigDimension ) {
+				bigDimension = screenHeight;
+			}
+
+			float excessX = ( bigDimension - screenWidth ) / 2;
+			float excessY = ( bigDimension - screenHeight ) / 2;
+
+			glOrtho( -excessX, -excessX + bigDimension,
+					-excessY + bigDimension, -excessY,
+					-1.0f, 1.0f );
+
+			glViewport( -excessX,
+					-excessY,
+					bigDimension,
+					bigDimension );
+
+			glMatrixMode(GL_MODELVIEW);
+
+
+			double verts[8] =
+					{lastMouseX - sizeFactor, lastMouseY - sizeFactor,
+					 lastMouseX - sizeFactor, lastMouseY + sizeFactor,
+					 lastMouseX + sizeFactor, lastMouseY + sizeFactor,
+					 lastMouseX + sizeFactor, lastMouseY - sizeFactor};
+
+			drawQuads( 1, verts );
+
+
+			double centerSize = 2;
+
+
+			if( showClick ) {
+				double clickVerts[8] =
+						{lastMouseDownX - clickSizeFactor,
+						 lastMouseDownY - clickSizeFactor,
+						 lastMouseDownX - clickSizeFactor,
+						 lastMouseDownY + clickSizeFactor,
+						 lastMouseDownX + clickSizeFactor,
+						 lastMouseDownY + clickSizeFactor,
+						 lastMouseDownX + clickSizeFactor,
+						 lastMouseDownY - clickSizeFactor};
+
+				if( mouseDown ) {
+					if( isLastMouseButtonRight() ) {
+						setDrawColor( 1, 0, 1, clickFade );
+					}
+					else {
+						setDrawColor( 1, 0, 0, clickFade );
+					}
+				}
+				else {
+					if( mouseRightDown ) {
+						setDrawColor( 1, 1, 0, clickFade );
+					}
+					else {
+						setDrawColor( 0, 1, 0, clickFade );
+					}
+				}
+
+				drawQuads( 1, clickVerts );
+
+				// draw pin-point at center of click
+				double clickCenterVerts[8] =
+						{lastMouseDownX - centerSize,
+						 lastMouseDownY - centerSize,
+						 lastMouseDownX - centerSize,
+						 lastMouseDownY + centerSize,
+						 lastMouseDownX + centerSize,
+						 lastMouseDownY + centerSize,
+						 lastMouseDownX + centerSize,
+						 lastMouseDownY - centerSize};
+
+				drawQuads( 1, clickCenterVerts );
+			}
+
+
+			// finally, darker black center over whole thing
+			double centerVerts[8] =
+					{lastMouseX - centerSize, lastMouseY - centerSize,
+					 lastMouseX - centerSize, lastMouseY + centerSize,
+					 lastMouseX + centerSize, lastMouseY + centerSize,
+					 lastMouseX + centerSize, lastMouseY - centerSize};
+
+			setDrawColor( 0, 0, 0, 0.5 );
+			drawQuads( 1, centerVerts );
+		}
+		/**************************************************************************************************************/
+	}
+
+	sceneHandler->drawScene();//TODO: screenHandler/this->handle/update(screen)->readMessage(message);
+	return this;
 }
 
 /**
@@ -847,7 +1404,35 @@ void OneLife::game::Application::start()
 
 
 		// now all events handled, actually draw the screen
-		callbackDisplay();
+		this->selectScreen();
+
+		if( ! currentScreenGL->m2DMode ) {
+			// apply our view transform
+			currentScreenGL->applyViewTransform();
+		}
+
+		this->screenRenderer->render();
+
+		for( int r=0; r<currentScreenGL->mRedrawListenerVector->size(); r++ )
+		{
+			RedrawListenerGL *listener = *( currentScreenGL->mRedrawListenerVector->getElement( r ) );
+			listener->postRedraw();
+		}
+
+#ifdef RASPBIAN
+		raspbianSwapBuffers();
+#else
+		SDL_GL_SwapBuffers();
+#endif
+
+		// thanks to Andrew McClure for the idea of doing this AFTER
+		// the next redraw (for pretty minimization)
+		if( currentScreenGL->mWantToMimimize ) {
+			currentScreenGL->mWantToMimimize = false;
+			SDL_WM_IconifyWindow();
+			currentScreenGL->mMinimized = true;
+		}
+
 
 
 		// record them?
@@ -3089,46 +3674,6 @@ void callbackPreDisplay() {
 		RedrawListenerGL *listener
 				= *( s->mRedrawListenerVector->getElement( r ) );
 		listener->fireRedraw();
-	}
-}
-
-void callbackDisplay() {//TODO change callbackDisplay() for renderer->render(screen);
-	OneLife::game::Application *s = currentScreenGL;
-
-	if( ! s->m2DMode ) {
-		// apply our view transform
-		//s->applyViewTransform();
-	}
-
-
-	// fire to all handlers
-	/*TODO: delete all reference of mSceneHandlerVector since we need only one sceneHandler
-	for( int h=0; h<currentScreenGL->mSceneHandlerVector->size(); h++ )
-	{
-		SceneHandlerGL *handler = *( currentScreenGL->mSceneHandlerVector->getElement( h ) );
-		handler->drawScene();
-	}
-	 */
-	sceneHandler->drawScene();//TODO: screenHandler/this->handle/update(screen)->readMessage(message);
-
-	for( int r=0; r<s->mRedrawListenerVector->size(); r++ )
-	{
-		RedrawListenerGL *listener = *( s->mRedrawListenerVector->getElement( r ) );
-		listener->postRedraw();
-	}
-
-#ifdef RASPBIAN
-	raspbianSwapBuffers();
-#else
-	SDL_GL_SwapBuffers();
-#endif
-
-	// thanks to Andrew McClure for the idea of doing this AFTER
-	// the next redraw (for pretty minimization)
-	if( s->mWantToMimimize ) {
-		s->mWantToMimimize = false;
-		SDL_WM_IconifyWindow();
-		s->mMinimized = true;
 	}
 }
 

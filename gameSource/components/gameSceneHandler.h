@@ -35,6 +35,9 @@ public:
 	 */
 	GameSceneHandler( OneLife::game::Application *inScreen );
 
+
+	void doFeatureComputeFrame();
+
 	virtual ~GameSceneHandler();
 
 
