@@ -603,6 +603,8 @@ namespace OneLife::game
 		private:
 			OneLife::game::component::Socket* connection;
 			OneLife::game::ScreenRenderer* screenRenderer;
+
+			bool quit;
 	};
 }
 

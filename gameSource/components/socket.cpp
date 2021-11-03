@@ -5,6 +5,7 @@
 #include "socket.h"
 #include <cstdio>
 #include "minorGems/game/game.h"
+#include "minorGems/formats/encodingUtils.h"
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/network/HostAddress.h"
@@ -13,9 +14,24 @@
 #include "OneLife/gameSource/application.h"
 #include "minorGems/util/log/AppLog.h"
 
-SimpleVector<SocketConnectionRecord> socketConnectionRecords;
-
 extern OneLife::game::Application *screen;
+
+SimpleVector<SocketConnectionRecord> socketConnectionRecords;
+SimpleVector<unsigned char> serverSocketBuffer;
+char *pendingMapChunkMessage = NULL;
+int pendingCompressedChunkSize;
+int pendingCMDecompressedSize = 0;
+int pendingCMCompressedSize = 0;
+int messagesInCount = 0;
+char pendingCMData = false;
+double lastServerMessageReceiveTime = 0;
+double largestPendingMessageTimeGap = 0;// while player action pending, measure largest gap between sequential // server messages// This is an approximation of our outtage time.
+SimpleVector<char*> readyPendingReceivedMessages;
+char waitForFrameMessages = false;
+char serverFrameReady;
+SimpleVector<char*> serverFrameMessages;
+char *lastMessageSentToServer = NULL;
+
 static int nextSocketConnectionHandle = 0;
 
 OneLife::game::component::Socket::Socket(
@@ -58,7 +74,7 @@ void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::Mess
 {
 	this->timeLastMessageSent = game_getCurrentTime();
 	printf( "Sending message to server: %s\n", message.body );
-	//replaceLastMessageSent( stringDuplicate( inMessage ) );TODO: if lastMessageSentToServer used create method getlastMessageSent()
+	replaceLastMessageSent( stringDuplicate( message.body ) );//TODO: if lastMessageSentToServer used create method getlastMessageSent()
 	int len = strlen( message.body );
 	//TODO: test idServerSocket
 	int numSent = sendToSocket( *(this->idServerSocket), (unsigned char*)(message.body), len );
@@ -312,8 +328,7 @@ int readFromSocket( int inHandle,
 		// play back result of this read
 
 		int nextType, nextNumBodyBytes;
-		screen->getSocketEventTypeAndSize( inHandle,
-				&nextType, &nextNumBodyBytes );
+		screen->getSocketEventTypeAndSize( inHandle, &nextType, &nextNumBodyBytes );
 
 		if( nextType == 2 ) {
 
@@ -377,4 +392,366 @@ int readFromSocket( int inHandle,
 	}
 
 	return -1;
+}
+
+// NULL if there's no full message available
+char *getNextServerMessageRaw() {
+
+	if( pendingMapChunkMessage != NULL )
+	{
+		// wait for full binary data chunk to arrive completely
+		// after message before we report that the message is ready
+
+		if( serverSocketBuffer.size() >= pendingCompressedChunkSize ) {
+			char *returnMessage = pendingMapChunkMessage;
+			pendingMapChunkMessage = NULL;
+
+			messagesInCount++;
+
+			return returnMessage;
+		}
+		else {
+			// wait for more data to arrive before saying this MC message
+			// is ready
+			return NULL;
+		}
+	}
+
+	if( pendingCMData )
+	{
+		if( serverSocketBuffer.size() >= pendingCMCompressedSize ) {
+			pendingCMData = false;
+
+			unsigned char *compressedData =
+					new unsigned char[ pendingCMCompressedSize ];
+
+			for( int i=0; i<pendingCMCompressedSize; i++ ) {
+				compressedData[i] = serverSocketBuffer.getElementDirect( i );
+			}
+			serverSocketBuffer.deleteStartElements( pendingCMCompressedSize );
+
+			unsigned char *decompressedMessage =
+					zipDecompress( compressedData,
+							pendingCMCompressedSize,
+							pendingCMDecompressedSize );
+
+			delete [] compressedData;
+
+			if( decompressedMessage == NULL ) {
+				printf( "Decompressing CM message failed\n" );
+				return NULL;
+			}
+			else {
+				char *textMessage = new char[ pendingCMDecompressedSize + 1 ];
+				memcpy( textMessage, decompressedMessage,
+						pendingCMDecompressedSize );
+				textMessage[ pendingCMDecompressedSize ] = '\0';
+
+				delete [] decompressedMessage;
+
+				messagesInCount++;
+				return textMessage;
+			}
+		}
+		else {
+			// wait for more data to arrive
+			return NULL;
+		}
+	}
+
+
+
+	// find first terminal character #
+
+	int index = serverSocketBuffer.getElementIndex( '#' );
+
+	if( index == -1 )
+	{
+		return NULL;
+	}
+
+	// terminal character means message arrived
+
+	double curTime = game_getCurrentTime();
+
+	double gap = curTime - lastServerMessageReceiveTime;
+
+	if( gap > largestPendingMessageTimeGap ) {
+		largestPendingMessageTimeGap = gap;
+	}
+
+	lastServerMessageReceiveTime = curTime;
+
+
+
+	char *message = new char[ index + 1 ];
+
+	for( int i=0; i<index; i++ ) {
+		message[i] = (char)( serverSocketBuffer.getElementDirect( i ) );
+	}
+	// delete message and terminal character
+	serverSocketBuffer.deleteStartElements( index + 1 );
+
+	message[ index ] = '\0';
+
+	if( getMessageType( message ) == MAP_CHUNK ) {
+		pendingMapChunkMessage = message;
+
+		int sizeX, sizeY, x, y, binarySize;
+		sscanf( message, "MC\n%d %d %d %d\n%d %d\n",
+				&sizeX, &sizeY,
+				&x, &y, &binarySize, &pendingCompressedChunkSize );
+
+
+		return getNextServerMessageRaw();
+	}
+	else if( getMessageType( message ) == COMPRESSED_MESSAGE ) {
+		pendingCMData = true;
+
+		printf( "Got compressed message header:\n%s\n\n", message );
+
+		sscanf( message, "CM\n%d %d\n",
+				&pendingCMDecompressedSize, &pendingCMCompressedSize );
+
+		delete [] message;
+		return NULL;
+	}
+	else {
+		messagesInCount++;
+		return message;
+	}
+}
+
+// either returns a pending recieved message (one that was received earlier
+// or held back
+//
+// or receives the next message from the server socket (if we are not waiting
+// for full frames of messages)
+//
+// or returns NULL until a full frame of messages is available, and
+// then returns the first message from the frame
+char *getNextServerMessage() {
+
+	if( readyPendingReceivedMessages.size() > 0 ) {
+		char *message = readyPendingReceivedMessages.getElementDirect( 0 );
+		readyPendingReceivedMessages.deleteElement( 0 );
+		printf( "Playing a held pending message\n" );
+		return message;
+	}
+
+	if( !waitForFrameMessages ) {
+		return getNextServerMessageRaw();
+	}
+	else {
+		if( !serverFrameReady ) {
+			// read more and look for end of frame
+
+			char *message = getNextServerMessageRaw();
+
+			while( message != NULL ) {
+				messageType t = getMessageType( message );
+
+				if( strstr( message, "FM" ) == message ) {
+					// end of frame, discard the marker message
+					delete [] message;
+
+					if( serverFrameMessages.size() > 0 ) {
+						serverFrameReady = true;
+						// see end of frame, stop reading more messages
+						// for now (they are part of next frame)
+						// and start returning message to caller from
+						// this frame
+						break;
+					}
+				}
+				else if( t == MAP_CHUNK ||
+						 t == PONG ||
+						 t == FLIGHT_DEST ||
+						 t == PHOTO_SIGNATURE ) {
+					// map chunks are followed by compressed data
+					// they cannot be queued
+
+					// PONG messages should be returned instantly
+
+					// FLIGHT_DEST messages also should be returned instantly
+					// otherwise, they will be queued and seen by
+					// the client after the corresponding MC message
+					// for the new location.
+					// which will invalidate the map around player's old
+					// location
+					return message;
+				}
+				else {
+					// some other message in the middle of the frame
+					// keep it
+					serverFrameMessages.push_back( message );
+				}
+
+				// keep reading messages, until we either see the
+				// end of the frame or read all available messages
+				message = getNextServerMessageRaw();
+			}
+		}
+
+		if( serverFrameReady ) {
+			char *message = serverFrameMessages.getElementDirect( 0 );
+
+			serverFrameMessages.deleteElement( 0 );
+
+			if( serverFrameMessages.size() == 0 ) {
+				serverFrameReady = false;
+			}
+			return message;
+		}
+		else {
+			return NULL;
+		}
+	}
+}
+
+messageType getMessageType( char *inMessage ) {
+	char *copy = stringDuplicate( inMessage );
+
+	char *firstBreak = strstr( copy, "\n" );
+
+	if( firstBreak == NULL ) {
+		delete [] copy;
+		return UNKNOWN;
+	}
+
+	firstBreak[0] = '\0';
+
+	messageType returnValue = UNKNOWN;
+
+	if( strcmp( copy, "CM" ) == 0 ) {
+		returnValue = COMPRESSED_MESSAGE;
+	}
+	else if( strcmp( copy, "MC" ) == 0 ) {
+		returnValue = MAP_CHUNK;
+	}
+	else if( strcmp( copy, "MX" ) == 0 ) {
+		returnValue = MAP_CHANGE;
+	}
+	else if( strcmp( copy, "PU" ) == 0 ) {
+		returnValue = PLAYER_UPDATE;
+	}
+	else if( strcmp( copy, "PM" ) == 0 ) {
+		returnValue = PLAYER_MOVES_START;
+	}
+	else if( strcmp( copy, "PO" ) == 0 ) {
+		returnValue = PLAYER_OUT_OF_RANGE;
+	}
+	else if( strcmp( copy, "PS" ) == 0 ) {
+		returnValue = PLAYER_SAYS;
+	}
+	else if( strcmp( copy, "LS" ) == 0 ) {
+		returnValue = LOCATION_SAYS;
+	}
+	else if( strcmp( copy, "PE" ) == 0 ) {
+		returnValue = PLAYER_EMOT;
+	}
+	else if( strcmp( copy, "FX" ) == 0 ) {
+		returnValue = FOOD_CHANGE;
+	}
+	else if( strcmp( copy, "HX" ) == 0 ) {
+		returnValue = HEAT_CHANGE;
+	}
+	else if( strcmp( copy, "LN" ) == 0 ) {
+		returnValue = LINEAGE;
+	}
+	else if( strcmp( copy, "CU" ) == 0 ) {
+		returnValue = CURSED;
+	}
+	else if( strcmp( copy, "CX" ) == 0 ) {
+		returnValue = CURSE_TOKEN_CHANGE;
+	}
+	else if( strcmp( copy, "CS" ) == 0 ) {
+		returnValue = CURSE_SCORE;
+	}
+	else if( strcmp( copy, "NM" ) == 0 ) {
+		returnValue = NAMES;
+	}
+	else if( strcmp( copy, "AP" ) == 0 ) {
+		returnValue = APOCALYPSE;
+	}
+	else if( strcmp( copy, "AD" ) == 0 ) {
+		returnValue = APOCALYPSE_DONE;
+	}
+	else if( strcmp( copy, "DY" ) == 0 ) {
+		returnValue = DYING;
+	}
+	else if( strcmp( copy, "HE" ) == 0 ) {
+		returnValue = HEALED;
+	}
+	else if( strcmp( copy, "MN" ) == 0 ) {
+		returnValue = MONUMENT_CALL;
+	}
+	else if( strcmp( copy, "GV" ) == 0 ) {
+		returnValue = GRAVE;
+	}
+	else if( strcmp( copy, "GM" ) == 0 ) {
+		returnValue = GRAVE_MOVE;
+	}
+	else if( strcmp( copy, "GO" ) == 0 ) {
+		returnValue = GRAVE_OLD;
+	}
+	else if( strcmp( copy, "OW" ) == 0 ) {
+		returnValue = OWNER;
+	}
+	else if( strcmp( copy, "VS" ) == 0 ) {
+		returnValue = VALLEY_SPACING;
+	}
+	else if( strcmp( copy, "FD" ) == 0 ) {
+		returnValue = FLIGHT_DEST;
+	}
+	else if( strcmp( copy, "VU" ) == 0 ) {
+		returnValue = VOG_UPDATE;
+	}
+	else if( strcmp( copy, "PH" ) == 0 ) {
+		returnValue = PHOTO_SIGNATURE;
+	}
+	else if( strcmp( copy, "PONG" ) == 0 ) {
+		returnValue = PONG;
+	}
+	else if( strcmp( copy, "SHUTDOWN" ) == 0 ) {
+		returnValue = SHUTDOWN;
+	}
+	else if( strcmp( copy, "SERVER_FULL" ) == 0 ) {
+		returnValue = SERVER_FULL;
+	}
+	else if( strcmp( copy, "SN" ) == 0 ) {
+		returnValue = SEQUENCE_NUMBER;
+	}
+	else if( strcmp( copy, "ACCEPTED" ) == 0 ) {
+		returnValue = ACCEPTED;
+	}
+	else if( strcmp( copy, "REJECTED" ) == 0 ) {
+		returnValue = REJECTED;
+	}
+	else if( strcmp( copy, "NO_LIFE_TOKENS" ) == 0 ) {
+		returnValue = NO_LIFE_TOKENS;
+	}
+	else if( strcmp( copy, "SD" ) == 0 ) {
+		returnValue = FORCED_SHUTDOWN;
+	}
+	else if( strcmp( copy, "MS" ) == 0 ) {
+		returnValue = GLOBAL_MESSAGE;
+	}
+	else if( strcmp( copy, "FL" ) == 0 ) {
+		returnValue = FLIP;
+	}
+	else if( strcmp( copy, "CR" ) == 0 ) {
+		returnValue = CRAVING;
+	}
+
+	delete [] copy;
+	return returnValue;
+}
+
+// destroyed internally if not NULL
+void replaceLastMessageSent( char *inNewMessage ) {
+	if( lastMessageSentToServer != NULL ) {
+		delete [] lastMessageSentToServer;
+	}
+	lastMessageSentToServer = inNewMessage;
 }

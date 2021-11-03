@@ -114,6 +114,8 @@ OneLife::game::Application::Application(
 {
 	this->connection = nullptr;
 	this->screenRenderer = new OneLife::game::ScreenRenderer();
+	this->quit = false;
+
 	mWantToMimimize = false;
 	mMinimized = false;
 	mWasFullScreenBeforeMinimize = false;
@@ -971,8 +973,8 @@ void OneLife::game::Application::start()
 
 
 	// main loop
-	while( true ) {
-
+	while( !this->quit )
+	{
 		oldFrameStart = frameStartMSec;
 
 		Time::getCurrentTime( &frameStartSec, &frameStartMSec );
@@ -2088,7 +2090,6 @@ void OneLife::game::Application::getSocketEventTypeAndSize( int inHandle,
 								int *outType,
 								int *outNumBodyBytes )
 {
-	//this->screenGL->getSocketEventTypeAndSize(inHandle, outType, outNumBodyBytes);
 	for( int i=0; i<mPendingSocketEvents.size(); i++ ) {
 		SocketEvent *e = mPendingSocketEvents.getElement( i );
 
