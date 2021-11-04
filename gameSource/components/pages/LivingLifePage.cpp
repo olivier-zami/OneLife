@@ -1,22 +1,22 @@
 #include "LivingLifePage.h"
 
-#include "objectBank.h"
-#include "spriteBank.h"
-#include "transitionBank.h"
-#include "categoryBank.h"
-#include "soundBank.h"
-#include "whiteSprites.h"
-#include "message.h"
-#include "groundSprites.h"
-#include "accountHmac.h"
-#include "liveObjectSet.h"
-#include "ageControl.h"
-#include "musicPlayer.h"
-#include "emotion.h"
-#include "photos.h"
-#include "liveAnimationTriggers.h"
-#include "../commonSource/fractalNoise.h"
-#include "../commonSource/sayLimit.h"
+#include "OneLife/gameSource/objectBank.h"
+#include "OneLife/gameSource/spriteBank.h"
+#include "OneLife/gameSource/transitionBank.h"
+#include "OneLife/gameSource/categoryBank.h"
+#include "OneLife/gameSource/soundBank.h"
+#include "OneLife/gameSource/whiteSprites.h"
+#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/groundSprites.h"
+#include "OneLife/gameSource/accountHmac.h"
+#include "OneLife/gameSource/liveObjectSet.h"
+#include "OneLife/gameSource/ageControl.h"
+#include "OneLife/gameSource/musicPlayer.h"
+#include "OneLife/gameSource/emotion.h"
+#include "OneLife/gameSource/photos.h"
+#include "OneLife/gameSource/liveAnimationTriggers.h"
+#include "OneLife/gameSource/../commonSource/fractalNoise.h"
+#include "OneLife/gameSource/../commonSource/sayLimit.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/MinPriorityQueue.h"
 #include "minorGems/game/Font.h"
@@ -25,7 +25,7 @@
 #include "minorGems/util/random/JenkinsRandomSource.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/gameGraphics.h"
-#include "zoomView.h"
+#include "OneLife/gameSource/zoomView.h"
 #include "minorGems/io/file/File.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "minorGems/system/Thread.h"
@@ -41,11 +41,11 @@
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 
 #define OHOL_NON_EDITOR 1
-#include "ObjectPickable.h"
+#include "OneLife/gameSource/ObjectPickable.h"
 
 static ObjectPickable objectPickable;
 
-#include "minitech.h"
+#include "OneLife/gameSource/minitech.h"
 
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096

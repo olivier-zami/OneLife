@@ -23,6 +23,7 @@
 #include "OneLife/gameSource/components/keyboard.h"
 #include "OneLife/gameSource/components/gameSceneHandler.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
+#include "OneLife/gameSource/GamePage.h"
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
@@ -35,6 +36,9 @@
 extern unsigned char keyMap[256];
 extern char keyMapOn;
 extern GameSceneHandler *sceneHandler;
+extern GamePage *currentGamePage;
+#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+extern LivingLifePage *livingLifePage;
 
 //!globals screen selection
 extern char demoMode;
@@ -433,10 +437,567 @@ OneLife::game::component::Socket* OneLife::game::Application::getConnection()
 	return this->connection;
 }
 
-
-OneLife::game::Application* OneLife::game::Application::selectScreen(unsigned int idScreen)
+/**
+* Starts the GLUT main loop.
+*
+* Note that this function call never returns.
+*/
+void OneLife::game::Application::start()
 {
-	printf("\n\n====>Select screen !!!!");
+	currentScreenGL = this;
+
+	// call our resize callback (GLUT used to do this for us when the
+	// window was created)
+	callbackResize( mWide, mHigh );
+
+
+	// oversleep on last loop (discount it from next sleep)
+	// can be negative (add to next sleep)
+	int oversleepMSec = 0;
+
+
+	// FOVMOD NOTE:  Change 2/3 - Take these lines during the merge process
+	timeSec_t frameStartSec;
+	unsigned long frameStartMSec;
+	unsigned long oldFrameStart;
+
+	Time::getCurrentTime( &frameStartSec, &frameStartMSec );
+
+
+	// main loop
+	while( !this->quit )
+	{
+		oldFrameStart = frameStartMSec;
+
+		Time::getCurrentTime( &frameStartSec, &frameStartMSec );
+
+		timeSinceLastFrameMS = frameStartMSec - oldFrameStart;
+		if( timeSinceLastFrameMS < 0 ) {
+			timeSinceLastFrameMS = 0;
+		}
+
+		// pre-display first, this might involve a sleep for frame timing
+		// purposes
+		callbackPreDisplay();
+
+
+		this->readDevicesStatus();
+
+		// now all events handled, actually draw the screen
+		this->select();
+
+		if( ! currentScreenGL->m2DMode ) {
+			// apply our view transform
+			currentScreenGL->applyViewTransform();
+		}
+
+		this->screenRenderer->render();
+
+		for( int r=0; r<currentScreenGL->mRedrawListenerVector->size(); r++ )
+		{
+			RedrawListenerGL *listener = *( currentScreenGL->mRedrawListenerVector->getElement( r ) );
+			listener->postRedraw();
+		}
+
+#ifdef RASPBIAN
+		raspbianSwapBuffers();
+#else
+		SDL_GL_SwapBuffers();
+#endif
+
+		// thanks to Andrew McClure for the idea of doing this AFTER
+		// the next redraw (for pretty minimization)
+		if( currentScreenGL->mWantToMimimize ) {
+			currentScreenGL->mWantToMimimize = false;
+			SDL_WM_IconifyWindow();
+			currentScreenGL->mMinimized = true;
+		}
+
+
+
+		// record them?
+		// do this down here, AFTER display, since some events might be
+		// triggered by the drawing code (example:  web requests and results)
+		if( mRecordingEvents && mRecordingOrPlaybackStarted ) {
+			writeEventBatchToFile();
+		}
+
+
+		int frameTime = Time::getMillisecondsSince( frameStartSec, frameStartMSec );
+
+
+		// frame time should never be negative
+		// BUT it can be if system time changes while game is running
+		// (example:  automatic daylight savings time adjustment)
+		if( frameTime < 0 ) {
+			frameTime = 0;
+		}
+
+
+		if( mUseFrameSleep ) {
+			// lock down to mMaxFrameRate frames per second
+			int minFrameTime = 1000 / mMaxFrameRate;
+			if( ( frameTime + oversleepMSec ) < minFrameTime ) {
+				int timeToSleep =
+						minFrameTime - ( frameTime + oversleepMSec );
+
+				//SDL_Delay( timeToSleep );
+				timeSec_t sleepStartSec;
+				unsigned long sleepStartMSec;
+				Time::getCurrentTime( &sleepStartSec, &sleepStartMSec );
+
+				Thread::staticSleep( timeToSleep );
+
+				int actualSleepTime =
+						Time::getMillisecondsSince( sleepStartSec, sleepStartMSec );
+
+				oversleepMSec = actualSleepTime - timeToSleep;
+			}
+			else {
+				oversleepMSec = 0;
+			}
+		}
+
+
+	}
+}
+
+/**********************************************************************************************************************/
+//!private
+
+void OneLife::game::Application::readDevicesStatus()
+{
+	// now handle pending events BEFORE actually drawing the screen.
+	// Thus, screen reflects all the latest events (not just those
+	// that happened before any sleep called during the pre-display).
+	// This makes controls much more responsive.
+
+	SDL_Event event;
+
+	while( !( mPlaybackEvents && mRecordingOrPlaybackStarted )
+		   && SDL_PollEvent( &event ) ) {
+
+		SDLMod mods = SDL_GetModState();
+
+		// alt-enter, toggle fullscreen (but only if we started there,
+		// to prevent window content centering issues due to mWidth and
+		// mHeight changes mid-game)
+		if( mStartedFullScreen &&
+			event.type == SDL_KEYDOWN &&
+			event.key.keysym.sym == SDLK_RETURN &&
+			( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) ) {
+			printf( "Toggling fullscreen\n" );
+
+			mFullScreen = !mFullScreen;
+
+			setupSurface();
+
+			callbackResize( mWide, mHigh );
+
+			// reload all textures into OpenGL
+			SingleTextureGL::contextChanged();
+		}
+			// alt-tab when not in fullscreen mode
+		else if( ! mFullScreen &&
+				 ! mMinimized &&
+				 event.type == SDL_KEYDOWN &&
+				 event.key.keysym.sym == SDLK_TAB &&
+				 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) ) {
+
+			mWantToMimimize = true;
+			mWasFullScreenBeforeMinimize = false;
+
+			if( SDL_WM_GrabInput( SDL_GRAB_QUERY ) == SDL_GRAB_ON ) {
+				mWasInputGrabbedBeforeMinimize = true;
+			}
+			else {
+				mWasInputGrabbedBeforeMinimize = false;
+			}
+			SDL_WM_GrabInput( SDL_GRAB_OFF );
+
+			// record TAB keystroke so that it's properly
+			// played back
+			if( mRecordingEvents &&
+				mRecordingOrPlaybackStarted ) {
+
+				int mouseX, mouseY;
+				SDL_GetMouseState( &mouseX, &mouseY );
+				char *eventString = autoSprintf( "kd %d %d %d",
+						9, mouseX, mouseY );
+
+				mUserEventBatch.push_back( eventString );
+			}
+		}
+			// handle alt-tab to minimize out of full-screen mode
+		else if( mFullScreen &&
+				 ! mMinimized &&
+				 event.type == SDL_KEYDOWN &&
+				 event.key.keysym.sym == SDLK_TAB &&
+				 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) ) {
+
+			printf( "Minimizing from fullscreen on Alt-tab\n" );
+
+			mFullScreen = false;
+
+			setupSurface();
+
+			callbackResize( mWide, mHigh );
+
+			// reload all textures into OpenGL
+			SingleTextureGL::contextChanged();
+
+			mWantToMimimize = true;
+			mWasFullScreenBeforeMinimize = true;
+
+			if( SDL_WM_GrabInput( SDL_GRAB_QUERY ) == SDL_GRAB_ON ) {
+				mWasInputGrabbedBeforeMinimize = true;
+			}
+			else {
+				mWasInputGrabbedBeforeMinimize = false;
+			}
+			SDL_WM_GrabInput( SDL_GRAB_OFF );
+
+			// record TAB keystroke so that it's properly
+			// played back
+			if( mRecordingEvents &&
+				mRecordingOrPlaybackStarted ) {
+
+				int mouseX, mouseY;
+				SDL_GetMouseState( &mouseX, &mouseY );
+				char *eventString = autoSprintf( "kd %d %d %d",
+						9, mouseX, mouseY );
+
+				mUserEventBatch.push_back( eventString );
+			}
+		}
+			// active event after minimizing from windowed mode
+		else if( mMinimized &&
+				 ! mWasFullScreenBeforeMinimize &&
+				 event.type == SDL_ACTIVEEVENT &&
+				 event.active.gain &&
+				 event.active.state == SDL_APPACTIVE ) {
+			// window becoming active out of minimization, needs
+			// to return to full-screen mode
+
+			printf( "Restoring to window after Alt-tab\n" );
+
+			mWantToMimimize = false;
+			mWasFullScreenBeforeMinimize = false;
+			mMinimized = false;
+
+			if( mWasInputGrabbedBeforeMinimize ) {
+				SDL_WM_GrabInput( SDL_GRAB_ON );
+			}
+		}
+			// active event after minimizing from fullscreen mode
+		else if( mMinimized &&
+				 mWasFullScreenBeforeMinimize &&
+				 event.type == SDL_ACTIVEEVENT &&
+				 event.active.gain &&
+				 event.active.state == SDL_APPACTIVE ) {
+			// window becoming active out of minimization, needs
+			// to return to full-screen mode
+
+			printf( "Restoring to fullscreen after Alt-tab\n" );
+
+			mFullScreen = true;
+
+			setupSurface();
+
+			callbackResize( mWide, mHigh );
+
+			// reload all textures into OpenGL
+			SingleTextureGL::contextChanged();
+
+			mWantToMimimize = false;
+			mWasFullScreenBeforeMinimize = false;
+			mMinimized = false;
+
+			if( mWasInputGrabbedBeforeMinimize ) {
+				SDL_WM_GrabInput( SDL_GRAB_ON );
+			}
+		}
+			// map CTRL-q to ESC
+			// 17 is "DC1" which is ctrl-q on some platforms
+		else if( event.type == SDL_KEYDOWN &&
+				 ( ( event.key.keysym.sym == SDLK_q
+					 &&
+					 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT )
+					   || ( mods & KMOD_CTRL ) ) )
+				   ||
+				   ( ( event.key.keysym.unicode & 0xFF ) == 17 ) ) ) {
+
+			// map to 27, escape
+			int mouseX, mouseY;
+			SDL_GetMouseState( &mouseX, &mouseY );
+
+			callbackKeyboard( 27, mouseX, mouseY );
+		}
+		else {
+
+
+			switch( event.type ) {
+				case SDL_QUIT: {
+					// map to 27, escape
+					int mouseX, mouseY;
+					SDL_GetMouseState( &mouseX, &mouseY );
+
+					callbackKeyboard( 27, mouseX, mouseY );
+				}
+					break;
+				case SDL_KEYDOWN:
+				case SDL_KEYUP: {
+					int mouseX, mouseY;
+					SDL_GetMouseState( &mouseX, &mouseY );
+
+
+					// check if special key
+					int mgKey = mapSDLSpecialKeyToMG( event.key.keysym.sym );
+
+					if( mgKey != 0 ) {
+						if( event.type == SDL_KEYDOWN ) {
+							callbackSpecialKeyboard( mgKey, mouseX, mouseY );
+						}
+						else {
+							callbackSpecialKeyboardUp( mgKey, mouseX, mouseY );
+						}
+					}
+					else {
+						unsigned char asciiKey;
+
+						// try unicode first, if 8-bit clean (extended ASCII)
+						if( ( event.key.keysym.unicode & 0xFF00 ) == 0 &&
+							( event.key.keysym.unicode & 0x00FF ) != 0 ) {
+							asciiKey = event.key.keysym.unicode & 0xFF;
+						}
+						else {
+							// else unicode-to-ascii failed
+
+							// fall back
+							asciiKey =
+									mapSDLKeyToASCII( event.key.keysym.sym );
+						}
+
+
+						if( asciiKey != 0 ) {
+							// shift and caps cancel each other
+							if( ( ( event.key.keysym.mod & KMOD_SHIFT )
+								  &&
+								  !( event.key.keysym.mod & KMOD_CAPS ) )
+								||
+								( !( event.key.keysym.mod & KMOD_SHIFT )
+								  &&
+								  ( event.key.keysym.mod & KMOD_CAPS ) ) ) {
+
+								asciiKey = toupper( asciiKey );
+							}
+
+							if( event.type == SDL_KEYDOWN ) {
+								callbackKeyboard( asciiKey, mouseX, mouseY );
+							}
+							else {
+								callbackKeyboardUp( asciiKey, mouseX, mouseY );
+							}
+						}
+					}
+				}
+					break;
+				case SDL_MOUSEMOTION:
+					if( event.motion.state & SDL_BUTTON( 1 )
+						||
+						event.motion.state & SDL_BUTTON( 2 )
+						||
+						event.motion.state & SDL_BUTTON( 3 ) ) {
+
+						callbackMotion( event.motion.x, event.motion.y );
+					}
+					else {
+						callbackPassiveMotion( event.motion.x,
+								event.motion.y );
+					}
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEBUTTONUP:
+					callbackMouse( event.button.button,
+							event.button.state,
+							event.button.x,
+							event.button.y );
+					break;
+			}
+		}
+
+	}
+
+	if( mPlaybackEvents && mRecordingOrPlaybackStarted &&
+		mEventFile != NULL ) {
+
+
+		if( !mTimeValuePlayedBack ) {
+
+			// so far, no time values have been played back yet.
+			// (as a fix for earlier release that did not
+			// record time), fix time() values to go along with specified
+			// frame rate in recording file (so that a game played on a
+			// machine fast enough for 60fps will behave close to the
+			// same, time()-wise, on a machine that can't play the game
+			// back at 60fps).
+
+			mFramesSinceLastTimeTick ++;
+
+			if( mFramesSinceLastTimeTick >= mFullFrameRate ) {
+				mFramesSinceLastTimeTick = 0;
+				mLastTimeValue ++;
+				mLastCurrentTimeValue += 1.0;
+			}
+		}
+
+
+		// this may overwrite the mLastTimeValue that we're emulating
+		// if this recorded frame involved a recorded time() call.
+		playNextEventBatch();
+
+
+		// dump events, but responde to ESC to stop playback
+		// let player take over from that point
+		while( SDL_PollEvent( &event ) ) {
+			SDLMod mods = SDL_GetModState();
+			// map CTRL-q to ESC
+			// 17 is "DC1" which is ctrl-q on some platforms
+			if( event.type == SDL_KEYDOWN &&
+				( ( event.key.keysym.sym == SDLK_q
+					&&
+					( ( mods & KMOD_META ) || ( mods & KMOD_ALT )
+					  || ( mods & KMOD_CTRL ) ) )
+				  ||
+				  ( ( event.key.keysym.unicode & 0xFF ) == 17 ) ) ) {
+
+				// map to 27, escape
+				int mouseX, mouseY;
+				SDL_GetMouseState( &mouseX, &mouseY );
+
+				printf( "User terminated recorded event playback "
+						"with ESC\n" );
+
+				// stop playback
+				mPlaybackEvents = false;
+			}
+			else {
+				switch( event.type ) {
+					case SDL_QUIT: {
+						// map to 27, escape
+						int mouseX, mouseY;
+						SDL_GetMouseState( &mouseX, &mouseY );
+
+						// actual quit event, still pass through
+						// as ESC to signal a full quit
+						callbackKeyboard( 27, mouseX, mouseY );
+					}
+						break;
+					case SDL_KEYDOWN: {
+
+						unsigned char asciiKey;
+
+						// try unicode first,
+						// if 8-bit clean (extended ASCII)
+						if( ( event.key.keysym.unicode & 0xFF00 ) == 0 &&
+							( event.key.keysym.unicode & 0x00FF ) != 0 ) {
+							asciiKey = event.key.keysym.unicode & 0xFF;
+						}
+						else {
+							// else unicode-to-ascii failed
+
+							// fall back
+							asciiKey =
+									mapSDLKeyToASCII( event.key.keysym.sym );
+						}
+						if( asciiKey == 27 ) {
+							// pass ESC through
+							// map to 27, escape
+							int mouseX, mouseY;
+							SDL_GetMouseState( &mouseX, &mouseY );
+
+							printf(
+									"User terminated recorded event playback "
+									"with ESC\n" );
+
+							// stop playback
+							mPlaybackEvents = false;
+						}
+						else if( asciiKey == '%' ) {
+							mShouldShowPlaybackDisplay =
+									! mShouldShowPlaybackDisplay;
+						}
+						if( mAllowSlowdownKeysDuringPlayback ) {
+
+							if( asciiKey == '^' ) {
+								setMaxFrameRate( 2 );
+							}
+							else if( asciiKey == '&' ) {
+								setMaxFrameRate( mFullFrameRate );
+							}
+							else if( asciiKey == '*' ) {
+								// fast forward
+								setMaxFrameRate( mFullFrameRate * 2 );
+							}
+							else if( asciiKey == '(' ) {
+								// fast fast forward
+								setMaxFrameRate( mFullFrameRate * 4 );
+							}
+							else if( asciiKey == ')' ) {
+								// fast fast fast forward
+								setMaxFrameRate( mFullFrameRate * 8 );
+							}
+						}
+					}
+				}
+			}
+
+		}
+
+		if( !mPlaybackEvents ) {
+			// playback ended
+			// send through full spectrum of release events
+			// so no presses linger after playback end
+
+			int mouseX, mouseY;
+			SDL_GetMouseState( &mouseX, &mouseY );
+			callbackMouse( SDL_BUTTON_LEFT,
+					SDL_RELEASED, mouseX, mouseY );
+
+			callbackMouse( SDL_BUTTON_MIDDLE,
+					SDL_RELEASED, mouseX, mouseY );
+
+			callbackMouse( SDL_BUTTON_RIGHT,
+					SDL_RELEASED, mouseX, mouseY );
+
+			callbackMouse( SDL_BUTTON_WHEELUP,
+					SDL_RELEASED, mouseX, mouseY );
+
+			callbackMouse( SDL_BUTTON_WHEELDOWN,
+					SDL_RELEASED, mouseX, mouseY );
+
+			for( int i=0; i<255; i++ ) {
+				callbackKeyboardUp( i, mouseX, mouseY );
+			}
+			for( int i=MG_KEY_FIRST_CODE; i<=MG_KEY_LAST_CODE; i++ ) {
+				callbackSpecialKeyboardUp( i, mouseX, mouseY );
+			}
+		}
+
+
+	}
+}
+
+void OneLife::game::Application::readServerMessage()
+{
+	printf("\n==========>read server message");
+}
+
+void OneLife::game::Application::select(unsigned int idScreen)
+{
+	printf("\n==========>select screen");
+	int test =  (currentGamePage == livingLifePage) ? 24 : 0;
+	printf("\n====>current :\"%i\"", test);
 	//!SEARCH LEG000001 for legacy place
 	if( demoMode )
 	{
@@ -683,7 +1244,6 @@ OneLife::game::Application* OneLife::game::Application::selectScreen(unsigned in
 
 		printf("\n==========>render scene !!!!");
 		drawFrame( update );//TODO: screenSelection separation <========================================================
-
 		/**************************************************************************************************************/
 		if( cursorMode > 0 ) {
 			int lastMouseX = 0;//TODO: get last mouse position
@@ -942,564 +1502,13 @@ OneLife::game::Application* OneLife::game::Application::selectScreen(unsigned in
 	}
 
 	sceneHandler->drawScene();//TODO: screenHandler/this->handle/update(screen)->readMessage(message);
-	return this;
 }
 
-/**
-* Starts the GLUT main loop.
-*
-* Note that this function call never returns.
-*/
-void OneLife::game::Application::start()
-{
-	currentScreenGL = this;
+void OneLife::game::Application::update() {}
 
-	// call our resize callback (GLUT used to do this for us when the
-	// window was created)
-	callbackResize( mWide, mHigh );
+void OneLife::game::Application::render() {}
 
-
-	// oversleep on last loop (discount it from next sleep)
-	// can be negative (add to next sleep)
-	int oversleepMSec = 0;
-
-
-	// FOVMOD NOTE:  Change 2/3 - Take these lines during the merge process
-	timeSec_t frameStartSec;
-	unsigned long frameStartMSec;
-	unsigned long oldFrameStart;
-
-	Time::getCurrentTime( &frameStartSec, &frameStartMSec );
-
-
-	// main loop
-	while( !this->quit )
-	{
-		oldFrameStart = frameStartMSec;
-
-		Time::getCurrentTime( &frameStartSec, &frameStartMSec );
-
-
-		timeSinceLastFrameMS = frameStartMSec - oldFrameStart;
-		if( timeSinceLastFrameMS < 0 ) {
-			timeSinceLastFrameMS = 0;
-		}
-
-		// pre-display first, this might involve a sleep for frame timing
-		// purposes
-		callbackPreDisplay();
-
-
-
-		// now handle pending events BEFORE actually drawing the screen.
-		// Thus, screen reflects all the latest events (not just those
-		// that happened before any sleep called during the pre-display).
-		// This makes controls much more responsive.
-
-
-
-		SDL_Event event;
-
-		while( !( mPlaybackEvents && mRecordingOrPlaybackStarted )
-			   && SDL_PollEvent( &event ) ) {
-
-			SDLMod mods = SDL_GetModState();
-
-			// alt-enter, toggle fullscreen (but only if we started there,
-			// to prevent window content centering issues due to mWidth and
-			// mHeight changes mid-game)
-			if( mStartedFullScreen &&
-				event.type == SDL_KEYDOWN &&
-				event.key.keysym.sym == SDLK_RETURN &&
-				( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) ) {
-				printf( "Toggling fullscreen\n" );
-
-				mFullScreen = !mFullScreen;
-
-				setupSurface();
-
-				callbackResize( mWide, mHigh );
-
-				// reload all textures into OpenGL
-				SingleTextureGL::contextChanged();
-			}
-				// alt-tab when not in fullscreen mode
-			else if( ! mFullScreen &&
-					 ! mMinimized &&
-					 event.type == SDL_KEYDOWN &&
-					 event.key.keysym.sym == SDLK_TAB &&
-					 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) ) {
-
-				mWantToMimimize = true;
-				mWasFullScreenBeforeMinimize = false;
-
-				if( SDL_WM_GrabInput( SDL_GRAB_QUERY ) == SDL_GRAB_ON ) {
-					mWasInputGrabbedBeforeMinimize = true;
-				}
-				else {
-					mWasInputGrabbedBeforeMinimize = false;
-				}
-				SDL_WM_GrabInput( SDL_GRAB_OFF );
-
-				// record TAB keystroke so that it's properly
-				// played back
-				if( mRecordingEvents &&
-					mRecordingOrPlaybackStarted ) {
-
-					int mouseX, mouseY;
-					SDL_GetMouseState( &mouseX, &mouseY );
-					char *eventString = autoSprintf( "kd %d %d %d",
-							9, mouseX, mouseY );
-
-					mUserEventBatch.push_back( eventString );
-				}
-			}
-				// handle alt-tab to minimize out of full-screen mode
-			else if( mFullScreen &&
-					 ! mMinimized &&
-					 event.type == SDL_KEYDOWN &&
-					 event.key.keysym.sym == SDLK_TAB &&
-					 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) ) {
-
-				printf( "Minimizing from fullscreen on Alt-tab\n" );
-
-				mFullScreen = false;
-
-				setupSurface();
-
-				callbackResize( mWide, mHigh );
-
-				// reload all textures into OpenGL
-				SingleTextureGL::contextChanged();
-
-				mWantToMimimize = true;
-				mWasFullScreenBeforeMinimize = true;
-
-				if( SDL_WM_GrabInput( SDL_GRAB_QUERY ) == SDL_GRAB_ON ) {
-					mWasInputGrabbedBeforeMinimize = true;
-				}
-				else {
-					mWasInputGrabbedBeforeMinimize = false;
-				}
-				SDL_WM_GrabInput( SDL_GRAB_OFF );
-
-				// record TAB keystroke so that it's properly
-				// played back
-				if( mRecordingEvents &&
-					mRecordingOrPlaybackStarted ) {
-
-					int mouseX, mouseY;
-					SDL_GetMouseState( &mouseX, &mouseY );
-					char *eventString = autoSprintf( "kd %d %d %d",
-							9, mouseX, mouseY );
-
-					mUserEventBatch.push_back( eventString );
-				}
-			}
-				// active event after minimizing from windowed mode
-			else if( mMinimized &&
-					 ! mWasFullScreenBeforeMinimize &&
-					 event.type == SDL_ACTIVEEVENT &&
-					 event.active.gain &&
-					 event.active.state == SDL_APPACTIVE ) {
-				// window becoming active out of minimization, needs
-				// to return to full-screen mode
-
-				printf( "Restoring to window after Alt-tab\n" );
-
-				mWantToMimimize = false;
-				mWasFullScreenBeforeMinimize = false;
-				mMinimized = false;
-
-				if( mWasInputGrabbedBeforeMinimize ) {
-					SDL_WM_GrabInput( SDL_GRAB_ON );
-				}
-			}
-				// active event after minimizing from fullscreen mode
-			else if( mMinimized &&
-					 mWasFullScreenBeforeMinimize &&
-					 event.type == SDL_ACTIVEEVENT &&
-					 event.active.gain &&
-					 event.active.state == SDL_APPACTIVE ) {
-				// window becoming active out of minimization, needs
-				// to return to full-screen mode
-
-				printf( "Restoring to fullscreen after Alt-tab\n" );
-
-				mFullScreen = true;
-
-				setupSurface();
-
-				callbackResize( mWide, mHigh );
-
-				// reload all textures into OpenGL
-				SingleTextureGL::contextChanged();
-
-				mWantToMimimize = false;
-				mWasFullScreenBeforeMinimize = false;
-				mMinimized = false;
-
-				if( mWasInputGrabbedBeforeMinimize ) {
-					SDL_WM_GrabInput( SDL_GRAB_ON );
-				}
-			}
-				// map CTRL-q to ESC
-				// 17 is "DC1" which is ctrl-q on some platforms
-			else if( event.type == SDL_KEYDOWN &&
-					 ( ( event.key.keysym.sym == SDLK_q
-						 &&
-						 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT )
-						   || ( mods & KMOD_CTRL ) ) )
-					   ||
-					   ( ( event.key.keysym.unicode & 0xFF ) == 17 ) ) ) {
-
-				// map to 27, escape
-				int mouseX, mouseY;
-				SDL_GetMouseState( &mouseX, &mouseY );
-
-				callbackKeyboard( 27, mouseX, mouseY );
-			}
-			else {
-
-
-				switch( event.type ) {
-					case SDL_QUIT: {
-						// map to 27, escape
-						int mouseX, mouseY;
-						SDL_GetMouseState( &mouseX, &mouseY );
-
-						callbackKeyboard( 27, mouseX, mouseY );
-					}
-						break;
-					case SDL_KEYDOWN:
-					case SDL_KEYUP: {
-						int mouseX, mouseY;
-						SDL_GetMouseState( &mouseX, &mouseY );
-
-
-						// check if special key
-						int mgKey = mapSDLSpecialKeyToMG( event.key.keysym.sym );
-
-						if( mgKey != 0 ) {
-							if( event.type == SDL_KEYDOWN ) {
-								callbackSpecialKeyboard( mgKey, mouseX, mouseY );
-							}
-							else {
-								callbackSpecialKeyboardUp( mgKey, mouseX, mouseY );
-							}
-						}
-						else {
-							unsigned char asciiKey;
-
-							// try unicode first, if 8-bit clean (extended ASCII)
-							if( ( event.key.keysym.unicode & 0xFF00 ) == 0 &&
-								( event.key.keysym.unicode & 0x00FF ) != 0 ) {
-								asciiKey = event.key.keysym.unicode & 0xFF;
-							}
-							else {
-								// else unicode-to-ascii failed
-
-								// fall back
-								asciiKey =
-										mapSDLKeyToASCII( event.key.keysym.sym );
-							}
-
-
-							if( asciiKey != 0 ) {
-								// shift and caps cancel each other
-								if( ( ( event.key.keysym.mod & KMOD_SHIFT )
-									  &&
-									  !( event.key.keysym.mod & KMOD_CAPS ) )
-									||
-									( !( event.key.keysym.mod & KMOD_SHIFT )
-									  &&
-									  ( event.key.keysym.mod & KMOD_CAPS ) ) ) {
-
-									asciiKey = toupper( asciiKey );
-								}
-
-								if( event.type == SDL_KEYDOWN ) {
-									callbackKeyboard( asciiKey, mouseX, mouseY );
-								}
-								else {
-									callbackKeyboardUp( asciiKey, mouseX, mouseY );
-								}
-							}
-						}
-					}
-						break;
-					case SDL_MOUSEMOTION:
-						if( event.motion.state & SDL_BUTTON( 1 )
-							||
-							event.motion.state & SDL_BUTTON( 2 )
-							||
-							event.motion.state & SDL_BUTTON( 3 ) ) {
-
-							callbackMotion( event.motion.x, event.motion.y );
-						}
-						else {
-							callbackPassiveMotion( event.motion.x,
-									event.motion.y );
-						}
-						break;
-					case SDL_MOUSEBUTTONDOWN:
-					case SDL_MOUSEBUTTONUP:
-						callbackMouse( event.button.button,
-								event.button.state,
-								event.button.x,
-								event.button.y );
-						break;
-				}
-			}
-
-		}
-
-
-
-
-
-		if( mPlaybackEvents && mRecordingOrPlaybackStarted &&
-			mEventFile != NULL ) {
-
-
-			if( !mTimeValuePlayedBack ) {
-
-				// so far, no time values have been played back yet.
-				// (as a fix for earlier release that did not
-				// record time), fix time() values to go along with specified
-				// frame rate in recording file (so that a game played on a
-				// machine fast enough for 60fps will behave close to the
-				// same, time()-wise, on a machine that can't play the game
-				// back at 60fps).
-
-				mFramesSinceLastTimeTick ++;
-
-				if( mFramesSinceLastTimeTick >= mFullFrameRate ) {
-					mFramesSinceLastTimeTick = 0;
-					mLastTimeValue ++;
-					mLastCurrentTimeValue += 1.0;
-				}
-			}
-
-
-			// this may overwrite the mLastTimeValue that we're emulating
-			// if this recorded frame involved a recorded time() call.
-			playNextEventBatch();
-
-
-			// dump events, but responde to ESC to stop playback
-			// let player take over from that point
-			while( SDL_PollEvent( &event ) ) {
-				SDLMod mods = SDL_GetModState();
-				// map CTRL-q to ESC
-				// 17 is "DC1" which is ctrl-q on some platforms
-				if( event.type == SDL_KEYDOWN &&
-					( ( event.key.keysym.sym == SDLK_q
-						&&
-						( ( mods & KMOD_META ) || ( mods & KMOD_ALT )
-						  || ( mods & KMOD_CTRL ) ) )
-					  ||
-					  ( ( event.key.keysym.unicode & 0xFF ) == 17 ) ) ) {
-
-					// map to 27, escape
-					int mouseX, mouseY;
-					SDL_GetMouseState( &mouseX, &mouseY );
-
-					printf( "User terminated recorded event playback "
-							"with ESC\n" );
-
-					// stop playback
-					mPlaybackEvents = false;
-				}
-				else {
-					switch( event.type ) {
-						case SDL_QUIT: {
-							// map to 27, escape
-							int mouseX, mouseY;
-							SDL_GetMouseState( &mouseX, &mouseY );
-
-							// actual quit event, still pass through
-							// as ESC to signal a full quit
-							callbackKeyboard( 27, mouseX, mouseY );
-						}
-							break;
-						case SDL_KEYDOWN: {
-
-							unsigned char asciiKey;
-
-							// try unicode first,
-							// if 8-bit clean (extended ASCII)
-							if( ( event.key.keysym.unicode & 0xFF00 ) == 0 &&
-								( event.key.keysym.unicode & 0x00FF ) != 0 ) {
-								asciiKey = event.key.keysym.unicode & 0xFF;
-							}
-							else {
-								// else unicode-to-ascii failed
-
-								// fall back
-								asciiKey =
-										mapSDLKeyToASCII( event.key.keysym.sym );
-							}
-							if( asciiKey == 27 ) {
-								// pass ESC through
-								// map to 27, escape
-								int mouseX, mouseY;
-								SDL_GetMouseState( &mouseX, &mouseY );
-
-								printf(
-										"User terminated recorded event playback "
-										"with ESC\n" );
-
-								// stop playback
-								mPlaybackEvents = false;
-							}
-							else if( asciiKey == '%' ) {
-								mShouldShowPlaybackDisplay =
-										! mShouldShowPlaybackDisplay;
-							}
-							if( mAllowSlowdownKeysDuringPlayback ) {
-
-								if( asciiKey == '^' ) {
-									setMaxFrameRate( 2 );
-								}
-								else if( asciiKey == '&' ) {
-									setMaxFrameRate( mFullFrameRate );
-								}
-								else if( asciiKey == '*' ) {
-									// fast forward
-									setMaxFrameRate( mFullFrameRate * 2 );
-								}
-								else if( asciiKey == '(' ) {
-									// fast fast forward
-									setMaxFrameRate( mFullFrameRate * 4 );
-								}
-								else if( asciiKey == ')' ) {
-									// fast fast fast forward
-									setMaxFrameRate( mFullFrameRate * 8 );
-								}
-							}
-						}
-					}
-				}
-
-			}
-
-			if( !mPlaybackEvents ) {
-				// playback ended
-				// send through full spectrum of release events
-				// so no presses linger after playback end
-
-				int mouseX, mouseY;
-				SDL_GetMouseState( &mouseX, &mouseY );
-				callbackMouse( SDL_BUTTON_LEFT,
-						SDL_RELEASED, mouseX, mouseY );
-
-				callbackMouse( SDL_BUTTON_MIDDLE,
-						SDL_RELEASED, mouseX, mouseY );
-
-				callbackMouse( SDL_BUTTON_RIGHT,
-						SDL_RELEASED, mouseX, mouseY );
-
-				callbackMouse( SDL_BUTTON_WHEELUP,
-						SDL_RELEASED, mouseX, mouseY );
-
-				callbackMouse( SDL_BUTTON_WHEELDOWN,
-						SDL_RELEASED, mouseX, mouseY );
-
-				for( int i=0; i<255; i++ ) {
-					callbackKeyboardUp( i, mouseX, mouseY );
-				}
-				for( int i=MG_KEY_FIRST_CODE; i<=MG_KEY_LAST_CODE; i++ ) {
-					callbackSpecialKeyboardUp( i, mouseX, mouseY );
-				}
-			}
-
-
-		}
-
-
-
-
-
-		// now all events handled, actually draw the screen
-		this->selectScreen();
-
-		if( ! currentScreenGL->m2DMode ) {
-			// apply our view transform
-			currentScreenGL->applyViewTransform();
-		}
-
-		this->screenRenderer->render();
-
-		for( int r=0; r<currentScreenGL->mRedrawListenerVector->size(); r++ )
-		{
-			RedrawListenerGL *listener = *( currentScreenGL->mRedrawListenerVector->getElement( r ) );
-			listener->postRedraw();
-		}
-
-#ifdef RASPBIAN
-		raspbianSwapBuffers();
-#else
-		SDL_GL_SwapBuffers();
-#endif
-
-		// thanks to Andrew McClure for the idea of doing this AFTER
-		// the next redraw (for pretty minimization)
-		if( currentScreenGL->mWantToMimimize ) {
-			currentScreenGL->mWantToMimimize = false;
-			SDL_WM_IconifyWindow();
-			currentScreenGL->mMinimized = true;
-		}
-
-
-
-		// record them?
-		// do this down here, AFTER display, since some events might be
-		// triggered by the drawing code (example:  web requests and results)
-		if( mRecordingEvents && mRecordingOrPlaybackStarted ) {
-			writeEventBatchToFile();
-		}
-
-
-		int frameTime =
-				Time::getMillisecondsSince( frameStartSec, frameStartMSec );
-
-
-		// frame time should never be negative
-		// BUT it can be if system time changes while game is running
-		// (example:  automatic daylight savings time adjustment)
-		if( frameTime < 0 ) {
-			frameTime = 0;
-		}
-
-
-		if( mUseFrameSleep ) {
-			// lock down to mMaxFrameRate frames per second
-			int minFrameTime = 1000 / mMaxFrameRate;
-			if( ( frameTime + oversleepMSec ) < minFrameTime ) {
-				int timeToSleep =
-						minFrameTime - ( frameTime + oversleepMSec );
-
-				//SDL_Delay( timeToSleep );
-				timeSec_t sleepStartSec;
-				unsigned long sleepStartMSec;
-				Time::getCurrentTime( &sleepStartSec, &sleepStartMSec );
-
-				Thread::staticSleep( timeToSleep );
-
-				int actualSleepTime =
-						Time::getMillisecondsSince( sleepStartSec, sleepStartMSec );
-
-				oversleepMSec = actualSleepTime - timeToSleep;
-			}
-			else {
-				oversleepMSec = 0;
-			}
-		}
-
-
-	}
-}
+void OneLife::game::Application::sendClientMessage() {}
 
 
 /**

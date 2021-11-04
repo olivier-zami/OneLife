@@ -40,7 +40,6 @@ namespace OneLife::game
 			void setConnection();
 			OneLife::game::component::Socket* getConnection();
 
-			OneLife::game::Application* selectScreen(unsigned int idScreen =0);
 			void start();
 
 			const char *getCustomRecordedGameData();
@@ -601,6 +600,13 @@ namespace OneLife::game
 			// for playing back minimized window state
 			char mLastMinimizedStatus;
 		private:
+			void readDevicesStatus();
+			void readServerMessage();
+			void select(unsigned int idScreen =0);
+			void update(/*Sample soundSample, videoSample*/);
+			void render(/**/);
+			void sendClientMessage();
+
 			OneLife::game::component::Socket* connection;
 			OneLife::game::ScreenRenderer* screenRenderer;
 

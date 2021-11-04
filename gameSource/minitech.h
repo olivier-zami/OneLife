@@ -1,7 +1,7 @@
 #ifndef minitech_H
 #define minitech_H
 
-#include "LivingLifePage.h"
+#include "components/pages/LivingLifePage.h"
 #include <vector>
 #include <string>
 

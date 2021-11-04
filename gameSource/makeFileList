@@ -22,6 +22,7 @@ components/asyncFileThread.cpp \
 components/engines/screenRenderer.cpp \
 components/gameSceneHandler.cpp \
 components/keyboard.cpp \
+components/pages/LivingLifePage.cpp \
 components/socket.cpp \
 dataTypes/exception/exception.cpp \
 dataTypes/screen/loadingScreen.cpp \
@@ -41,7 +42,6 @@ serialWebRequests.cpp \
 accountHmac.cpp \
 PageComponent.cpp \
 GamePage.cpp \
-LivingLifePage.cpp \
 pathFind.cpp \
 ageControl.cpp \
 ExtendedMessagePage.cpp \

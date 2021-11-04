@@ -1,5 +1,5 @@
 #include "animationBank.h"
-#include "LivingLifePage.h"
+#include "components/pages/LivingLifePage.h"
 
 // live triggers for video-making
 
