@@ -1,4 +1,4 @@
-#include "GamePage.h"
+#include "components/GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 

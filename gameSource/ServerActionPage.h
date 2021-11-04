@@ -2,7 +2,7 @@
 #define SERVER_ACTION_PAGE_INCLUDED
 
 
-#include "GamePage.h"
+#include "components/GamePage.h"
 
 #include "TextButton.h"
 #include "TextField.h"

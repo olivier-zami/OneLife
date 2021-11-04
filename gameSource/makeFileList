@@ -20,8 +20,10 @@ application.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
 components/engines/screenRenderer.cpp \
+components/GamePage.cpp \
 components/gameSceneHandler.cpp \
 components/keyboard.cpp \
+components/pages/AutoUpdatePage.cpp \
 components/pages/LivingLifePage.cpp \
 components/socket.cpp \
 dataTypes/exception/exception.cpp \
@@ -41,7 +43,6 @@ message.cpp \
 serialWebRequests.cpp \
 accountHmac.cpp \
 PageComponent.cpp \
-GamePage.cpp \
 pathFind.cpp \
 ageControl.cpp \
 ExtendedMessagePage.cpp \
@@ -61,7 +62,6 @@ ExistingAccountPage.cpp \
 KeyEquivalentTextButton.cpp \
 ServerActionPage.cpp \
 FinalMessagePage.cpp \
-AutoUpdatePage.cpp \
 soundBank.cpp \
 convolution.cpp \
 fft.cpp \

@@ -6,7 +6,7 @@
 
 #include "minorGems/game/doublePair.h"
 #include "OneLife/gameSource/components/gameSceneHandler.h"
-#include "OneLife/gameSource/GamePage.h"
+#include "OneLife/gameSource/components/GamePage.h"
 
 extern GameSceneHandler *sceneHandler;
 extern GamePage *currentGamePage;

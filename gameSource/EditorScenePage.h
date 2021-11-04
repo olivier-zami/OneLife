@@ -7,7 +7,7 @@
 #include "minorGems/io/file/File.h"
 
 
-#include "GamePage.h"
+#include "components/GamePage.h"
 
 #include "Picker.h"
 #include "TextButton.h"

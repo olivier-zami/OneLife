@@ -5,7 +5,7 @@
 #include "minorGems/game/game.h"
 #include "minorGems/game/drawUtils.h"
 
-#include "message.h"
+#include "OneLife/gameSource/message.h"
 
         
 

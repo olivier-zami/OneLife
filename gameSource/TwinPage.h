@@ -1,4 +1,4 @@
-#include "GamePage.h"
+#include "components/GamePage.h"
 
 #include "TextField.h"
 #include "TextButton.h"

@@ -1,11 +1,8 @@
 #include "GamePage.h"
 
-#include "message.h"
-
-#include "serialWebRequests.h"
-
-#include "whiteSprites.h"
-
+#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/serialWebRequests.h"
+#include "OneLife/gameSource/whiteSprites.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/game/game.h"
 

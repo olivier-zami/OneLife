@@ -23,7 +23,7 @@
 #include "minorGems/network/web/WebRequest.h"
 #include "minorGems/game/game.h"//Uint8
 #include "minorGems/graphics/Image.h"//bytes
-#include "OneLife/gameSource/GamePage.h"
+#include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/procedures/graphics/drawString.h"
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "OneLife/gameSource/musicPlayer.h"
@@ -45,7 +45,7 @@
 #include "OneLife/gameSource/ServerActionPage.h"
 #include "OneLife/gameSource/FinalMessagePage.h"
 #include "OneLife/gameSource/LoadingPage.h"
-#include "OneLife/gameSource/AutoUpdatePage.h"
+#include "OneLife/gameSource/components/pages/AutoUpdatePage.h"
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
 #include "OneLife/gameSource/ExistingAccountPage.h"
 #include "OneLife/gameSource/ExtendedMessagePage.h"

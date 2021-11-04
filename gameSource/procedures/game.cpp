@@ -68,7 +68,7 @@ extern CustomRandomSource randSource;
 #include "OneLife/gameSource/fitnessScore.h"
 #include "OneLife/gameSource/FinalMessagePage.h"
 #include "OneLife/gameSource/LoadingPage.h"
-#include "OneLife/gameSource/AutoUpdatePage.h"
+#include "OneLife/gameSource/components/pages/AutoUpdatePage.h"
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
 #include "OneLife/gameSource/ExistingAccountPage.h"
 #include "OneLife/gameSource/ExtendedMessagePage.h"

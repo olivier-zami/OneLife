@@ -5,7 +5,7 @@
 #include "minorGems/game/doublePair.h"
 #include "minorGems/game/gameGraphics.h"
 
-#include "PageComponent.h"
+#include "../PageComponent.h"
 
 
 class GamePage : public PageComponent {

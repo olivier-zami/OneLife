@@ -9,7 +9,7 @@
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/game/game.h"
 #include "OneLife/gameSource/transitionBank.h"
-#include "OneLife/gameSource/GamePage.h"
+#include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/Picker.h"
 #include "OneLife/gameSource/pathFind.h"
 #include "OneLife/gameSource/animationBank.h"

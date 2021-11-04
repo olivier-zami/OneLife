@@ -23,7 +23,7 @@
 #include "OneLife/gameSource/components/keyboard.h"
 #include "OneLife/gameSource/components/gameSceneHandler.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
-#include "OneLife/gameSource/GamePage.h"
+#include "OneLife/gameSource/components/GamePage.h"
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
