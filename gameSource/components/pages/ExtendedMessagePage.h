@@ -1,11 +1,7 @@
-#include "components/GamePage.h"
-
-
+#include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
-
-
-#include "TextButton.h"
+#include "OneLife/gameSource/TextButton.h"
 
 
 class ExtendedMessagePage : public GamePage, public ActionListener {
@@ -13,7 +9,8 @@ class ExtendedMessagePage : public GamePage, public ActionListener {
     public:
         ExtendedMessagePage();
         ~ExtendedMessagePage();
-        
+
+		void handle(OneLife::dataType::ui::Screen* screen);
 
         void setMessageKey( const char *inMessageKey );
         

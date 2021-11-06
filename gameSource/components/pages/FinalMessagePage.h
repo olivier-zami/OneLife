@@ -1,8 +1,7 @@
-#include "components/GamePage.h"
+#include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
-
-#include "TextButton.h"
+#include "OneLife/gameSource/TextButton.h"
 
 
 class FinalMessagePage : public GamePage, ActionListener {
@@ -13,6 +12,7 @@ class FinalMessagePage : public GamePage, ActionListener {
         
         ~FinalMessagePage();
 
+		void handle(OneLife::dataType::ui::Screen* screen);
 
         virtual void actionPerformed( GUIComponent *inTarget );
 

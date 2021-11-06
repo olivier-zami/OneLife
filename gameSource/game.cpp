@@ -1939,29 +1939,27 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 	//glLineWidth( pixelZoomFactor );
 
 
-	if( demoMode ) {
-		showDemoCodePanel( screen, getFontTGAFileName(), gameWidth,
-						   gameHeight );
-
+	if( demoMode )
+	{
+		showDemoCodePanel( screen, getFontTGAFileName(), gameWidth, gameHeight );
 		// wait to start handling events
 		// wait to start recording/playback
 	}
-	else if( writeFailed ) {
+	else if( writeFailed )
+	{
 		// handle key events right away to listen for ESC
 		screen->addKeyboardHandler( sceneHandler );
 	}
-	else {
+	else
+	{
 		// handle events right away
 		screen->addMouseHandler( sceneHandler );
 		screen->addKeyboardHandler( sceneHandler );
 
-		if( screen->isPlayingBack() ) {
-
-			// start playback right away
-			screen->startRecordingOrPlayback();
-
-			AppLog::infoF( "Using frame rate from recording file:  %d fps\n",
-						   screen->getMaxFramerate() );
+		if( screen->isPlayingBack() )
+		{
+			screen->startRecordingOrPlayback();// start playback right away
+			AppLog::infoF( "Using frame rate from recording file:  %d fps\n", screen->getMaxFramerate() );
 		}
 		// else wait to start recording until after we've measured
 		// frame rate

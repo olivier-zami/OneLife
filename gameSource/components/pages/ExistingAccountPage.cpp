@@ -1,26 +1,17 @@
 #include "ExistingAccountPage.h"
 
-#include "message.h"
-#include "buttonStyle.h"
-
-#include "accountHmac.h"
-
-#include "lifeTokens.h"
-#include "fitnessScore.h"
-
-
 #include "minorGems/game/Font.h"
 #include "minorGems/game/game.h"
-
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
-
 #include "minorGems/crypto/hashes/sha1.h"
-
-
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
-
 #include "minorGems/util/random/JenkinsRandomSource.h"
+#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/buttonStyle.h"
+#include "OneLife/gameSource/accountHmac.h"
+#include "OneLife/gameSource/lifeTokens.h"
+#include "OneLife/gameSource/fitnessScore.h"
 
 static JenkinsRandomSource randSource;
 
@@ -184,11 +175,16 @@ ExistingAccountPage::ExistingAccountPage()
     }
 
           
-        
+
 ExistingAccountPage::~ExistingAccountPage() {
     }
 
-
+void ExistingAccountPage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "ExistingAccountPage");
+}
 
 void ExistingAccountPage::clearFields() {
     mEmailField.setText( "" );

@@ -42,20 +42,19 @@
 #include "OneLife/gameSource/fitnessScore.h"
 #include "OneLife/gameSource/transitionBank.h"
 #include "OneLife/gameSource/liveObjectSet.h"
-#include "OneLife/gameSource/ServerActionPage.h"
-#include "OneLife/gameSource/FinalMessagePage.h"
-#include "OneLife/gameSource/LoadingPage.h"
 #include "OneLife/gameSource/components/pages/AutoUpdatePage.h"
+#include "OneLife/gameSource/components/pages/ExistingAccountPage.h"
+#include "OneLife/gameSource/components/pages/ExtendedMessagePage.h"
+#include "OneLife/gameSource/components/pages/FinalMessagePage.h"
+#include "OneLife/gameSource/components/pages/GeneticHistoryPage.h"
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
-#include "OneLife/gameSource/ExistingAccountPage.h"
-#include "OneLife/gameSource/ExtendedMessagePage.h"
-#include "OneLife/gameSource/RebirthChoicePage.h"
-#include "OneLife/gameSource/SettingsPage.h"
-#include "OneLife/gameSource/ReviewPage.h"
-#include "OneLife/gameSource/TwinPage.h"
-#include "OneLife/gameSource/PollPage.h"
-#include "OneLife/gameSource/GeneticHistoryPage.h"
-#include "OneLife/gameSource/dataTypes/screen/loadingScreen.h"
+#include "OneLife/gameSource/components/pages/LoadingPage.h"
+#include "OneLife/gameSource/components/pages/PollPage.h"
+#include "OneLife/gameSource/components/pages/RebirthChoicePage.h"
+#include "OneLife/gameSource/components/pages/ReviewPage.h"
+#include "OneLife/gameSource/components/pages/ServerActionPage.h"
+#include "OneLife/gameSource/components/pages/SettingsPage.h"
+#include "OneLife/gameSource/components/pages/TwinPage.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 
 
@@ -497,8 +496,8 @@ void GameSceneHandler::fireRedraw() {
 static unsigned char lastKeyPressed = '\0';
 
 
-void GameSceneHandler::keyPressed(
-		unsigned char inKey, int inX, int inY ) {
+void GameSceneHandler::keyPressed( unsigned char inKey, int inX, int inY )
+{
 
 	if( writeFailed || loadingFailedFlag ) {
 		exit( 0 );
@@ -527,8 +526,7 @@ void GameSceneHandler::keyPressed(
 	}
 
 
-	if( inKey == 9 && isCommandKeyDown() &&
-		screen->isPlayingBack() ) {
+	if( inKey == 9 && isCommandKeyDown() && screen->isPlayingBack() ) {
 
 		printf( "Caught alt-tab during playback, pausing\n" );
 

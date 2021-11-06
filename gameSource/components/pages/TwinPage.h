@@ -1,21 +1,20 @@
-#include "components/GamePage.h"
-
-#include "TextField.h"
-#include "TextButton.h"
-#include "RadioButtonSet.h"
-
+#include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/random/JenkinsRandomSource.h"
-
+#include "OneLife/gameSource/TextField.h"
+#include "OneLife/gameSource/TextButton.h"
+#include "OneLife/gameSource/RadioButtonSet.h"
 
 class TwinPage : public GamePage, public ActionListener {
         
     public:
         
         TwinPage();
-        
+
+		void handle(OneLife::dataType::ui::Screen* screen);
+
         virtual ~TwinPage();
         
         virtual void actionPerformed( GUIComponent *inTarget );

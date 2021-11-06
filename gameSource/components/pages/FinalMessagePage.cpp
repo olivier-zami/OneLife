@@ -2,12 +2,9 @@
 
 #include "minorGems/game/Font.h"
 #include "minorGems/game/game.h"
-
 #include "minorGems/util/stringUtils.h"
-
-#include "message.h"
-
-#include "buttonStyle.h"
+#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/buttonStyle.h"
 
 
 extern Font *mainFont;
@@ -32,6 +29,12 @@ FinalMessagePage::~FinalMessagePage() {
     setSubMessage( NULL );
     }
 
+void FinalMessagePage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "FinalMessagePage");
+}
 
 
 void FinalMessagePage::actionPerformed( GUIComponent *inTarget ) {

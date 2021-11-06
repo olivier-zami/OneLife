@@ -25,29 +25,17 @@ int accountHmacVersionNumber = 0;
 #include <malloc.h>
 #endif
 
-
 #include "minorGems/graphics/Color.h"
-
-
-
-
-
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/random/CustomRandomSource.h"
-
 #include "minorGems/io/file/File.h"
-
 #include "minorGems/system/Time.h"
-
 #include "minorGems/crypto/hashes/sha1.h"
-
 
 // static seed
 extern CustomRandomSource randSource;
-
-
 
 #include "minorGems/util/log/AppLog.h"
 #include "minorGems/game/game.h"
@@ -66,20 +54,20 @@ extern CustomRandomSource randSource;
 #include "OneLife/gameSource/photos.h"
 #include "OneLife/gameSource/lifeTokens.h"
 #include "OneLife/gameSource/fitnessScore.h"
-#include "OneLife/gameSource/FinalMessagePage.h"
-#include "OneLife/gameSource/LoadingPage.h"
 #include "OneLife/gameSource/components/pages/AutoUpdatePage.h"
+#include "OneLife/gameSource/components/pages/ExistingAccountPage.h"
+#include "OneLife/gameSource/components/pages/ExtendedMessagePage.h"
+#include "OneLife/gameSource/components/pages/FinalMessagePage.h"
+#include "OneLife/gameSource/components/pages/GeneticHistoryPage.h"
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
-#include "OneLife/gameSource/ExistingAccountPage.h"
-#include "OneLife/gameSource/ExtendedMessagePage.h"
-#include "OneLife/gameSource/RebirthChoicePage.h"
-#include "OneLife/gameSource/SettingsPage.h"
-#include "OneLife/gameSource/ReviewPage.h"
-#include "OneLife/gameSource/TwinPage.h"
-#include "OneLife/gameSource/PollPage.h"
-#include "OneLife/gameSource/GeneticHistoryPage.h"
+#include "OneLife/gameSource/components/pages/LoadingPage.h"
+#include "OneLife/gameSource/components/pages/PollPage.h"
+#include "OneLife/gameSource/components/pages/RebirthChoicePage.h"
+#include "OneLife/gameSource/components/pages/ReviewPage.h"
+#include "OneLife/gameSource/components/pages/ServerActionPage.h"
+#include "OneLife/gameSource/components/pages/SettingsPage.h"
+#include "OneLife/gameSource/components/pages/TwinPage.h"
 //#include "TestPage.h"
-#include "OneLife/gameSource/ServerActionPage.h"
 #include "OneLife/gameSource/ageControl.h"
 #include "OneLife/gameSource/musicPlayer.h"
 #include "OneLife/gameSource/whiteSprites.h"

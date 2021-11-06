@@ -51,15 +51,9 @@ static ObjectPickable objectPickable;
 #define MAP_NUM_CELLS 4096
 
 extern OneLife::game::Application *screen;
-
-int overheadServerBytesRead = 0;
-int overheadServerBytesSent = 0;
-
 extern int versionNumber;
 extern int dataVersionNumber;
-
 extern double frameRateFactor;
-
 extern Font *mainFont;
 extern Font *numbersFontFixed;
 extern Font *mainFontReview;
@@ -70,33 +64,27 @@ extern Font *titleFont;
 
 // to make all erased pencil fonts lighter
 static float pencilErasedFontExtraFade = 0.75;
-
+static char shouldMoveCamera = true;
+static char vogMode = false;
+static doublePair vogPos = { 0, 0 };
+static char vogPickerOn = false;
 
 extern doublePair lastScreenViewCenter;
 doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
 
-static char shouldMoveCamera = true;
-
-
+int overheadServerBytesRead = 0;
+int overheadServerBytesSent = 0;
 extern double viewWidth;
 extern double viewHeight;
-
 extern int screenW, screenH;
-
 extern char usingCustomServer;
 extern char *serverIP;
 extern int serverPort;
-
 extern char *userEmail;
 extern char *userTwinCode;
 extern int userTwinCount;
-
 extern char userReconnect;
 
-static char vogMode = false;
-static doublePair vogPos = { 0, 0 };
-
-static char vogPickerOn = false;
 extern float musicLoudness;
 extern int messagesInCount;
 extern char pendingCMData;
@@ -107,39 +95,6 @@ extern char waitForFrameMessages;
 extern SimpleVector<char*> serverFrameMessages;
 extern char *lastMessageSentToServer;
 
-//KB
-bool blockMouseScaling = false;
-
-bool firstMovementStep = true;
-int magnetMoveDir = -1;
-int magnetWrongMoveDir = -1;
-int magnetMoveCount = 0;
-
-bool upKeyDown;
-bool downKeyDown;
-bool leftKeyDown;
-bool rightKeyDown;
-
-int lastDoorToOpenX;
-int lastDoorToOpenY;
-
-float lastPosX;
-float lastPosY;
-
-unsigned char charKey_Up = 'w';
-unsigned char charKey_Down = 's';
-unsigned char charKey_Left = 'a';
-unsigned char charKey_Right = 'd';
-unsigned char charKey_TileStandingOn = ' ';
-
-unsigned char charKey_Backpack = 'q';
-unsigned char charKey_TakeOffBackpack = 'b';
-unsigned char charKey_Pocket = 't';
-unsigned char charKey_Eat = 'e';
-unsigned char charKey_Baby = 'c';
-
-static bool waitForDoorToOpen;
-
 //FOV
 extern int gui_hud_mode;
 extern float gui_fov_scale;
@@ -147,70 +102,68 @@ extern float gui_fov_scale_hud;
 extern float gui_fov_target_scale_hud;
 extern int gui_fov_offset_x;
 extern int gui_fov_offset_y;
+
+//KB
+bool blockMouseScaling = false;
+bool firstMovementStep = true;
+int magnetMoveDir = -1;
+int magnetWrongMoveDir = -1;
+int magnetMoveCount = 0;
+bool upKeyDown;
+bool downKeyDown;
+bool leftKeyDown;
+bool rightKeyDown;
+int lastDoorToOpenX;
+int lastDoorToOpenY;
+float lastPosX;
+float lastPosY;
+unsigned char charKey_Up = 'w';
+unsigned char charKey_Down = 's';
+unsigned char charKey_Left = 'a';
+unsigned char charKey_Right = 'd';
+unsigned char charKey_TileStandingOn = ' ';
+unsigned char charKey_Backpack = 'q';
+unsigned char charKey_TakeOffBackpack = 'b';
+unsigned char charKey_Pocket = 't';
+unsigned char charKey_Eat = 'e';
+unsigned char charKey_Baby = 'c';
+
+static bool waitForDoorToOpen;
 static SpriteHandle guiPanelLeftSprite;
 static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
-
-
 /*static */JenkinsRandomSource randSource2( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
-
-
 static int lastScreenMouseX, lastScreenMouseY;
 static char mouseDown = false;
 static int mouseDownFrames = 0;
-
 static int minMouseDownFrames = 30;
-
-
 static int screenCenterPlayerOffsetX, screenCenterPlayerOffsetY;
-
-
 static float lastMouseX = 0;
 static float lastMouseY = 0;
-
-
-// set to true to render for teaser video
-static char teaserVideo = false;
-
-
+static char teaserVideo = false;// set to true to render for teaser video
 static int showBugMessage = 0;
 static const char *bugEmail = "jason" "rohrer" "@" "fastmail.fm";
-
-
-
-// if true, pressing S key (capital S)
-// causes current speech and mask to be saved to the screenShots folder
-static char savingSpeechEnabled = false;
+static char savingSpeechEnabled = false;// if true, pressing S key (capital S)// causes current speech and mask to be saved to the screenShots folder
 static char savingSpeech = false;
 static char savingSpeechColor = false;
 static char savingSpeechMask = false;
-
 static char savingSpeechNumber = 1;
-
 static char takingPhoto = false;
 static GridPos takingPhotoGlobalPos;
 static char takingPhotoFlip = false;
 static int photoSequenceNumber = -1;
 static char waitingForPhotoSig = false;
 static char *photoSig = NULL;
-
-
 static double emotDuration = 10;
-
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
-
 static int historyGraphLength = 100;
-
 static char showFPS = false;
 static double frameBatchMeasureStartTime = -1;
 static int framesInBatch = 0;
 static double fpsToDraw = -1;
-
 static SimpleVector<double> fpsHistoryGraph;
-
-
 static char showNet = false;
 static double netBatchMeasureStartTime = -1;
 static int messagesInPerSec = -1;
@@ -220,40 +173,27 @@ static int bytesOutPerSec = -1;
 static int messagesOutCount = 0;
 static int bytesInCount = 0;
 static int bytesOutCount = 0;
-
 static SimpleVector<double> messagesInHistoryGraph;
 static SimpleVector<double> messagesOutHistoryGraph;
 static SimpleVector<double> bytesInHistoryGraph;
 static SimpleVector<double> bytesOutHistoryGraph;
-
-
 static SimpleVector<GridPos> graveRequestPos;
 static SimpleVector<GridPos> ownerRequestPos;
-
-
-
 static char showPing = false;
 static char showHelp = false;
-
 static char *closeMessage = NULL;
-
 static double pingSentTime = -1;
 static double pongDeltaTime = -1;
 static double pingDisplayStartTime = -1;
-
-
 static double culvertFractalScale = 20;
 static double culvertFractalRoughness = 0.62;
 static double culvertFractalAmp = 98;
 
 
-typedef struct LocationSpeech {
-        doublePair pos;
-        char *speech;
-        double fade;
-        // wall clock time when speech should start fading
-        double fadeETATime;
-    } LocationSpeech;
+void LivingLifePage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = this->screenName;
+}
 
 
 

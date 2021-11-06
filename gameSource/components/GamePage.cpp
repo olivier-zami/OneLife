@@ -57,9 +57,6 @@ GamePage::GamePage()
     sPageCount++;
     }
 
-
-
-
 GamePage::~GamePage() {
     if( mStatusMessage != NULL ) {
         delete [] mStatusMessage;
@@ -87,8 +84,6 @@ GamePage::~GamePage() {
         sResponseWarningSprite = NULL;
         }
     }
-
-
 
 
 void GamePage::skipDrawingSubComponents( char inSkip ) {

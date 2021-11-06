@@ -1,22 +1,12 @@
 #include "GeneticHistoryPage.h"
 
-#include "fitnessScore.h"
-
-
-#include "buttonStyle.h"
-
-#include "message.h"
-
-
+#include "../../fitnessScore.h"
+#include "../../buttonStyle.h"
+#include "../../message.h"
 #include "minorGems/game/Font.h"
-
 #include "minorGems/game/game.h"
-
-
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
-
-
 
 extern Font *mainFont;
 
@@ -48,11 +38,15 @@ GeneticHistoryPage::GeneticHistoryPage()
         }
     }
 
-
 GeneticHistoryPage::~GeneticHistoryPage() {
     }
 
-        
+void GeneticHistoryPage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "GeneticHistoryPage");
+}
 
 void GeneticHistoryPage::actionPerformed( GUIComponent *inTarget ) {
 

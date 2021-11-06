@@ -1,16 +1,12 @@
-#include "components/GamePage.h"
-
-#include "TextButton.h"
-#include "CheckboxButton.h"
-#include "RadioButtonSet.h"
-#include "ValueSlider.h"
-#include "SoundUsage.h"
-#include "DropdownList.h"
-
+#include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
-
-
+#include "OneLife/gameSource/TextButton.h"
+#include "OneLife/gameSource/CheckboxButton.h"
+#include "OneLife/gameSource/RadioButtonSet.h"
+#include "OneLife/gameSource/ValueSlider.h"
+#include "OneLife/gameSource/SoundUsage.h"
+#include "OneLife/gameSource/DropdownList.h"
 
 
 class SettingsPage : public GamePage, public ActionListener {
@@ -19,7 +15,8 @@ class SettingsPage : public GamePage, public ActionListener {
         
         SettingsPage();
         ~SettingsPage();
-        
+
+		void handle(OneLife::dataType::ui::Screen* screen);
 
         virtual void draw( doublePair inViewCenter, 
                            double inViewSize );

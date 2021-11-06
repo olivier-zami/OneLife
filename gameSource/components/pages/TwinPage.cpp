@@ -1,21 +1,13 @@
 #include "TwinPage.h"
 
-#include "message.h"
-#include "buttonStyle.h"
-
-
+#include <stdio.h>
 #include "minorGems/game/Font.h"
-
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/crc32.h"
-
 #include "minorGems/game/game.h"
-
-
-#include <stdio.h>
-
-
+#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/buttonStyle.h"
 
 extern Font *mainFont;
 extern char *userEmail;
@@ -134,13 +126,19 @@ TwinPage::TwinPage()
 
 
         
-TwinPage::~TwinPage() {
+TwinPage::~TwinPage()
+{
     delete mPlayerCountRadioButtonSet;
 
     mWordList.deallocateStringElements();
     }
 
-
+void TwinPage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "TwinPage");
+}
 
 void TwinPage::actionPerformed( GUIComponent *inTarget ) {
     if( inTarget == &mCodeField ) {

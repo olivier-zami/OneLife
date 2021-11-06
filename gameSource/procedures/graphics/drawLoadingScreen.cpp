@@ -6,7 +6,7 @@
 
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 
-void OneLife::game::graphic::drawLoadingScreen(OneLife::dataType::LoadingScreen loadingScreen)
+void OneLife::game::graphic::drawLoadingScreen(OneLife::dataType::ui::Screen loadingScreen)
 {
 
 }

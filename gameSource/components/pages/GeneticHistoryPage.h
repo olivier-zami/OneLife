@@ -1,18 +1,15 @@
-#include "components/GamePage.h"
-
-
+#include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
-
-
-#include "TextButton.h"
-
+#include "../../TextButton.h"
 
 class GeneticHistoryPage : public GamePage, public ActionListener {
 
     public:
         GeneticHistoryPage();
         ~GeneticHistoryPage();
+
+		void handle(OneLife::dataType::ui::Screen* screen);
         
 
         virtual void actionPerformed( GUIComponent *inTarget );

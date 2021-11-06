@@ -1,28 +1,17 @@
 #include "ServerActionPage.h"
 
 #include "minorGems/game/game.h"
-
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/stringUtils.h"
-
 #include "minorGems/util/stringUtils.h"
-
 #include "minorGems/crypto/hashes/sha1.h"
-
 #include "minorGems/network/web/URLUtils.h"
-
-
-#include "serialWebRequests.h"
-#include "accountHmac.h"
-
+#include "OneLife/gameSource/serialWebRequests.h"
+#include "OneLife/gameSource/accountHmac.h"
 #include "minorGems/system/Time.h"
-
-
 
 extern int userID;
 extern int serverSequenceNumber;
-
-
 
 ServerActionPage::ServerActionPage( const char *inServerURL,
                                     const char *inActionName,
@@ -62,6 +51,13 @@ ServerActionPage::ServerActionPage( const char *inServerURL,
     
     addServerErrorString( "DENIED", "requestDenied" );
     }
+
+void ServerActionPage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "ServerActionPage");
+}
 
 
 

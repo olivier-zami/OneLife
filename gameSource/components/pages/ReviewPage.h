@@ -1,15 +1,10 @@
 #include "ServerActionPage.h"
 
-#include "TextButton.h"
-#include "TextArea.h"
-#include "TextField.h"
-#include "RadioButtonSet.h"
-
-
 #include "minorGems/ui/event/ActionListener.h"
-
-
-
+#include "OneLife/gameSource/TextButton.h"
+#include "OneLife/gameSource/TextArea.h"
+#include "OneLife/gameSource/TextField.h"
+#include "OneLife/gameSource/RadioButtonSet.h"
 
 class ReviewPage : public ServerActionPage, public ActionListener {
         
@@ -17,7 +12,8 @@ class ReviewPage : public ServerActionPage, public ActionListener {
         
         ReviewPage( const char *inReviewServerURL );
         ~ReviewPage();
-        
+
+		void handle(OneLife::dataType::ui::Screen* screen);
 
         virtual void draw( doublePair inViewCenter, 
                            double inViewSize );

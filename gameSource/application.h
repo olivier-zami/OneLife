@@ -15,6 +15,7 @@
 #include "minorGems/math/geometry/Angle3D.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/system/Time.h"
+#include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
@@ -602,13 +603,18 @@ namespace OneLife::game
 		private:
 			void readDevicesStatus();
 			void readServerMessage();
-			void select(unsigned int idScreen =0);
-			void update(/*Sample soundSample, videoSample*/);
-			void render(/**/);
+			void selectScreen();
+			void update(OneLife::dataType::ui::Screen* dataScreen);
+			void render(OneLife::dataType::ui::Screen* dataScreen);
 			void sendClientMessage();
 
+			OneLife::dataType::ui::Screen* currentScreen;
 			OneLife::game::component::Socket* connection;
 			OneLife::game::ScreenRenderer* screenRenderer;
+
+			struct{
+				bool pauseOnMinimize;
+			}option;
 
 			bool quit;
 	};

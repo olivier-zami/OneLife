@@ -1,22 +1,14 @@
 #include "ExtendedMessagePage.h"
 
-#include "buttonStyle.h"
-#include "message.h"
-
 #include "minorGems/game/Font.h"
 #include "minorGems/game/game.h"
-
 #include "minorGems/util/stringUtils.h"
-
+#include "OneLife/gameSource/buttonStyle.h"
+#include "OneLife/gameSource/message.h"
 
 extern Font *mainFont;
-
-
 extern char *userEmail;
 extern char *accountKey;
-
-
-
 
 
 ExtendedMessagePage::ExtendedMessagePage()
@@ -39,7 +31,12 @@ ExtendedMessagePage::~ExtendedMessagePage() {
         }
     }
 
-
+void ExtendedMessagePage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "ExtendedMessagePage");
+}
 
 
 void ExtendedMessagePage::setMessageKey( const char *inMessageKey ) {

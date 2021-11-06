@@ -1,18 +1,15 @@
-#include "components/GamePage.h"
-
-
+#include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
-
-
-#include "TextButton.h"
+#include "OneLife/gameSource/TextButton.h"
 
 
 class RebirthChoicePage : public GamePage, public ActionListener {
         
     public:
         RebirthChoicePage();
-        
+
+		void handle(OneLife::dataType::ui::Screen* screen);
 
         void showReviewButton( char inShow );
 

@@ -1,28 +1,18 @@
 #include "ReviewPage.h"
 
-
 #include "minorGems/game/Font.h"
-
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/stringUtils.h"
-
 #include "minorGems/game/game.h"
-
 #include "minorGems/network/web/URLUtils.h"
 #include "minorGems/crypto/hashes/sha1.h"
-
-
-#include "buttonStyle.h"
-#include "spellCheck.h"
-#include "accountHmac.h"
-
+#include "OneLife/gameSource/buttonStyle.h"
+#include "OneLife/gameSource/spellCheck.h"
+#include "OneLife/gameSource/accountHmac.h"
 
 extern Font *mainFont;
 extern Font *mainFontReview;
-
 extern char *userEmail;
-
-
 
 ReviewPage::ReviewPage( const char *inReviewServerURL )
         : ServerActionPage( inReviewServerURL, "submit_review", false ),
@@ -117,8 +107,6 @@ ReviewPage::ReviewPage( const char *inReviewServerURL )
     
     }
 
-
-
 ReviewPage::~ReviewPage() {
     delete mRecommendChoice;
     
@@ -127,7 +115,12 @@ ReviewPage::~ReviewPage() {
         }
     }
 
-
+void ReviewPage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "ReviewPage");
+}
 
 void ReviewPage::saveReview() {
     char *reviewName = mReviewNameField.getText();

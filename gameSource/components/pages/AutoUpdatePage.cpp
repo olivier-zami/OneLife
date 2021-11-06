@@ -7,7 +7,15 @@
 
 #include "OneLife/gameSource/message.h"
 
-        
+AutoUpdatePage::AutoUpdatePage() {}
+AutoUpdatePage::~AutoUpdatePage() {}
+
+void AutoUpdatePage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "AutoUpdatePage");
+}
 
 void AutoUpdatePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {

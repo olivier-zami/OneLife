@@ -1,23 +1,13 @@
 #include "PollPage.h"
 
-
-
-#include "buttonStyle.h"
-
-#include "message.h"
-#include "accountHmac.h"
-
-
+#include "../../buttonStyle.h"
+#include "../../message.h"
+#include "../../accountHmac.h"
 #include "minorGems/game/Font.h"
-
 #include "minorGems/game/game.h"
-
 #include "minorGems/network/web/URLUtils.h"
 #include "minorGems/crypto/hashes/sha1.h"
-
 #include "minorGems/util/stringUtils.h"
-
-
 
 extern Font *mainFont;
 
@@ -64,7 +54,12 @@ PollPage::~PollPage() {
         }
     }
 
-        
+void PollPage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "PollPage");
+}
 
 void PollPage::actionPerformed( GUIComponent *inTarget ) {
 

@@ -31,6 +31,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         LivingLifePage();
         ~LivingLifePage();
+
+		void handle(OneLife::dataType::ui::Screen* screen);
         
         void clearMap();
         
@@ -612,6 +614,9 @@ class LivingLifePage : public GamePage, public ActionListener {
         char mPlayerInFlight;
 
         Picker mObjectPicker;
+
+	private:
+		const char* screenName = "LivingLifePage";
 
     };
 

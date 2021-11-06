@@ -1,27 +1,19 @@
 #include "SettingsPage.h"
 
-
 #include "minorGems/game/game.h"
 #include "minorGems/game/Font.h"
-
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/stringUtils.h"
-
 #include "minorGems/game/game.h"
 #include "minorGems/system/Time.h"
-
-#include "musicPlayer.h"
-#include "soundBank.h"
-#include "objectBank.h"
-#include "buttonStyle.h"
-
-#include "DropdownList.h"
-
+#include "OneLife/gameSource/musicPlayer.h"
+#include "OneLife/gameSource/soundBank.h"
+#include "OneLife/gameSource/objectBank.h"
+#include "OneLife/gameSource/buttonStyle.h"
+#include "OneLife/gameSource/DropdownList.h"
 
 extern Font *mainFont;
-
 extern float musicLoudness;
-
 
 SettingsPage::SettingsPage()
         : mInfoSeeds( mainFont, 542, -150, "?" ),
@@ -158,15 +150,18 @@ SettingsPage::SettingsPage()
 
     }
 
-
-
 SettingsPage::~SettingsPage() {
     clearSoundUsage( &mTestSound );
 
     delete mCursorModeSet;
     }
 
-
+void SettingsPage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "SettingsPage");
+}
 
 
 void SettingsPage::actionPerformed( GUIComponent *inTarget ) {

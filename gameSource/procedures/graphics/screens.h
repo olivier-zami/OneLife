@@ -5,11 +5,11 @@
 #ifndef ONELIFE_GRAPHICS_SCREENS_H
 #define ONELIFE_GRAPHICS_SCREENS_H
 
-#include "OneLife/gameSource/dataTypes/screen/loadingScreen.h"
+#include "OneLife/gameSource/dataTypes/ui.h"
 
 namespace OneLife::game::graphic
 {
-	void drawLoadingScreen(OneLife::dataType::LoadingScreen loadingScreen);
+	void drawLoadingScreen(OneLife::dataType::ui::Screen loadingScreen);
 }
 
 

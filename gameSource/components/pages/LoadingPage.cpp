@@ -1,8 +1,14 @@
 #include "LoadingPage.h"
 
-#include "message.h"
+#include "OneLife/gameSource/message.h"
 #include "minorGems/game/drawUtils.h"
 
+void LoadingPage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "LoadingPage");
+}
 
 void LoadingPage::setCurrentPhase( const char *inPhaseName ) {
     mPhaseName = inPhaseName;

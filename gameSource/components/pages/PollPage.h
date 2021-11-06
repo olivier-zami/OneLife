@@ -1,20 +1,17 @@
-#include "components/GamePage.h"
-
-
+#include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
+#include "../../TextButton.h"
+#include "../../RadioButtonSet.h"
 
-
-#include "TextButton.h"
-#include "RadioButtonSet.h"
-
-
-class PollPage : public GamePage, public ActionListener {
+class PollPage : public GamePage, public ActionListener
+{
 
     public:
         PollPage( const char *inReviewServerURL );
         ~PollPage();
-        
+
+		void handle(OneLife::dataType::ui::Screen* screen);
 
         virtual void actionPerformed( GUIComponent *inTarget );
 

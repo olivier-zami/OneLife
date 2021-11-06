@@ -2,12 +2,10 @@
 #define SERVER_ACTION_PAGE_INCLUDED
 
 
-#include "components/GamePage.h"
+#include "../GamePage.h"
 
-#include "TextButton.h"
-#include "TextField.h"
-
-
+#include "OneLife/gameSource/TextButton.h"
+#include "OneLife/gameSource/TextField.h"
 #include "minorGems/system/Time.h"
 
 
@@ -34,6 +32,8 @@ class ServerActionPage : public GamePage {
                           
         
         virtual ~ServerActionPage();
+
+		void handle(OneLife::dataType::ui::Screen* screen);
         
 
         void setActionName( const char *inActionName );

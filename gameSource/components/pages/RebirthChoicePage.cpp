@@ -1,28 +1,19 @@
 #include "RebirthChoicePage.h"
 
-#include "buttonStyle.h"
-#include "message.h"
-
-#include "lifeTokens.h"
-#include "fitnessScore.h"
-
+#include "OneLife/gameSource/buttonStyle.h"
+#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/lifeTokens.h"
+#include "OneLife/gameSource/fitnessScore.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/game.h"
-
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
 
-
 extern Font *mainFont;
-
-
 extern char *userEmail;
 extern char *accountKey;
 
-
 static doublePair tutorialButtonPos = { 522, 300 };
-
-
 
 RebirthChoicePage::RebirthChoicePage()
         : mQuitButton( mainFont, -150, -128, 
@@ -74,7 +65,12 @@ RebirthChoicePage::RebirthChoicePage()
         }
     }
 
-
+void RebirthChoicePage::handle(OneLife::dataType::ui::Screen* screen)
+{
+	screen->label = nullptr;
+	//memset(screen->label, 0, sizeof(screen->label));
+	//strcpy(screen->label, "RebirthChoicePage");
+}
 
 void RebirthChoicePage::showReviewButton( char inShow ) {
     mReviewButton.setVisible( inShow );

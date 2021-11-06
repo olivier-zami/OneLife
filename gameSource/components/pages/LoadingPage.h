@@ -1,4 +1,4 @@
-#include "components/GamePage.h"
+#include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 
@@ -11,7 +11,8 @@ class LoadingPage : public GamePage {
         LoadingPage() 
                 : mShowProgress( true ) {
             }
-        
+
+		void handle(OneLife::dataType::ui::Screen* screen);
 
         void setCurrentPhase( const char *inPhaseName );
         

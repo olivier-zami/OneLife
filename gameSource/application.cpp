@@ -20,6 +20,7 @@
 #include "minorGems/crypto/hashes/sha1.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
+#include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/components/keyboard.h"
 #include "OneLife/gameSource/components/gameSceneHandler.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
@@ -463,6 +464,8 @@ void OneLife::game::Application::start()
 
 	Time::getCurrentTime( &frameStartSec, &frameStartMSec );
 
+	OneLife::dataType::ui::Screen dataScreen;
+
 
 	// main loop
 	while( !this->quit )
@@ -484,14 +487,16 @@ void OneLife::game::Application::start()
 		this->readDevicesStatus();
 
 		// now all events handled, actually draw the screen
-		this->select();
+		this->selectScreen();
 
 		if( ! currentScreenGL->m2DMode ) {
 			// apply our view transform
 			currentScreenGL->applyViewTransform();
 		}
 
-		this->screenRenderer->render();
+		this->update(&dataScreen);
+
+		this->render(&dataScreen);
 
 		for( int r=0; r<currentScreenGL->mRedrawListenerVector->size(); r++ )
 		{
@@ -907,18 +912,16 @@ void OneLife::game::Application::readDevicesStatus()
 							// else unicode-to-ascii failed
 
 							// fall back
-							asciiKey =
-									mapSDLKeyToASCII( event.key.keysym.sym );
+							asciiKey = mapSDLKeyToASCII( event.key.keysym.sym );
 						}
+
 						if( asciiKey == 27 ) {
 							// pass ESC through
 							// map to 27, escape
 							int mouseX, mouseY;
 							SDL_GetMouseState( &mouseX, &mouseY );
 
-							printf(
-									"User terminated recorded event playback "
-									"with ESC\n" );
+							printf("User terminated recorded event playback " "with ESC\n" );
 
 							// stop playback
 							mPlaybackEvents = false;
@@ -993,11 +996,10 @@ void OneLife::game::Application::readServerMessage()
 	printf("\n==========>read server message");
 }
 
-void OneLife::game::Application::select(unsigned int idScreen)
+void OneLife::game::Application::selectScreen()
 {
 	printf("\n==========>select screen");
-	int test =  (currentGamePage == livingLifePage) ? 24 : 0;
-	printf("\n====>current :\"%i\"", test);
+
 	//!SEARCH LEG000001 for legacy place
 	if( demoMode )
 	{
@@ -1504,9 +1506,17 @@ void OneLife::game::Application::select(unsigned int idScreen)
 	sceneHandler->drawScene();//TODO: screenHandler/this->handle/update(screen)->readMessage(message);
 }
 
-void OneLife::game::Application::update() {}
+void OneLife::game::Application::update(OneLife::dataType::ui::Screen* dataScreen)
+{
+	if(!currentGamePage) return;
+	currentGamePage->handle(dataScreen);
+	printf("\n==========>update %s", dataScreen->label);
+}
 
-void OneLife::game::Application::render() {}
+void OneLife::game::Application::render(OneLife::dataType::ui::Screen* dataScreen)
+{
+	this->screenRenderer->render();
+}
 
 void OneLife::game::Application::sendClientMessage() {}
 
