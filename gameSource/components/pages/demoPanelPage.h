@@ -38,11 +38,8 @@ void freeDemoCodePanel();
 #include "minorGems/graphics/Color.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/log/AppLog.h"
-
-#include "minorGems/game/game.h"
-
-
 #include "minorGems/game/platforms/SDL/DemoCodeChecker.h"
+#include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/components/GUITranslatorGL.h"
 #include "OneLife/gameSource/application.h"
 

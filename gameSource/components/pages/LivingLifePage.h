@@ -7,7 +7,7 @@
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/SettingsManager.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/transitionBank.h"
 #include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/Picker.h"

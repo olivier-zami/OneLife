@@ -21,7 +21,7 @@
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/network/web/WebRequest.h"
-#include "minorGems/game/game.h"//Uint8
+#include "OneLife/gameSource/game.h"//Uint8
 #include "minorGems/graphics/Image.h"//bytes
 #include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/procedures/graphics/drawString.h"
@@ -366,8 +366,7 @@ void GameSceneHandler::doFeatureComputeFrame()
 
 			//AppLog::getLog()->logPrintf(
 			//    Log::DETAIL_LEVEL,
-			printf(
-					"Frame rate = %f frames/second\n", actualFrameRate );
+			//printf("Frame rate = %f frames/second\n", actualFrameRate );
 
 			mFrameBatchStartTimeSeconds = game_getCurrentTime();
 

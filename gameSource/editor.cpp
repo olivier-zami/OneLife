@@ -53,7 +53,7 @@ int accountHmacVersionNumber = 0;
 
 
 
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"

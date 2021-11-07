@@ -1,10 +1,10 @@
 #include "SettingsPage.h"
 
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/stringUtils.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/system/Time.h"
 #include "OneLife/gameSource/musicPlayer.h"
 #include "OneLife/gameSource/soundBank.h"

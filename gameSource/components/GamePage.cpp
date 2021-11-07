@@ -4,7 +4,7 @@
 #include "OneLife/gameSource/serialWebRequests.h"
 #include "OneLife/gameSource/whiteSprites.h"
 #include "minorGems/util/stringUtils.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 
 
 

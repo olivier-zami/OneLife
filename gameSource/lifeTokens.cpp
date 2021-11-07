@@ -2,7 +2,7 @@
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/network/web/URLUtils.h"
 
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/game/Font.h"
 #include "message.h"
 

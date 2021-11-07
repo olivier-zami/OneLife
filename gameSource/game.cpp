@@ -51,12 +51,12 @@ int main( int inArgCount, char **inArgs )
 #include "minorGems/util/ByteBufferInputStream.h"
 #include "minorGems/sound/formats/aiff.h"
 #include "minorGems/sound/audioNoClip.h"
-#include "minorGems/game/game.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "minorGems/util/random/CustomRandomSource.h"
-#include "OneLife/gameSource/components/gameSceneHandler.h"
+#include "OneLife/gameSource/components/engines/audioRenderer.h"
+#include "OneLife/gameSource/components/engines/gameSceneHandler.h"
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
 #include "OneLife/gameSource/application.h"
@@ -107,6 +107,9 @@ void freeWriteFailedPanel() {
 
 extern float visibleWidth;
 extern float visibleHeight;
+extern NoClip soundSpriteNoClip;
+extern NoClip totalAudioMixNoClip;
+
 // some settings
 int cursorMode = 0;
 double emulatedCursorScale = 1.0;
@@ -144,668 +147,27 @@ char *webProxy = NULL;
 unsigned char *lastFrame_rgbaBytes = NULL;
 char recordAudio = false;
 FILE *aiffOutFile = NULL;
-static int samplesLeftToRecord = 0;
+int samplesLeftToRecord = 0;
 char bufferSizeHinted = false;
 char measureFrameRate = true;
 char shouldTakeScreenshot = false;// should screenshot be taken at end of next redraw?
 char manualScreenShot = false;
 extern char *screenShotPrefix;
 GameSceneHandler *sceneHandler;
-
-
 // how many pixels wide is each game pixel drawn as?
 int pixelZoomFactor;
 SimpleVector<WebRequestRecord> webRequestRecords;
 extern SimpleVector<SocketConnectionRecord> socketConnectionRecords;
-// don't worry about dynamic mallocs here
-// because we don't need to lock audio thread before adding values
-// (playing sound sprites is handled directly through SoundSprite* handles
-//  without accessing this vector).
-SimpleVector<SoundSprite*> soundSprites;
-// audio thread is locked every time we touch this vector
-// So, we want to avoid mallocs here
-// Can we imagine more than 100 sound sprites ever playing at the same time?
-SimpleVector<SoundSprite> playingSoundSprites( 100 );
-double *soundSpriteMixingBufferL = NULL;
-double *soundSpriteMixingBufferR = NULL;
-// variable rate per sprite
-// these are also touched with audio thread locked, so avoid mallocs
-// we won't see more than 100 of these simultaneously either
-SimpleVector<double> playingSoundSpriteRates( 100 );
-SimpleVector<double> playingSoundSpriteVolumesR( 100 );
-SimpleVector<double> playingSoundSpriteVolumesL( 100 );
+extern double *soundSpriteMixingBufferL;
+extern double *soundSpriteMixingBufferR;
 SDL_Cursor *ourCursor = NULL;
-static int nextSoundSpriteHandle;
-static double soundSpriteRateMax = 1.0;
-static double soundSpriteRateMin = 1.0;
-
 OneLife::game::Application *screen;
-
-
-void setSoundSpriteRateRange( double inMin, double inMax ) {
-	soundSpriteRateMin = inMin;
-	soundSpriteRateMax = inMax;
-}
-
-static double soundSpriteVolumeMax = 1.0;
-static double soundSpriteVolumeMin = 1.0;
-
-
-void setSoundSpriteVolumeRange( double inMin, double inMax ) {
-	soundSpriteVolumeMin = inMin;
-	soundSpriteVolumeMax = inMax;
-}
-
-
-static float soundLoudness = 1.0f;
-
-static float currentSoundLoudness = 0.0f;
-
 static float soundLoudnessIncrementPerSample = 0.0f;
-
-static float soundSpriteGlobalLoudness = 1.0f;
-
-
-static char soundSpritesFading = false;
-static float soundSpriteFadeIncrementPerSample = 0.0f;
-
-
-void setSoundLoudness( float inLoudness ) {
-	lockAudio();
-	soundLoudness = inLoudness;
-	currentSoundLoudness = inLoudness;
-	unlockAudio();
-}
-
-
-void fadeSoundSprites( double inFadeSeconds ) {
-	lockAudio();
-	soundSpritesFading = true;
-
-	soundSpriteFadeIncrementPerSample =
-			1.0f / ( inFadeSeconds * soundSampleRate );
-
-	unlockAudio();
-}
-
-
-
-void resumePlayingSoundSprites() {
-	lockAudio();
-	soundSpritesFading = false;
-	soundSpriteGlobalLoudness = 1.0f;
-	unlockAudio();
-}
-
-
-
-
-
-SoundSpriteHandle loadSoundSprite( const char *inAIFFFileName ) {
-	return loadSoundSprite( "sounds", inAIFFFileName );
-}
-
-
-SoundSpriteHandle loadSoundSprite( const char *inFolderName,
-								   const char *inAIFFFileName ) {
-
-	File aiffFile( new Path( inFolderName ), inAIFFFileName );
-
-	if( ! aiffFile.exists() ) {
-		printf( "File does not exist in sounds folder: %s\n",
-				inAIFFFileName );
-		return NULL;
-	}
-
-	int numBytes;
-	unsigned char *data = aiffFile.readFileContents( &numBytes );
-
-
-	if( data == NULL ) {
-		printf( "Failed to read sound file: %s\n", inAIFFFileName );
-		return NULL;
-	}
-
-
-	int numSamples;
-	int16_t *samples = readMono16AIFFData( data, numBytes, &numSamples );
-
-	delete [] data;
-
-	if( samples == NULL ) {
-		printf( "Failed to parse AIFF sound file: %s\n", inAIFFFileName );
-		return NULL;
-	}
-
-	SoundSpriteHandle s = setSoundSprite( samples, numSamples );
-
-	delete [] samples;
-
-	return s;
-}
-
-
-
-SoundSpriteHandle setSoundSprite( int16_t *inSamples, int inNumSamples ) {
-	SoundSprite *s = new SoundSprite;
-
-	s->handle = nextSoundSpriteHandle ++;
-	s->numSamples = inNumSamples;
-
-	s->noVariance = false;
-
-	s->samplesPlayed = 0;
-	s->samplesPlayedF = 0;
-
-	s->samples = new Sint16[ s->numSamples ];
-
-	memcpy( s->samples, inSamples, inNumSamples * sizeof( int16_t ) );
-
-	soundSprites.push_back( s );
-
-	return (SoundSpriteHandle)s;
-}
-
-
-
-void toggleVariance( SoundSpriteHandle inHandle, char inNoVariance ) {
-	SoundSprite *s = (SoundSprite*)inHandle;
-	s->noVariance = inNoVariance;
-}
-
-
-
-
 static double maxTotalSoundSpriteVolume = 1.0;
-
 static double soundSpriteCompressionFraction = 0.0;
-
-static double totalSoundSpriteNormalizeFactor = 1.0;
-
-static NoClip soundSpriteNoClip;
-
-static NoClip totalAudioMixNoClip;
-
-
-void setMaxTotalSoundSpriteVolume( double inMaxTotal,
-								   double inCompressionFraction ) {
-	lockAudio();
-
-	maxTotalSoundSpriteVolume = inMaxTotal;
-	soundSpriteCompressionFraction = inCompressionFraction;
-
-	totalSoundSpriteNormalizeFactor =
-			1.0 / ( 1.0 - soundSpriteCompressionFraction );
-
-	soundSpriteNoClip =
-			resetAudioNoClip( ( 1.0 - soundSpriteCompressionFraction ) *
-							  maxTotalSoundSpriteVolume * 32767,
-					// half second hold and release
-							  soundSampleRate / 2, soundSampleRate / 2 );
-
-	unlockAudio();
-}
-
-
-static int maxSimultaneousSoundSprites = -1;
-
-
-void setMaxSimultaneousSoundSprites( int inMaxCount ) {
-	maxSimultaneousSoundSprites = inMaxCount;
-}
-
-
-
-
-static double pickRandomRate() {
-	if( soundSpriteRateMax != 1.0 ||
-		soundSpriteRateMin != 1.0 ) {
-
-		return randSource.getRandomBoundedDouble( soundSpriteRateMin,
-												  soundSpriteRateMax );
-	}
-	else {
-		return 1.0;
-	}
-}
-
-
-
-static double pickRandomVolume() {
-	if( soundSpriteVolumeMax != 1.0 ||
-		soundSpriteVolumeMin != 1.0 ) {
-
-		return randSource.getRandomBoundedDouble( soundSpriteVolumeMin,
-												  soundSpriteVolumeMax );
-	}
-	else {
-		return 1.0;
-	}
-}
-
-
-
-
-// no locking
-static void playSoundSpriteInternal(
-		SoundSpriteHandle inHandle, double inVolumeTweak,
-		double inStereoPosition,
-		double inForceVolume = -1,
-		double inForceRate = -1 ) {
-
-
-	if( soundSpritesFading && soundSpriteGlobalLoudness == 0.0f ) {
-		// don't play any new sound sprites
-		return;
-	}
-
-	if( maxSimultaneousSoundSprites != -1 &&
-		playingSoundSpriteVolumesR.size() >= maxSimultaneousSoundSprites ) {
-		// cap would be exceeded
-		// don't play this sound sprite at all
-		return;
-	}
-
-
-	double volume = inVolumeTweak;
-
-	SoundSprite *s = (SoundSprite*)inHandle;
-
-	if( ! s->noVariance ) {
-
-		if( inForceVolume == -1 ) {
-			volume *= pickRandomVolume();
-		}
-		else {
-			volume *= inForceVolume;
-		}
-	}
-
-
-
-
-
-
-	// constant power rule
-	double p = M_PI * inStereoPosition * 0.5;
-
-	double rightVolume = volume * sin( p );
-	double leftVolume = volume * cos( p );
-
-
-	s->samplesPlayed = 0;
-	s->samplesPlayedF = 0;
-
-
-
-
-	playingSoundSprites.push_back( *s );
-
-	if( s->noVariance ) {
-		playingSoundSpriteRates.push_back( 1.0 );
-	}
-	else {
-
-		if( inForceRate != -1 ) {
-			playingSoundSpriteRates.push_back( inForceRate );
-		}
-		else {
-			playingSoundSpriteRates.push_back(  pickRandomRate() );
-		}
-	}
-
-
-
-	playingSoundSpriteVolumesR.push_back( rightVolume );
-	playingSoundSpriteVolumesL.push_back( leftVolume );
-}
-
-
-// locking
-void playSoundSprite( SoundSpriteHandle inHandle, double inVolumeTweak,
-					  double inStereoPosition ) {
-
-	lockAudio();
-	playSoundSpriteInternal( inHandle, inVolumeTweak, inStereoPosition );
-	unlockAudio();
-}
-
-
-
-// multiple with single lock
-void playSoundSprite( int inNumSprites, SoundSpriteHandle *inHandles,
-					  double *inVolumeTweaks,
-					  double *inStereoPositions ) {
-	lockAudio();
-
-	// one random volume and rate for whole batch
-	double volume = pickRandomVolume();
-	double rate = pickRandomRate();
-
-	for( int i=0; i<inNumSprites; i++ ) {
-		playSoundSpriteInternal( inHandles[i], inVolumeTweaks[i],
-								 inStereoPositions[i], volume, rate );
-	}
-	unlockAudio();
-}
-
-
-
-
-
-void freeSoundSprite( SoundSpriteHandle inHandle ) {
-	// make sure this sprite isn't playing
-	lockAudio();
-
-	SoundSprite *s = (SoundSprite*)inHandle;
-
-	// find it in vector to remove it
-	for( int i=playingSoundSprites.size()-1; i>=0; i-- ) {
-		SoundSprite *s2 = playingSoundSprites.getElement( i );
-		if( s2->handle == s->handle ) {
-			// stop it abruptly
-			playingSoundSprites.deleteElement( i );
-			playingSoundSpriteRates.deleteElement( i );
-			playingSoundSpriteVolumesL.deleteElement( i );
-			playingSoundSpriteVolumesR.deleteElement( i );
-		}
-	}
-
-	unlockAudio();
-
-
-	for( int i=0; i<soundSprites.size(); i++ ) {
-		SoundSprite *s2 = soundSprites.getElementDirect( i );
-		if( s2->handle == s->handle ) {
-			delete [] s2->samples;
-			soundSprites.deleteElement( i );
-			delete s2;
-		}
-	}
-}
-
-
-
-
-void audioCallback( void *inUserData, Uint8 *inStream, int inLengthToFill ) {
-	getSoundSamples( inStream, inLengthToFill );
-
-	int numSamples = inLengthToFill / 4;
-
-
-	if( playingSoundSprites.size() > 0 ) {
-
-		for( int i=0; i<numSamples; i++ ) {
-			soundSpriteMixingBufferL[ i ] = 0.0;
-			soundSpriteMixingBufferR[ i ] = 0.0;
-		}
-
-		for( int i=0; i<playingSoundSprites.size(); i++ ) {
-			SoundSprite *s = playingSoundSprites.getElement( i );
-
-			double rate = playingSoundSpriteRates.getElementDirect( i );
-			double volumeL = playingSoundSpriteVolumesL.getElementDirect( i );
-			double volumeR = playingSoundSpriteVolumesR.getElementDirect( i );
-
-			int filled = 0;
-
-			//int filledBytes = 0;
-
-			if( rate == 1 ) {
-
-				int samplesPlayed = s->samplesPlayed;
-				int spriteNumSamples = s->numSamples;
-
-				while( filled < numSamples &&
-					   samplesPlayed < spriteNumSamples  ) {
-
-					Sint16 sample = s->samples[ samplesPlayed ];
-
-					soundSpriteMixingBufferL[ filled ]
-							+= volumeL * sample;
-
-					soundSpriteMixingBufferR[ filled ]
-							+= volumeR * sample;
-
-					filled ++;
-					samplesPlayed ++;
-				}
-				s->samplesPlayed = samplesPlayed;
-			}
-			else {
-				double samplesPlayedF = s->samplesPlayedF;
-				int spriteNumSamples = s->numSamples;
-
-				while( filled < numSamples &&
-					   samplesPlayedF < spriteNumSamples - 1  ) {
-
-					int aIndex = (int)floor( samplesPlayedF );
-					int bIndex = (int)ceil( samplesPlayedF );
-
-					Sint16 sampleA = s->samples[ aIndex ];
-					Sint16 sampleB = s->samples[ bIndex ];
-
-					double bWeight = samplesPlayedF - aIndex;
-					double aWeight = 1 - bWeight;
-
-					double sampleBlend = sampleA * aWeight + sampleB * bWeight;
-
-					soundSpriteMixingBufferL[ filled ]
-							+= volumeL * sampleBlend;
-
-					soundSpriteMixingBufferR[ filled ]
-							+= volumeR * sampleBlend;
-
-					filled ++;
-					samplesPlayedF += rate;
-				}
-				s->samplesPlayedF = samplesPlayedF;
-			}
-		}
-
-
-		// respect their collective volume cap
-		audioNoClip( &soundSpriteNoClip,
-					 soundSpriteMixingBufferL, soundSpriteMixingBufferR,
-					 numSamples );
-
-		// and normalize to compensate for any compression below that cap
-		if( totalSoundSpriteNormalizeFactor != 1.0 ) {
-			for( int i=0; i<numSamples; i++ ) {
-				soundSpriteMixingBufferL[i] *= totalSoundSpriteNormalizeFactor;
-				soundSpriteMixingBufferR[i] *= totalSoundSpriteNormalizeFactor;
-			}
-		}
-
-
-		// now mix them in
-		int filledBytes = 0;
-
-
-		// next, do final mix, then
-		//  apply global no-clip, for mix of sound sprites and
-		// music or other sounds created by getSoundSamples
-
-		for( int i=0; i<numSamples; i++ ) {
-			Sint16 lSample =
-					(Sint16)( (inStream[filledBytes+1] << 8) |
-							  inStream[filledBytes] );
-			Sint16 rSample =
-					(Sint16)( (inStream[filledBytes+3] << 8) |
-							  inStream[filledBytes+2] );
-
-			filledBytes += 4;
-
-			// apply global loudness to sound sprites as part of this mx
-			soundSpriteMixingBufferL[i] *= soundSpriteGlobalLoudness;
-			soundSpriteMixingBufferR[i] *= soundSpriteGlobalLoudness;
-
-			if( soundSpritesFading ) {
-				soundSpriteGlobalLoudness -= soundSpriteFadeIncrementPerSample;
-
-				if( soundSpriteGlobalLoudness < 0.0f ) {
-					soundSpriteGlobalLoudness = 0.0f;
-				}
-			}
-
-
-			soundSpriteMixingBufferL[i] += lSample;
-			soundSpriteMixingBufferR[i] += rSample;
-		}
-
-
-
-		// we have our final mix, make sure it never clips
-		audioNoClip( &totalAudioMixNoClip,
-					 soundSpriteMixingBufferL, soundSpriteMixingBufferR,
-					 numSamples );
-
-
-		// now convert back to integers
-		filledBytes = 0;
-		for( int i=0; i<numSamples; i++ ) {
-			Sint16 lSample = lrint( soundSpriteMixingBufferL[i] );
-			Sint16 rSample = lrint( soundSpriteMixingBufferR[i] );
-
-
-			inStream[filledBytes++] = (Uint8)( lSample & 0xFF );
-			inStream[filledBytes++] =
-					(Uint8)( ( lSample >> 8 ) & 0xFF );
-			inStream[filledBytes++] = (Uint8)( rSample & 0xFF );
-			inStream[filledBytes++] =
-					(Uint8)( ( rSample >> 8 ) & 0xFF );
-		}
-
-		// walk backward, removing any that are done
-		// OR remove all if sound sprites are completely faded out
-		for( int i=playingSoundSprites.size()-1; i>=0; i-- ) {
-			SoundSprite *s = playingSoundSprites.getElement( i );
-
-			if( soundSpriteGlobalLoudness == 0 ||
-				s->samplesPlayed >= s->numSamples ||
-				s->samplesPlayedF >= s->numSamples - 1 ) {
-
-				playingSoundSprites.deleteElement( i );
-				playingSoundSpriteRates.deleteElement( i );
-				playingSoundSpriteVolumesL.deleteElement( i );
-				playingSoundSpriteVolumesR.deleteElement( i );
-			}
-		}
-	}
-
-	// now apply global loudness fade for pause
-	if( ( currentSoundLoudness != soundLoudness && ! sceneHandler->mPaused )
-		||
-		( currentSoundLoudness != 0.0f && sceneHandler->mPaused )
-		||
-		currentSoundLoudness != 1.0f ) {
-
-
-		int nextByte = 0;
-		for( int i=0; i<numSamples; i++ ) {
-			Sint16 lSample =
-					inStream[nextByte] |
-					( inStream[nextByte + 1] << 8 );
-
-			Sint16 rSample =
-					inStream[nextByte + 2] |
-					( inStream[nextByte + 3] << 8 );
-
-			lSample = (Sint16)( lSample * currentSoundLoudness );
-			rSample = (Sint16)( rSample * currentSoundLoudness );
-
-
-			inStream[nextByte++] = (Uint8)( lSample & 0xFF );
-			inStream[nextByte++] = (Uint8)( ( lSample >> 8 ) & 0xFF );
-			inStream[nextByte++] = (Uint8)( rSample & 0xFF );
-			inStream[nextByte++] = (Uint8)( ( rSample >> 8 ) & 0xFF );
-
-			if( currentSoundLoudness != soundLoudness &&
-				! sceneHandler->mPaused ) {
-				currentSoundLoudness += soundLoudnessIncrementPerSample;
-
-				if( currentSoundLoudness > soundLoudness ) {
-					currentSoundLoudness = soundLoudness;
-				}
-			}
-			else if( currentSoundLoudness != 0 &&
-					 sceneHandler->mPaused ) {
-
-				currentSoundLoudness -= soundLoudnessIncrementPerSample;
-
-				if( currentSoundLoudness < 0 ) {
-					currentSoundLoudness = 0;
-				}
-			}
-
-		}
-	}
-
-
-	if( recordAudio ) {
-
-
-		if( numSamples > samplesLeftToRecord ) {
-			numSamples = samplesLeftToRecord;
-		}
-
-		// reverse byte order
-		int nextByte = 0;
-		for( int i=0; i<numSamples; i++ ) {
-
-			fwrite( &( inStream[ nextByte + 1 ] ), 1, 1, aiffOutFile );
-			fwrite( &( inStream[ nextByte ] ), 1, 1, aiffOutFile );
-
-			fwrite( &( inStream[ nextByte + 3 ] ), 1, 1, aiffOutFile );
-			fwrite( &( inStream[ nextByte + 2 ] ), 1, 1, aiffOutFile );
-			nextByte += 4;
-		}
-
-
-		samplesLeftToRecord -= numSamples;
-
-
-		if( samplesLeftToRecord <= 0 ) {
-			recordAudio = false;
-			fclose( aiffOutFile );
-			aiffOutFile = NULL;
-		}
-	}
-
-}
-
-
-int getSampleRate() {
-	return soundSampleRate;
-}
-
-
-void setSoundPlaying( char inPlaying ) {
-	SDL_PauseAudio( !inPlaying );
-}
-
-
-
-void lockAudio() {
-	SDL_LockAudio();
-}
-
-
-
-void unlockAudio() {
-	SDL_UnlockAudio();
-}
-
-
-
-char isSoundRunning() {
-	return soundRunning;
-}
-
 
 
 #ifdef __mac__
-
 #include <unistd.h>
 #include <stdarg.h>
 
@@ -898,17 +260,11 @@ static char isSettingsFolderFound() {
 
     return false;
     }
-
-
 #endif
 
-
-
 #ifdef WIN32
-
 #include <windows.h>
 #include <tchar.h>
-
 #endif
 
 
@@ -916,8 +272,6 @@ static char isSettingsFolderFound() {
 int mainFunction( int inNumArgs, char **inArgs ) {
 
 #ifdef WIN32
-
-
 	HMODULE hShcore = LoadLibrary( _T( "shcore.dll" ) );
 
     if( hShcore != NULL ) {
@@ -1158,13 +512,12 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 
 	// read screen size from settings
 	char widthFound = false;
-	int readWidth = SettingsManager::getIntSetting( "screenWidth",
-													&widthFound );
+	int readWidth = SettingsManager::getIntSetting( "screenWidth", &widthFound );
 	char heightFound = false;
-	int readHeight = SettingsManager::getIntSetting( "screenHeight",
-													 &heightFound );
+	int readHeight = SettingsManager::getIntSetting( "screenHeight", &heightFound );
 
-	if( widthFound && heightFound ) {
+	if( widthFound && heightFound )
+	{
 		// override hard-coded defaults
 		screenWidth = readWidth;
 		screenHeight = readHeight;
@@ -1176,8 +529,8 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 			screenWidth, screenHeight );
 
 
-	if( ! isNonIntegerScalingAllowed() &&
-		screenWidth < gameWidth ) {
+	if( ! isNonIntegerScalingAllowed() && screenWidth < gameWidth )
+	{
 
 		AppLog::info(
 				"Screen width smaller than target game width, fixing" );
@@ -1487,11 +840,6 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 		recordGame = false;
 	}
 
-
-
-
-
-
 	char *customData = getCustomRecordedGameData();
 
 	char *hashSalt = getHashSalt();
@@ -1593,21 +941,8 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 		}
 	}
 
-
-
-
-
-
-
-
-
-
-
-
-
 	// adjust gameWidth to match available screen space
 	// keep gameHeight constant
-
 
 	/*
 	SDL_EnableKeyRepeat( SDL_DEFAULT_REPEAT_DELAY,
@@ -1751,13 +1086,10 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 
 
 
-	if( getUsesSound() ) {
-
-		soundSampleRate =
-				SettingsManager::getIntSetting( "soundSampleRate", 22050 );
-
-		int requestedBufferSize =
-				SettingsManager::getIntSetting( "soundBufferSize", 512 );
+	if( getUsesSound() )
+	{
+		soundSampleRate = SettingsManager::getIntSetting( "soundSampleRate", 22050 );
+		int requestedBufferSize = SettingsManager::getIntSetting( "soundBufferSize", 512 );
 
 		// 1 second fade in/out
 		soundLoudnessIncrementPerSample = 1.0f / soundSampleRate;
@@ -1995,73 +1327,42 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 unsigned int getRandSeed() {
 	return screen->getRandSeed();
 }
-
-
 
 void pauseGame() {
 	sceneHandler->mPaused = !( sceneHandler->mPaused );
 }
 
-
 char isPaused() {
 	return sceneHandler->mPaused;
 }
-
-
 
 void blockQuitting( char inNoQuitting ) {
 	sceneHandler->mBlockQuitting = inNoQuitting;
 }
 
-
-
 char isQuittingBlocked() {
 	return sceneHandler->mBlockQuitting;
 }
 
-
-
 void wakeUpPauseFrameRate() {
 	sceneHandler->mPausedSleepTime = 0;
 }
-
 
 // returns true if we're currently executing a recorded game
 char isGamePlayingBack() {
 	return screen->isPlayingBack();
 }
 
-
-
-
-
-
-
 void mapKey( unsigned char inFromKey, unsigned char inToKey ) {
 	screen->setKeyMapping( inFromKey, inToKey );
 }
 
-
 void toggleKeyMapping( char inMappingOn ) {
 	screen->toggleKeyMapping( inMappingOn );
 }
-
 
 void setCursorVisible( char inIsVisible ) {
 	if( inIsVisible ) {
@@ -2071,7 +1372,6 @@ void setCursorVisible( char inIsVisible ) {
 		SDL_ShowCursor( SDL_DISABLE );
 	}
 }
-
 
 
 void setCursorMode( int inMode ) {
@@ -3353,166 +2653,6 @@ int16_t *stopRecording16BitMonoSound( int *outNumSamples ) {
 }
 
 #endif
-
-
-
-// same for all platforms
-// load a .wav file
-int16_t *load16BitMonoSound( int *outNumSamples, int *outSampleRate ) {
-
-	File wavFile( NULL, arecordFileName );
-
-	if( ! wavFile.exists() ) {
-		AppLog::printOutNextMessage();
-		AppLog::errorF( "File does not exist in game folder: %s\n",
-						arecordFileName );
-		return NULL;
-	}
-
-	char *fileName = wavFile.getFullFileName();
-
-	FILE *file = fopen( fileName, "rb" );
-
-	delete [] fileName;
-
-	if( file == NULL ) {
-		AppLog::printOutNextMessage();
-		AppLog::errorF( "Failed to open sound file for reading: %s\n",
-						arecordFileName );
-		return NULL;
-	}
-
-	fseek( file, 0L, SEEK_END );
-	int fileSize  = ftell( file );
-	rewind( file );
-
-	if( fileSize <= 44 ) {
-		AppLog::printOutNextMessage();
-		AppLog::errorF( "Sound file too small to contain a WAV header: %s\n",
-						arecordFileName );
-		fclose( file );
-		return NULL;
-	}
-
-
-	// skip 20 bytes of header to get to format flag
-	fseek( file, 20, SEEK_SET );
-
-	unsigned char readBuffer[4];
-
-	fread( readBuffer, 1, 2, file );
-
-	if( readBuffer[0] != 1 || readBuffer[1] != 0 ) {
-		AppLog::printOutNextMessage();
-		AppLog::errorF( "Sound file not in PCM format: %s\n",
-						arecordFileName );
-		fclose( file );
-		return NULL;
-	}
-
-
-	fread( readBuffer, 1, 2, file );
-
-	if( readBuffer[0] != 1 || readBuffer[1] != 0 ) {
-		AppLog::printOutNextMessage();
-		AppLog::errorF( "Sound file not  in mono: %s\n",
-						arecordFileName );
-		fclose( file );
-		return NULL;
-	}
-
-	fread( readBuffer, 1, 4, file );
-
-	// little endian
-	*outSampleRate =
-			(int)( readBuffer[3] << 24 |
-				   readBuffer[2] << 16 |
-				   readBuffer[1] << 8 |
-				   readBuffer[0] );
-
-
-	fseek( file, 34, SEEK_SET );
-
-
-	fread( readBuffer, 1, 2, file );
-
-	if( readBuffer[0] != 16 && readBuffer[1] != 0 ) {
-		AppLog::printOutNextMessage();
-		AppLog::errorF( "Sound file not 16-bit: %s\n",
-						arecordFileName );
-		fclose( file );
-		return NULL;
-	}
-
-
-
-	/*
-	  // this is not reliable as arecord leaves this blank when
-	  // recording a stream
-
-	fseek( file, 40, SEEK_SET );
-
-
-	fread( readBuffer, 1, 4, file );
-
-	// little endian
-	int numSampleBytes =
-		(int)( readBuffer[3] << 24 |
-			   readBuffer[2] << 16 |
-			   readBuffer[1] << 8 |
-			   readBuffer[0] );
-
-	*/
-
-	fseek( file, 44, SEEK_SET );
-
-
-	int currentPos = ftell( file );
-
-	int numSampleBytes = fileSize - currentPos;
-
-	*outNumSamples = numSampleBytes / 2;
-
-	int numSamples = *outNumSamples;
-
-
-	unsigned char *rawSamples = new unsigned char[ 2 * numSamples ];
-
-	int numRead = fread( rawSamples, 1, numSamples * 2, file );
-
-
-	if( numRead != numSamples * 2 ) {
-		AppLog::printOutNextMessage();
-		AppLog::errorF( "Failed to read %d samples from file: %s\n",
-						numSamples, arecordFileName );
-
-		delete [] rawSamples;
-		fclose( file );
-		return NULL;
-	}
-
-
-	int16_t *returnSamples = new int16_t[ numSamples ];
-
-	int r = 0;
-	for( int i=0; i<numSamples; i++ ) {
-		// little endian
-		returnSamples[i] =
-				( rawSamples[r+1] << 8 ) |
-				rawSamples[r];
-
-		r += 2;
-	}
-	delete [] rawSamples;
-
-
-
-	fclose( file );
-
-	return returnSamples;
-}
-
-
 
 
 #ifdef LINUX

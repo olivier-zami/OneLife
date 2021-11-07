@@ -5,7 +5,7 @@
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/formats/encodingUtils.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 
 #include "minorGems/network/web/URLUtils.h"
 

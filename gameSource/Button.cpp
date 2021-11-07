@@ -1,7 +1,7 @@
 #include "Button.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/gameGraphics.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
 

@@ -4,7 +4,7 @@
 
 #include "socket.h"
 #include <cstdio>
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "minorGems/util/SimpleVector.h"

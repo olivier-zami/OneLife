@@ -19,9 +19,10 @@ game.cpp \
 application.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
+components/engines/audioRenderer.cpp \
 components/engines/screenRenderer.cpp \
+components/engines/gameSceneHandler.cpp \
 components/GamePage.cpp \
-components/gameSceneHandler.cpp \
 components/keyboard.cpp \
 components/pages/AutoUpdatePage.cpp \
 components/pages/ExistingAccountPage.cpp \
@@ -38,6 +39,7 @@ components/pages/SettingsPage.cpp \
 components/pages/TwinPage.cpp \
 components/socket.cpp \
 dataTypes/exception/exception.cpp \
+dataTypes/messages/keyboard.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \

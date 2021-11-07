@@ -20,9 +20,10 @@
 #include "minorGems/crypto/hashes/sha1.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
+#include "OneLife/gameSource/dataTypes/messages/keyboard.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/components/keyboard.h"
-#include "OneLife/gameSource/components/gameSceneHandler.h"
+#include "OneLife/gameSource/components/engines/gameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/GamePage.h"
 
@@ -120,6 +121,7 @@ OneLife::game::Application::Application(
 	this->connection = nullptr;
 	this->screenRenderer = new OneLife::game::ScreenRenderer();
 	this->quit = false;
+	this->virtualKeyboard = new Onelife::dataType::message::Keyboard();
 
 	mWantToMimimize = false;
 	mMinimized = false;
@@ -572,6 +574,7 @@ void OneLife::game::Application::start()
 
 void OneLife::game::Application::readDevicesStatus()
 {
+	this->virtualKeyboard->reset();
 	// now handle pending events BEFORE actually drawing the screen.
 	// Thus, screen reflects all the latest events (not just those
 	// that happened before any sleep called during the pre-display).
@@ -579,8 +582,7 @@ void OneLife::game::Application::readDevicesStatus()
 
 	SDL_Event event;
 
-	while( !( mPlaybackEvents && mRecordingOrPlaybackStarted )
-		   && SDL_PollEvent( &event ) ) {
+	while( !( mPlaybackEvents && mRecordingOrPlaybackStarted ) && SDL_PollEvent( &event ) ) {
 
 		SDLMod mods = SDL_GetModState();
 
@@ -993,12 +995,12 @@ void OneLife::game::Application::readDevicesStatus()
 
 void OneLife::game::Application::readServerMessage()
 {
-	printf("\n==========>read server message");
+	//printf("\n==========>read server message");
 }
 
 void OneLife::game::Application::selectScreen()
 {
-	printf("\n==========>select screen");
+	//printf("\n==========>select screen");
 
 	//!SEARCH LEG000001 for legacy place
 	if( demoMode )
@@ -1244,7 +1246,7 @@ void OneLife::game::Application::selectScreen()
 		if( pauseOnMinimize && this->isMinimized() ) mPaused = true;// auto-pause when minimized
 		char update = !mPaused;//TODO: paused is triggered in gameSceneHandler => change this! // don't update while paused
 
-		printf("\n==========>render scene !!!!");
+		//printf("\n==========>render scene !!!!");
 		drawFrame( update );//TODO: screenSelection separation <========================================================
 		/**************************************************************************************************************/
 		if( cursorMode > 0 ) {
@@ -1510,7 +1512,7 @@ void OneLife::game::Application::update(OneLife::dataType::ui::Screen* dataScree
 {
 	if(!currentGamePage) return;
 	currentGamePage->handle(dataScreen);
-	printf("\n==========>update %s", dataScreen->label);
+	//printf("\n==========>update %s", dataScreen->label);
 }
 
 void OneLife::game::Application::render(OneLife::dataType::ui::Screen* dataScreen)
@@ -3321,15 +3323,14 @@ void callbackKeyboard( unsigned char inKey, int inX, int inY ) {
 	// callback was called
 
 	for( h=0; h<currentScreenGL->mKeyboardHandlerVector->size(); h++ ) {
-		KeyboardHandlerGL *handler
-				= *( currentScreenGL->mKeyboardHandlerVector->getElement( h ) );
+		KeyboardHandlerGL *handler = *( currentScreenGL->mKeyboardHandlerVector->getElement( h ) );
 		handler->mHandlerFlagged = true;
 	}
 
 	// fire to all handlers, stop if eaten
-	for( h=0; h<currentScreenGL->mKeyboardHandlerVector->size(); h++ ) {
-		KeyboardHandlerGL *handler
-				= *( currentScreenGL->mKeyboardHandlerVector->getElement( h ) );
+	for( h=0; h<currentScreenGL->mKeyboardHandlerVector->size(); h++ )
+	{
+		KeyboardHandlerGL *handler = *( currentScreenGL->mKeyboardHandlerVector->getElement( h ) );
 
 		if( handler->mHandlerFlagged ) {
 			// if some are focused, only fire to this handler if it is one
@@ -3346,12 +3347,10 @@ void callbackKeyboard( unsigned char inKey, int inX, int inY ) {
 
 	down_eaten:
 
-
-
 	// deflag for next time
-	for( h=0; h<currentScreenGL->mKeyboardHandlerVector->size(); h++ ) {
-		KeyboardHandlerGL *handler
-				= *( currentScreenGL->mKeyboardHandlerVector->getElement( h ) );
+	for( h=0; h<currentScreenGL->mKeyboardHandlerVector->size(); h++ )
+	{
+		KeyboardHandlerGL *handler = *( currentScreenGL->mKeyboardHandlerVector->getElement( h ) );
 		handler->mHandlerFlagged = false;
 	}
 }

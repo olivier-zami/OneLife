@@ -39,6 +39,7 @@
 #include "OneLife/gameSource/dataTypes/animation.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
+#include "OneLife/gameSource/components/engines/audioRenderer.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"

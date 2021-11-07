@@ -38,7 +38,7 @@ int accountHmacVersionNumber = 0;
 extern CustomRandomSource randSource;
 
 #include "minorGems/util/log/AppLog.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
@@ -72,6 +72,8 @@ extern CustomRandomSource randSource;
 #include "OneLife/gameSource/musicPlayer.h"
 #include "OneLife/gameSource/whiteSprites.h"
 #include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/components/engines/audioRenderer.h"
+
 // should we pull the map
 static char mapPullMode = 0;
 static char autoLogIn = 0;
@@ -2010,9 +2012,9 @@ void drawFrame( char inUpdate ) {
             }
 	}
 
-	printf("\n=======>render frame (0)");
+	//printf("\n=======>render frame (0)");
     //drawFrameNoUpdate( true );// now draw stuff AFTER all updates
-	printf("\n=======>render frame (1)");
+	//printf("\n=======>render frame (1)");
     if( pauseScreenFade > 0 ) drawPauseScreen(); // draw tail end of pause screen, if it is still visible
 }
 

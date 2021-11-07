@@ -1,6 +1,6 @@
 #include "PageComponent.h"
 
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 
 
 PageComponent::PageComponent( double inX, double inY )

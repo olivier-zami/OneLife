@@ -24,7 +24,7 @@ void LoadingPage::setCurrentProgress( float inProgress ) {
 
 void LoadingPage::draw( doublePair inViewCenter, 
                         double inViewSize ) {
-printf("\n===>draw(.., ..)");
+	//printf("\n===>draw(.., ..)");
     doublePair labelPos = { 0, 0 };
 
     drawMessage( "LOADING", labelPos, false );

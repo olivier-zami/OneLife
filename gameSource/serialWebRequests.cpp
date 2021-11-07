@@ -1,7 +1,7 @@
 
 #include "serialWebRequests.h"
 
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/system/Time.h"

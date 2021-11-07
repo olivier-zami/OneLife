@@ -10,7 +10,7 @@
 
 #include "minorGems/io/file/File.h"
 #include "minorGems/system/Thread.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/util/MinPriorityQueue.h"
 #include "minorGems/util/random/JenkinsRandomSource.h"
 

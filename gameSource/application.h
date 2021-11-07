@@ -15,6 +15,7 @@
 #include "minorGems/math/geometry/Angle3D.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/system/Time.h"
+#include "OneLife/gameSource/dataTypes/messages/keyboard.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/dataTypes/web.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
@@ -608,6 +609,7 @@ namespace OneLife::game
 			void render(OneLife::dataType::ui::Screen* dataScreen);
 			void sendClientMessage();
 
+			Onelife::dataType::message::Keyboard* virtualKeyboard;
 			OneLife::dataType::ui::Screen* currentScreen;
 			OneLife::game::component::Socket* connection;
 			OneLife::game::ScreenRenderer* screenRenderer;

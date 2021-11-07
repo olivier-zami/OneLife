@@ -4,7 +4,7 @@
 #include "../../buttonStyle.h"
 #include "../../message.h"
 #include "minorGems/game/Font.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
 

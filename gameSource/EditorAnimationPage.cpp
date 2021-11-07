@@ -1,6 +1,6 @@
 #include "EditorAnimationPage.h"
 
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
 

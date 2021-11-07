@@ -17,7 +17,7 @@
 #include "minorGems/game/doublePair.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/gameGraphics.h"
-#include "minorGems/game/game.h"//Uint8
+#include "OneLife/gameSource/game.h"//Uint8
 #include "OneLife/gameSource/application.h"
 
 

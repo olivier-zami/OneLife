@@ -81,7 +81,5 @@ server/log.txt.backup
 server/settings/server.json
 
 #temp ignored because niy
-gameSource/components/soundPlayer.cpp
-gameSource/components/soundPlayer.h
 third_party/json/
 

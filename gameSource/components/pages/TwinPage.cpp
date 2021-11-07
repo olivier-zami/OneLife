@@ -5,7 +5,7 @@
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/crc32.h"
-#include "minorGems/game/game.h"
+#include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/message.h"
 #include "OneLife/gameSource/buttonStyle.h"
 
