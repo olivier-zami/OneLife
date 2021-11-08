@@ -5,21 +5,22 @@
 #ifndef ONELIFE_GAMESCENEHANDLER_H
 #define ONELIFE_GAMESCENEHANDLER_H
 
+#include "minorGems/game/doublePair.h"
+#include "minorGems/game/drawUtils.h"
+#include "minorGems/game/gameGraphics.h"
+#include "minorGems/graphics/Color.h"
 #include "minorGems/graphics/openGL/SceneHandlerGL.h"
 #include "minorGems/graphics/openGL/MouseHandlerGL.h"
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 #include "minorGems/graphics/openGL/RedrawListenerGL.h"
 //#include "minorGems/graphics/openGL/ScreenGL.h"
+#include "minorGems/system/Time.h"
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/ui/GUIComponent.h"
-#include "minorGems/graphics/Color.h"
-#include "minorGems/system/Time.h"
-#include "minorGems/game/doublePair.h"
-#include "minorGems/game/drawUtils.h"
-#include "minorGems/game/gameGraphics.h"
-#include "OneLife/gameSource/game.h"//Uint8
+#include "minorGems/util/SimpleVector.h"
 #include "OneLife/gameSource/application.h"
-
+#include "OneLife/gameSource/dataTypes/message.h"
+#include "OneLife/gameSource/game.h"//Uint8
 
 class GameSceneHandler :
 		public SceneHandlerGL, public MouseHandlerGL, public KeyboardHandlerGL,
@@ -35,6 +36,8 @@ public:
 	 */
 	GameSceneHandler( OneLife::game::Application *inScreen );
 
+
+	void listen();
 
 	void doFeatureComputeFrame();
 
@@ -117,6 +120,9 @@ protected:
 
 	Color mBackgroundColor;
 
+	private:
+		SimpleVector<OneLife::game::dataType::Message> event;
+
 
 };
 
@@ -145,7 +151,7 @@ Image *getScreenRegionRaw(int inStartX, int inStartY, int inWidth, int inHeight 
 Image *getScreenRegionInternal(
 		int inStartX, int inStartY, int inWidth, int inHeight,
 		char inForceManual = false );
- const char *translate( const char *inTranslationKey );//defined in game.cpp
+const char *translate( const char *inTranslationKey );//defined in game.cpp
 void saveFrameRateSettings();
 void audioCallback( void *inUserData, Uint8 *inStream, int inLengthToFill );
 #endif //ONELIFE_GAMESCENEHANDLER_H

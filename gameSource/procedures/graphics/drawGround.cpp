@@ -5,7 +5,7 @@
 #include "drawGround.h"
 
 #include "minorGems/game/gameGraphics.h"
-#include "OneLife/gameSource/components/engines/gameSceneHandler.h"// setViewCenterPosition()
+#include "OneLife/gameSource/components/engines/deviceListener.h"// setViewCenterPosition()
 #include "OneLife/gameSource/groundSprites.h"// CELL_D + GroundSpriteSet()
 #include "OneLife/commonSource/fractalNoise.h"
 #include "OneLife/gameSource/procedures/animations/special.h"

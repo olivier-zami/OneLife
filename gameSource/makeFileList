@@ -20,8 +20,8 @@ application.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
 components/engines/audioRenderer.cpp \
+components/engines/deviceListener.cpp \
 components/engines/screenRenderer.cpp \
-components/engines/gameSceneHandler.cpp \
 components/GamePage.cpp \
 components/keyboard.cpp \
 components/pages/AutoUpdatePage.cpp \

@@ -17,7 +17,7 @@
 #include "minorGems/system/Time.h"
 #include "OneLife/gameSource/dataTypes/messages/keyboard.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
-#include "OneLife/gameSource/dataTypes/web.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/socket.h"

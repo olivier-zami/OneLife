@@ -662,7 +662,7 @@ static float connectionMessageFade = 1.0f;
 
 void LivingLifePage::sendToServerSocket( char *inMessage )
 {
-	OneLife::game::dataType::Message message;
+	OneLife::game::dataType::socket::Message message;
 	message.body = inMessage;
 	try
 	{

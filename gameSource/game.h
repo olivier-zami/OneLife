@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#include "OneLife/gameSource/dataTypes/web.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 
 
 // interface between a platform-independent game engine

@@ -6,7 +6,7 @@
 #define ONELIFE_SOCKET_H
 
 #include "../../../minorGems/util/SimpleVector.h"
-#include "OneLife/gameSource/dataTypes/web.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 #include "minorGems/network/SocketClient.h"
 
 namespace OneLife::game::component
@@ -23,7 +23,7 @@ namespace OneLife::game::component
 
 			void connect(OneLife::game::dataType::ServerSocket socket);
 			bool isConnected();
-			void sendMessage(OneLife::game::dataType::Message message);
+			void sendMessage(OneLife::game::dataType::socket::Message message);
 			char readMessage();
 			double getLastQueryLifeTime();
 			double getTimeLastMessageSent();

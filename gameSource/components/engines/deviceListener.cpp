@@ -2,7 +2,7 @@
 // Created by olivier on 24/10/2021.
 //
 
-#include "gameSceneHandler.h"
+#include "deviceListener.h"
 
 #include <cstdio>
 #include <SDL/SDL.h>
@@ -21,11 +21,11 @@
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/network/web/WebRequest.h"
-#include "OneLife/gameSource/game.h"//Uint8
 #include "minorGems/graphics/Image.h"//bytes
+#include "OneLife/gameSource/game.h"//Uint8
 #include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/procedures/graphics/drawString.h"
-#include "OneLife/gameSource/dataTypes/web.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/musicPlayer.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
 #include "OneLife/gameSource/objectBank.h"

@@ -6,7 +6,7 @@
 #include <cstdio>
 #include "OneLife/gameSource/game.h"
 #include "minorGems/formats/encodingUtils.h"
-#include "OneLife/gameSource/dataTypes/web.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/network/HostAddress.h"
 #include "minorGems/util/stringUtils.h"
@@ -70,7 +70,7 @@ bool OneLife::game::component::Socket::isConnected()
  *
  * @param message
  */
-void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::Message message)
+void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::socket::Message message)
 {
 	this->timeLastMessageSent = game_getCurrentTime();
 	printf( "Sending message to server: %s\n", message.body );

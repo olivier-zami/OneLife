@@ -56,23 +56,10 @@ int main( int inArgCount, char **inArgs )
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "minorGems/util/random/CustomRandomSource.h"
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
-#include "OneLife/gameSource/components/engines/gameSceneHandler.h"
-#include "OneLife/gameSource/dataTypes/web.h"
+#include "OneLife/gameSource/components/engines/deviceListener.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
 #include "OneLife/gameSource/application.h"
-
-extern char rCtrlDown;
-extern char lCtrlDown;
-extern char rAltDown;
-extern char lAltDown;
-extern char rMetaDown;
-extern char lMetaDown;
-extern char lShiftDown;
-extern char rShiftDown;
-
-// static seed
-CustomRandomSource randSource( 34957197 );
-
 
 #ifdef RASPBIAN
 
@@ -96,32 +83,34 @@ void freeWriteFailedPanel() {
 
 #else
 
-//#include "minorGems/game/platforms/SDL/demoCodePanel.h"//legacy
 #include "OneLife/gameSource/components/pages/demoPanelPage.h"
 
 #endif
 
 #include "OneLife/gameSource/components/asyncFileThread.h"
 
-
-
-extern float visibleWidth;
-extern float visibleHeight;
 extern NoClip soundSpriteNoClip;
 extern NoClip totalAudioMixNoClip;
+extern char *screenShotPrefix;
+// size of screen for fullscreen mode
+extern int screenWidth;
+extern int screenHeight;
+extern char outputAllFrames;
+extern char rCtrlDown;
+extern char lCtrlDown;
+extern char rAltDown;
+extern char lAltDown;
+extern char rMetaDown;
+extern char lMetaDown;
+extern char lShiftDown;
+extern char rShiftDown;
 
-// some settings
+CustomRandomSource randSource( 34957197 );// static seed
 int cursorMode = 0;
 double emulatedCursorScale = 1.0;
 // size of game image
 int gameWidth = 320;
 int gameHeight = 240;
-
-// size of screen for fullscreen mode
-extern int screenWidth;
-extern int screenHeight;
-extern char outputAllFrames;
-
 int idealTargetFrameRate = 60;
 int targetFrameRate = idealTargetFrameRate;
 SimpleVector<int> possibleFrameRates;
@@ -134,7 +123,6 @@ char hardToQuitMode = false;
 int pauseOnMinimize = 1;
 char demoMode = false;
 char writeFailed = false;
-
 char *loadingFailedMessage = NULL;
 char loadingDone = false;
 // ^ and & keys to slow down and speed up for testing
@@ -152,7 +140,6 @@ char bufferSizeHinted = false;
 char measureFrameRate = true;
 char shouldTakeScreenshot = false;// should screenshot be taken at end of next redraw?
 char manualScreenShot = false;
-extern char *screenShotPrefix;
 GameSceneHandler *sceneHandler;
 // how many pixels wide is each game pixel drawn as?
 int pixelZoomFactor;

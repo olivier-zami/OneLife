@@ -4,13 +4,13 @@
 
 #include "application.h"
 
-#include "minorGems/graphics/openGL/SingleTextureGL.h"
-#include "minorGems/graphics/openGL/glInclude.h"
 #include <SDL/SDL.h>
 #include <math.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include "minorGems/graphics/openGL/SingleTextureGL.h"
+#include "minorGems/graphics/openGL/glInclude.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/log/AppLog.h"
@@ -23,7 +23,7 @@
 #include "OneLife/gameSource/dataTypes/messages/keyboard.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/components/keyboard.h"
-#include "OneLife/gameSource/components/engines/gameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
+#include "OneLife/gameSource/components/engines/deviceListener.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/GamePage.h"
 
@@ -575,6 +575,17 @@ void OneLife::game::Application::start()
 void OneLife::game::Application::readDevicesStatus()
 {
 	this->virtualKeyboard->reset();
+
+	/*
+	this->deviceListener->listen();
+	for(int i=0; i<this->deviceListener->getEvent()->size(); i++)
+	{
+
+	}
+ 	*/
+
+
+
 	// now handle pending events BEFORE actually drawing the screen.
 	// Thus, screen reflects all the latest events (not just those
 	// that happened before any sleep called during the pre-display).
