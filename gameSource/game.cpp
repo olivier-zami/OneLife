@@ -56,7 +56,7 @@ int main( int inArgCount, char **inArgs )
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "minorGems/util/random/CustomRandomSource.h"
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
-#include "OneLife/gameSource/components/engines/deviceListener.h"
+#include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
 #include "OneLife/gameSource/application.h"
@@ -991,7 +991,7 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 	//SDL_ShowCursor( SDL_DISABLE );
 
 
-	sceneHandler = new GameSceneHandler( screen );
+	sceneHandler = new GameSceneHandler();
 
 
 

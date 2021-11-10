@@ -21,6 +21,7 @@ components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
 components/engines/audioRenderer.cpp \
 components/engines/deviceListener.cpp \
+components/engines/GameSceneHandler.cpp \
 components/engines/screenRenderer.cpp \
 components/GamePage.cpp \
 components/keyboard.cpp \
@@ -39,7 +40,6 @@ components/pages/SettingsPage.cpp \
 components/pages/TwinPage.cpp \
 components/socket.cpp \
 dataTypes/exception/exception.cpp \
-dataTypes/messages/keyboard.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \

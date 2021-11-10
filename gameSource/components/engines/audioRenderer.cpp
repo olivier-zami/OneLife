@@ -14,7 +14,7 @@
 #include "minorGems/io/file/File.h"
 #include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
-#include "OneLife/gameSource/components/engines/deviceListener.h"
+#include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 
 extern CustomRandomSource randSource;
 extern GameSceneHandler *sceneHandler;

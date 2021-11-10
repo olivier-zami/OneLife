@@ -15,10 +15,10 @@
 #include "minorGems/math/geometry/Angle3D.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/system/Time.h"
-#include "OneLife/gameSource/dataTypes/messages/keyboard.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
+#include "OneLife/gameSource/components/engines/deviceListener.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/socket.h"
 
@@ -603,15 +603,16 @@ namespace OneLife::game
 			char mLastMinimizedStatus;
 		private:
 			void readDevicesStatus();
+			void _oldReadDevicesStatus();
 			void readServerMessage();
 			void selectScreen();
 			void update(OneLife::dataType::ui::Screen* dataScreen);
 			void render(OneLife::dataType::ui::Screen* dataScreen);
 			void sendClientMessage();
 
-			Onelife::dataType::message::Keyboard* virtualKeyboard;
 			OneLife::dataType::ui::Screen* currentScreen;
 			OneLife::game::component::Socket* connection;
+			OneLife::game::DeviceListener* deviceListener;
 			OneLife::game::ScreenRenderer* screenRenderer;
 
 			struct{

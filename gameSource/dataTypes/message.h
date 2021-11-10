@@ -14,4 +14,12 @@ namespace OneLife::game::dataType
 	}Message;
 }
 
+namespace OneLife::game::dataType::message
+{
+	typedef enum{
+		NONE,
+		KEYBOARD
+	}TYPE;
+}
+
 #endif //ONELIFE_GAME_DATATYPE_MESSAGE_H

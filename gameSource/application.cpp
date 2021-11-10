@@ -20,10 +20,9 @@
 #include "minorGems/crypto/hashes/sha1.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
-#include "OneLife/gameSource/dataTypes/messages/keyboard.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/components/keyboard.h"
-#include "OneLife/gameSource/components/engines/deviceListener.h" //TODO: rename to gameScreenDeviceListener
+#include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/GamePage.h"
 
@@ -34,6 +33,8 @@
 #ifdef RASPBIAN
 #include "RaspbianGLSurface.cpp"
 #endif
+
+using namespace OneLife::dataType::hardware::keyboard;
 
 extern unsigned char keyMap[256];
 extern char keyMapOn;
@@ -119,9 +120,9 @@ OneLife::game::Application::Application(
 		mRedrawListenerVector( new SimpleVector<RedrawListenerGL*>() )
 {
 	this->connection = nullptr;
+	this->deviceListener = new OneLife::game::DeviceListener();
 	this->screenRenderer = new OneLife::game::ScreenRenderer();
 	this->quit = false;
-	this->virtualKeyboard = new Onelife::dataType::message::Keyboard();
 
 	mWantToMimimize = false;
 	mMinimized = false;
@@ -487,6 +488,7 @@ void OneLife::game::Application::start()
 
 
 		this->readDevicesStatus();
+		if(this->quit) break;
 
 		// now all events handled, actually draw the screen
 		this->selectScreen();
@@ -574,18 +576,41 @@ void OneLife::game::Application::start()
 
 void OneLife::game::Application::readDevicesStatus()
 {
-	this->virtualKeyboard->reset();
-
-	/*
 	this->deviceListener->listen();
-	for(int i=0; i<this->deviceListener->getEvent()->size(); i++)
+	if(this->deviceListener->receiveQuitSignal())
 	{
-
+		this->quit = true;
 	}
- 	*/
+	else//for(int i=0; i<this->deviceListener->getEvent()->size(); i++)
+	{
+		char* ptr = (char*)this->deviceListener->getEvent().at(0).content;
+		if(ptr[KEY::A])
+		{
+			printf("\n===>type : A=%i", ptr[KEY::A]);
+		}
+		else if(ptr[KEY::ALT_LEFT]&&ptr[KEY::RETURN])
+		{
+			printf("\n===>type ALT LEFT+RETURN");
+		}
+		else if(ptr[KEY::ALT_LEFT])
+		{
+			printf("\n===>type ALT LEFT");
+		}
+		else if(ptr[KEY::RETURN])
+		{
+			printf("\n===>type RETURN");
+		}
+		else if(ptr[KEY::META_LEFT])
+		{
+			printf("\n===>type META LEFT");
+		}
+	}
 
+	//this->_oldReadDevicesStatus();
+}
 
-
+void OneLife::game::Application::_oldReadDevicesStatus()
+{
 	// now handle pending events BEFORE actually drawing the screen.
 	// Thus, screen reflects all the latest events (not just those
 	// that happened before any sleep called during the pre-display).
@@ -593,17 +618,16 @@ void OneLife::game::Application::readDevicesStatus()
 
 	SDL_Event event;
 
-	while( !( mPlaybackEvents && mRecordingOrPlaybackStarted ) && SDL_PollEvent( &event ) ) {
+	while( !( mPlaybackEvents && mRecordingOrPlaybackStarted ) && SDL_PollEvent( &event ) )
+	{
 
 		SDLMod mods = SDL_GetModState();
 
 		// alt-enter, toggle fullscreen (but only if we started there,
 		// to prevent window content centering issues due to mWidth and
 		// mHeight changes mid-game)
-		if( mStartedFullScreen &&
-			event.type == SDL_KEYDOWN &&
-			event.key.keysym.sym == SDLK_RETURN &&
-			( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) ) {
+		if( mStartedFullScreen && event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN && ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) )
+		{
 			printf( "Toggling fullscreen\n" );
 
 			mFullScreen = !mFullScreen;
@@ -677,8 +701,8 @@ void OneLife::game::Application::readDevicesStatus()
 
 			// record TAB keystroke so that it's properly
 			// played back
-			if( mRecordingEvents &&
-				mRecordingOrPlaybackStarted ) {
+			if( mRecordingEvents && mRecordingOrPlaybackStarted )
+			{
 
 				int mouseX, mouseY;
 				SDL_GetMouseState( &mouseX, &mouseY );
@@ -846,11 +870,10 @@ void OneLife::game::Application::readDevicesStatus()
 
 	}
 
-	if( mPlaybackEvents && mRecordingOrPlaybackStarted &&
-		mEventFile != NULL ) {
-
-
-		if( !mTimeValuePlayedBack ) {
+	if( mPlaybackEvents && mRecordingOrPlaybackStarted && mEventFile != NULL )
+	{
+		if( !mTimeValuePlayedBack )
+		{
 
 			// so far, no time values have been played back yet.
 			// (as a fix for earlier release that did not
@@ -877,7 +900,8 @@ void OneLife::game::Application::readDevicesStatus()
 
 		// dump events, but responde to ESC to stop playback
 		// let player take over from that point
-		while( SDL_PollEvent( &event ) ) {
+		while( SDL_PollEvent( &event ) )
+		{
 			SDLMod mods = SDL_GetModState();
 			// map CTRL-q to ESC
 			// 17 is "DC1" which is ctrl-q on some platforms
@@ -1522,12 +1546,28 @@ void OneLife::game::Application::selectScreen()
 void OneLife::game::Application::update(OneLife::dataType::ui::Screen* dataScreen)
 {
 	if(!currentGamePage) return;
+
 	currentGamePage->handle(dataScreen);
-	//printf("\n==========>update %s", dataScreen->label);
 }
 
 void OneLife::game::Application::render(OneLife::dataType::ui::Screen* dataScreen)
 {
+	char* keyboard = (char*)this->deviceListener->getEvent().at(0).content;
+
+	if( mStartedFullScreen && (keyboard[KEY::ALT_LEFT] && keyboard[KEY::RETURN]) /*event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN && ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) )*/ )
+	{
+		printf( "Toggling fullscreen\n" );
+
+		mFullScreen = !mFullScreen;
+
+		setupSurface();
+
+		callbackResize( mWide, mHigh );
+
+		// reload all textures into OpenGL
+		SingleTextureGL::contextChanged();
+	}
+
 	this->screenRenderer->render();
 }
 
