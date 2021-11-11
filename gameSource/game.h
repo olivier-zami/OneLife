@@ -395,15 +395,6 @@ void setEmulatedCursorScale( double inScale );
 
 double getEmulatedCursorScale();
 
-
-
-
-// confines mouse pointer to window and prevents window manager
-// from intercepting key presses
-// default off
-void grabInput( char inGrabOn );
-
-
 // sets how mouse events are reported
 // true to use game world coordinates
 // false to use screen coordinates

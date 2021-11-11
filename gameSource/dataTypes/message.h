@@ -20,6 +20,11 @@ namespace OneLife::game::dataType::message
 		NONE,
 		KEYBOARD
 	}TYPE;
+
+	typedef struct{
+		void* keyboard;
+		void* mouse;
+	}Device;
 }
 
 #endif //ONELIFE_GAME_DATATYPE_MESSAGE_H

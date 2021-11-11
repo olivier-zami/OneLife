@@ -13,7 +13,13 @@ namespace OneLife::dataType::ui
 		const char* label;
 		struct{
 			double pause;
+			bool fullScreen;
 		}status;
+		struct{
+		}_default;
+		struct{
+			bool grabInput;
+		}settings;
 	}Screen;
 }
 

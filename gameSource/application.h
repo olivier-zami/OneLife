@@ -348,7 +348,6 @@ namespace OneLife::game
 									 char inFirstHandler = false );
 
 
-
 			/**
 			 * Removes a keyboard handler.
 			 *
@@ -358,7 +357,6 @@ namespace OneLife::game
 			 * Must not be called after calling start().
 			 */
 			void removeKeyboardHandler( KeyboardHandlerGL *inHandler );
-
 
 			/**
 			 * Removes a scene handler.
@@ -370,8 +368,6 @@ namespace OneLife::game
 			 */
 			//void removeSceneHandler( SceneHandlerGL *inHandler );//TODO: remove this since unique sceneHandler system
 
-
-
 			/**
 			 * Adds a redraw listener.
 			 *
@@ -381,7 +377,6 @@ namespace OneLife::game
 			 * Must not be called after calling start().
 			 */
 			void addRedrawListener( RedrawListenerGL *inListener );
-
 
 			/**
 			 * Removes a redraw listener.
@@ -393,19 +388,13 @@ namespace OneLife::game
 			 */
 			void removeRedrawListener( RedrawListenerGL *inListener );
 
-
-
 			/**
 			 * Applies the current view matrix transformation
 			 * to the matrix at the top of the GL_PROJECTION stack.
 			 */
 			void applyViewTransform();
 
-
-
-			void obscureRecordedNumericTyping( char inObscure,
-											   char inCharToRecordInstead );
-
+			void obscureRecordedNumericTyping( char inObscure,char inCharToRecordInstead );
 
 			/**
 			 * Access the various handlers.
@@ -413,89 +402,49 @@ namespace OneLife::game
 			//KeyboardHandlerGL *getKeyHandler();
 			//MouseHandlerGL *getMouseHandler();
 			//SceneHandlerGL *getSceneHandler();
-
 			char isLastMouseButtonRight();
-
 			// FOVMOD NOTE:  Change 2/3 - Take these lines during the merge process
 			int getLastMouseButton();
-
-
-		//private:
-
-
 			void setupSurface();
-
 
 			// used by various implementations
 			// callbacks (external C functions that can access private members)
-
 			friend void callbackResize( int inW, int inH );
 			friend void callbackKeyboard( unsigned char inKey, int inX, int inY );
-			friend void callbackKeyboardUp( unsigned char inKey,
-											int inX, int inY );
-			friend void callbackSpecialKeyboard( int inKey,
-												 int inX, int inY );
-			friend void callbackSpecialKeyboardUp( int inKey,
-												   int inX, int inY );
+			friend void callbackKeyboardUp( unsigned char inKey, int inX, int inY );
+			friend void callbackSpecialKeyboard( int inKey, int inX, int inY );
+			friend void callbackSpecialKeyboardUp( int inKey, int inX, int inY );
 			friend void callbackMotion( int inX, int inY );
 			friend void callbackPassiveMotion( int inX, int inY );
-			friend void callbackMouse( int inButton, int inState,
-									   int inX, int inY );
+			friend void callbackMouse( int inButton, int inState, int inX, int inY );
 			friend void callbackPreDisplay();
 			friend void callbackDisplay();
 			friend void callbackIdle();
 
-
-
-
 			// our private members
-
 			int mWide;
 			int mHigh;
-
 			// forces requested aspect ratio, if it's available, even
 			// if it doesn't match screen's current ratio
 			char mForceAspectRatio;
-
 			// goes beyond just forcing the aspect ratio
 			char mForceSpecifiedDimensions;
-
 			// if true, when resolution not forced, we don't
 			// change the user's resolution at all
 			char mDoNotChangeNativeResolution;
-
-
-			// for an viewport image that can be smaller than our screen
-			char mImageSizeSet;
+			char mImageSizeSet;// for an viewport image that can be smaller than our screen
 			int mImageWide;
 			int mImageHigh;
-
-
-			char mFullScreen;
-
 			char mWantToMimimize;
 			char mMinimized;
 			char mWasFullScreenBeforeMinimize;
 			char mWasInputGrabbedBeforeMinimize;
-
-			// only allow ALT-Enter to toggle fullscreen if it started there
-			char mStartedFullScreen;
-
-			// current target framerate, may involve slowdown mode (for testing)
-			unsigned int mMaxFrameRate;
-
+			char mStartedFullScreen;// only allow ALT-Enter to toggle fullscreen if it started there
+			unsigned int mMaxFrameRate;// current target framerate, may involve slowdown mode (for testing)
 			char mUseFrameSleep;
-
-
-			// full frame rate when not in slowdown mode
-			unsigned int mFullFrameRate;
-
+			unsigned int mFullFrameRate;// full frame rate when not in slowdown mode
 			char mAllowSlowdownKeysDuringPlayback;
-
-
-
 			char m2DMode;
-
 			Vector3D *mViewPosition;
 
 			// orientation of 0,0,0 means looking in the direction (0,0,1)
@@ -517,7 +466,6 @@ namespace OneLife::game
 			 */
 			char isKeyboardHandlerFocused();
 
-
 			// for event recording
 			SimpleVector<char*> mUserEventBatch;
 			// these are written to file before user events
@@ -526,31 +474,20 @@ namespace OneLife::game
 			char mRecordingEvents;
 			char mPlaybackEvents;
 			FILE *mEventFile;
-
 			char mObscureRecordedNumericTyping;
 			char mCharToRecordInstead;
-
-
-
-
 			// length of open playback file
 			int mEventFileNumBatches;
 			int mNumBatchesPlayed;
-
 			char mShouldShowPlaybackDisplay;
-
-
 			char mRecordingOrPlaybackStarted;
-
 			char *mCustomRecordedGameData;
 			char *mHashSalt;
 
 
 			void writeEventBatchToFile();
 			void writeEventBatchToFile( SimpleVector<char*> *inBatch );
-
 			void playNextEventBatch();
-
 
 			// recording file may contain gaps between web event sequence
 			// numbers (if recording was trimmed by hand)
@@ -566,19 +503,12 @@ namespace OneLife::game
 			// since async file reads happen to handles in order
 			// only need to track largest handle done so far
 			int mLastAsyncFileHandleDone;
-
-
 			unsigned int mRandSeed;
-
 			timeSec_t mLastTimeValue;
 			SimpleVector<timeSec_t> mLastTimeValueStack;
-
 			double mLastCurrentTimeValue;
 			SimpleVector<double> mLastCurrentTimeValueStack;
-
 			double mLastActualFrameRate;
-
-
 			timeSec_t mLastRecordedTimeValue;
 			double mLastRecordedCurrentTimeValue;
 
@@ -592,8 +522,6 @@ namespace OneLife::game
 			// frame rate
 			char mTimeValuePlayedBack;
 			unsigned int mFramesSinceLastTimeTick;
-
-
 			char mLastMouseButtonRight;
 
 			// FOVMOD NOTE:  Change 3/3 - Take these lines during the merge process
@@ -610,7 +538,8 @@ namespace OneLife::game
 			void render(OneLife::dataType::ui::Screen* dataScreen);
 			void sendClientMessage();
 
-			OneLife::dataType::ui::Screen* currentScreen;
+			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
+			OneLife::dataType::ui::Screen currentScreen;
 			OneLife::game::component::Socket* connection;
 			OneLife::game::DeviceListener* deviceListener;
 			OneLife::game::ScreenRenderer* screenRenderer;

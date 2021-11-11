@@ -5,17 +5,42 @@
 #ifndef INC_2HOL_SCREENRENDERER_H
 #define INC_2HOL_SCREENRENDERER_H
 
+#include "OneLife/gameSource/dataTypes/ui.h"
+
 namespace OneLife::game
 {
 	class ScreenRenderer
 	{
 		public:
-			ScreenRenderer();
+			ScreenRenderer(OneLife::dataType::ui::Screen screen);
 			~ScreenRenderer();
 
+			void setDefault(
+					double width,
+					double height,
+					bool forceAspectRatio,
+					bool doNotChangeNativeResolution,
+					bool fullScreen,
+					bool forceSpecifiedDimensions);
+
+			void switchFullScreenMode();
+			void switchMinimizedMode();
 			void render();
+
+		private:
+			double height;
+			double width;
+			bool forceAspectRatio;
+			bool doNotChangeNativeResolution;
+			bool fullScreen;
+			bool forceSpecifiedDimensions;
+
+			void setupSurface();
 	};
 }
+
+int computeAspectRatio( int inW, int inH );//src in application.cpp
+void grabInput( char inGrabOn );
 
 
 #endif //INC_2HOL_SCREENRENDERER_H

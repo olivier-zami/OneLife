@@ -73,6 +73,7 @@ extern CustomRandomSource randSource;
 #include "OneLife/gameSource/whiteSprites.h"
 #include "OneLife/gameSource/message.h"
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
+#include "OneLife/gameSource/components/engines/screenRenderer.h"
 
 // should we pull the map
 static char mapPullMode = 0;
@@ -485,15 +486,12 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     
     setViewSize( viewWidth );
     setLetterbox( visibleViewWidth, viewHeight );
-
-
-    
-    
-
-    
-
     setCursorVisible( true );
+
+	/******************************************************************************************************************/
+	//!set default screen
     grabInput( false );
+	/******************************************************************************************************************/
     
     // world coordinates
     setMouseReportingMode( true );
@@ -2019,15 +2017,11 @@ void drawFrame( char inUpdate ) {
 }
 
 
-
-
 void drawFrameNoUpdate( char inUpdate ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_draw( lastScreenViewCenter, viewWidth );
         }
     }
-
-
 
 
 // store mouse data for use as unguessable randomizing data
@@ -2039,7 +2033,6 @@ int nextMouseDataIndex = 0;
 // doesn't overwrite data from actual motion
 float lastBufferedMouseValue = 0;
 float mouseDataBuffer[ MOUSE_DATA_BUFFER_SIZE ];
-
 
 
 void pointerMove( float inX, float inY ) {
@@ -2069,10 +2062,6 @@ void pointerMove( float inX, float inY ) {
         }
     }
 
-
-
-
-
 void pointerDown( float inX, float inY ) {
     if( isPaused() ) {
         return;
@@ -2082,8 +2071,6 @@ void pointerDown( float inX, float inY ) {
         currentGamePage->base_pointerDown( inX, inY );
         }
     }
-
-
 
 void pointerDrag( float inX, float inY ) {
     if( isPaused() ) {
@@ -2095,8 +2082,6 @@ void pointerDrag( float inX, float inY ) {
         }
     }
 
-
-
 void pointerUp( float inX, float inY ) {
     if( isPaused() ) {
         return;
@@ -2104,13 +2089,7 @@ void pointerUp( float inX, float inY ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_pointerUp( inX, inY );
         }
-    }
-
-
-
-
-
-
+}
 
 void keyDown( unsigned char inASCII ) {
 
@@ -2188,9 +2167,7 @@ void keyDown( unsigned char inASCII ) {
             }
             break;
         }
-    }
-
-
+}
 
 void keyUp( unsigned char inASCII ) {
     if( inASCII == 127 || inASCII == 8 ) {
@@ -2206,13 +2183,7 @@ void keyUp( unsigned char inASCII ) {
             }
         }
 
-    }
-
-
-
-
-
-
+}
 
 void specialKeyDown( int inKey ) {
     if( isPaused() ) {
@@ -2222,22 +2193,9 @@ void specialKeyDown( int inKey ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyDown( inKey );
         }
-	}
+}
 
-
-
-
-char getUsesSound() {
-    
+char getUsesSound()
+{
     return ! musicOff;
-    }
-
-
-
-
-
-
-
-
-
-
+}

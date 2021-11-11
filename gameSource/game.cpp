@@ -1397,21 +1397,6 @@ double getEmulatedCursorScale() {
 	return emulatedCursorScale;
 }
 
-
-
-
-void grabInput( char inGrabOn ) {
-	if( inGrabOn ) {
-		SDL_WM_GrabInput( SDL_GRAB_ON );
-	}
-	else {
-		SDL_WM_GrabInput( SDL_GRAB_OFF );
-	}
-}
-
-
-
-
 extern int totalLoadedTextureBytes;
 
 char isShiftKeyDown() {

@@ -107,7 +107,7 @@ protected:
 	Color mBackgroundColor;
 
 	private:
-		SimpleVector<OneLife::game::dataType::Message> event;
+		SimpleVector<OneLife::game::dataType::message::Device> event;
 
 
 };

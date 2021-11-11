@@ -71,10 +71,9 @@ extern char measureFrameRate;
 
 OneLife::game::Application *currentScreenGL;
 long timeSinceLastFrameMS = 0;// FOVMOD NOTE:  Change 1/3 - Take these lines during the merge process
-char screenGLStencilBufferSupported = false;
+//char screenGLStencilBufferSupported = false; //TODO: check if not used somewhere =>delete
 char measureRecorded = false;
 char loadingMessageShown = false;
-
 static int numFramesSkippedBeforeMeasure = 0;
 static int numFramesToSkipBeforeMeasure = 30;
 static char startMeasureTimeRecorded = false;
@@ -108,7 +107,6 @@ OneLife::game::Application::Application(
 		mForceSpecifiedDimensions( false ),
 		mDoNotChangeNativeResolution( inDoNotChangeNativeResolution ),
 		mImageWide( inWide ), mImageHigh( inHigh ),
-		mFullScreen( inFullScreen ),
 		mMaxFrameRate( inMaxFrameRate ),
 		mUseFrameSleep( true ),
 		mFullFrameRate( inMaxFrameRate ),
@@ -119,28 +117,22 @@ OneLife::game::Application::Application(
 		mKeyboardHandlerVector( new SimpleVector<KeyboardHandlerGL*>() ),
 		mRedrawListenerVector( new SimpleVector<RedrawListenerGL*>() )
 {
-	this->connection = nullptr;
-	this->deviceListener = new OneLife::game::DeviceListener();
-	this->screenRenderer = new OneLife::game::ScreenRenderer();
-	this->quit = false;
+	this->isNewSystemEnable = false;
+
+	//!init current screen ...
+	this->currentScreen.status.fullScreen = inFullScreen;
+	this->currentScreen.settings.grabInput = false;//take value from mWasFullScreenBeforeMinimize = false; from initFrameDrawer(...)
 
 	mWantToMimimize = false;
 	mMinimized = false;
 	mWasFullScreenBeforeMinimize = false;
-
 	mCustomRecordedGameData = stringDuplicate( inCustomRecordedGameData );
-
 	mHashSalt = stringDuplicate( inHashSalt );
-
-
 	mLastReadWebEventHandle = -1;
 	mCurrentWebEventHandle = 0;
 	mNextUnusedWebEventHandle = 0;
-
 	mLastAsyncFileHandleDone = -1;
-
 	mLastMinimizedStatus = false;
-
 	mAllowSlowdownKeysDuringPlayback = false;
 
 	// add handlers if NULL (the default) was not passed in for them
@@ -151,38 +143,29 @@ OneLife::game::Application::Application(
 		addKeyboardHandler( inKeyHandler );
 	}
 
-
 	mRandSeed = (unsigned int)fmod( Time::timeSec(), UINT_MAX );
-
 	mLastTimeValue = Time::timeSec();
 	mLastRecordedTimeValue = 0;
-
 	mLastCurrentTimeValue = Time::getCurrentTime();
 	mLastRecordedCurrentTimeValue = 0;
-
 	mLastActualFrameRate = inMaxFrameRate;
-
 	mTimeValuePlayedBack = false;
 	mFramesSinceLastTimeTick = 0;
-
 	mShouldShowPlaybackDisplay = true;
 
-	int hidePlaybackDisplayFlag =
-			SettingsManager::getIntSetting( "hidePlaybackDisplay", 0 );
+	int hidePlaybackDisplayFlag = SettingsManager::getIntSetting( "hidePlaybackDisplay", 0 );
 
-	if( hidePlaybackDisplayFlag == 1 ) {
+	if( hidePlaybackDisplayFlag == 1 )
+	{
 		mShouldShowPlaybackDisplay = false;
 	}
 
-
 	mRecordingOrPlaybackStarted = false;
-
 	mRecordingEvents = inRecordEvents;
 	mPlaybackEvents = false;
 	mEventFile = NULL;
 	mEventFileNumBatches = 0;
 	mNumBatchesPlayed = 0;
-
 	mObscureRecordedNumericTyping = false;
 
 	// playback overrides recording, check for it first
@@ -190,7 +173,8 @@ OneLife::game::Application::Application(
 
 	File playbackDir( NULL, "playbackGame" );
 
-	if( !playbackDir.exists() ) {
+	if( !playbackDir.exists() )
+	{
 		playbackDir.makeDirectory();
 	}
 
@@ -221,11 +205,8 @@ OneLife::game::Application::Application(
 			}
 		}
 
-
 		if( fullFileName != NULL ) {
 			delete [] partialFileName;
-
-
 
 			mEventFile = fopen( fullFileName, "r" );
 
@@ -247,7 +228,6 @@ OneLife::game::Application::Application(
 				}
 				delete [] fileContents;
 
-
 				AppLog::getLog()->logPrintf(
 						Log::INFO_LEVEL,
 						"Playing back game from file %s", fullFileName );
@@ -262,16 +242,11 @@ OneLife::game::Application::Application(
 					maxCustomLength++;
 					readChar = fgetc( mEventFile );
 				}
-
 				// back to start
 				rewind( mEventFile );
 
 				char *readCustomGameData = new char[ maxCustomLength ];
-
 				char hashString[41];
-
-
-
 				int fullScreenFlag;
 				unsigned int readRandSeed;
 				unsigned int readMaxFrameRate;
@@ -302,7 +277,8 @@ OneLife::game::Application::Application(
 
 					delete [] correctHash;
 
-					if( difference == 0 ) {
+					if( difference == 0 )
+					{
 
 						mRecordingEvents = false;
 						mPlaybackEvents = true;
@@ -317,23 +293,23 @@ OneLife::game::Application::Application(
 						mImageWide = mWide;
 						mImageHigh = mHigh;
 
-						AppLog::info(
-								"Forcing dimensions specified in playback file" );
+						AppLog::info("Forcing dimensions specified in playback file");
 						mForceSpecifiedDimensions = true;
 
 
 						if( fullScreenFlag ) {
-							mFullScreen = true;
+							this->currentScreen.status.fullScreen = true;
 						}
 						else {
-							mFullScreen = false;
+							this->currentScreen.status.fullScreen = false;
 						}
 
 						delete [] mCustomRecordedGameData;
 						mCustomRecordedGameData =
 								stringDuplicate( readCustomGameData );
 					}
-					else {
+					else
+					{
 						AppLog::error(
 								"Hash check failed for custom data in playback file" );
 					}
@@ -348,33 +324,41 @@ OneLife::game::Application::Application(
 			delete [] fullFileName;
 		}
 
-
-		for( int i=0; i<numChildren; i++ ) {
+		for( int i=0; i<numChildren; i++ )
+		{
 			delete childFiles[i];
 		}
 	}
+
 	delete [] childFiles;
-
-
-
-
-
-	mStartedFullScreen = mFullScreen;
-
+	mStartedFullScreen = this->currentScreen.status.fullScreen;
 	setupSurface();
-
-
 	SDL_WM_SetCaption( inWindowName, NULL );
-
-
-	// turn off repeat
-	SDL_EnableKeyRepeat( 0, 0 );
-
+	SDL_EnableKeyRepeat( 0, 0 );// turn off repeat
 	SDL_EnableUNICODE( true );
 
-	for( int i=0; i<256; i++ ) {
+	for( int i=0; i<256; i++ )
+	{
 		keyMap[i] = (unsigned char)i;
 	}
+
+	/******************************************************************************************************************/
+
+	this->connection = nullptr;
+	//this->currentScreen.status.fullScreen;
+	this->deviceListener = new OneLife::game::DeviceListener();
+
+	this->screenRenderer = new OneLife::game::ScreenRenderer(this->currentScreen);
+	this->screenRenderer->setDefault(
+			mWide,
+			mHigh,
+			mForceAspectRatio,
+			mDoNotChangeNativeResolution,
+			this->currentScreen.status.fullScreen,
+			mForceSpecifiedDimensions
+	);
+
+	this->quit = false;
 }
 
 OneLife::game::Application::~Application()
@@ -576,37 +560,32 @@ void OneLife::game::Application::start()
 
 void OneLife::game::Application::readDevicesStatus()
 {
-	this->deviceListener->listen();
-	if(this->deviceListener->receiveQuitSignal())
+	if(this->isNewSystemEnable)
 	{
-		this->quit = true;
-	}
-	else//for(int i=0; i<this->deviceListener->getEvent()->size(); i++)
-	{
-		char* ptr = (char*)this->deviceListener->getEvent().at(0).content;
-		if(ptr[KEY::A])
+		this->deviceListener->listen();
+		if(this->deviceListener->receiveQuitSignal())
 		{
-			printf("\n===>type : A=%i", ptr[KEY::A]);
+			this->quit = true;
 		}
-		else if(ptr[KEY::ALT_LEFT]&&ptr[KEY::RETURN])
+		else//for(int i=0; i<this->deviceListener->getEvent()->size(); i++)
 		{
-			printf("\n===>type ALT LEFT+RETURN");
-		}
-		else if(ptr[KEY::ALT_LEFT])
-		{
-			printf("\n===>type ALT LEFT");
-		}
-		else if(ptr[KEY::RETURN])
-		{
-			printf("\n===>type RETURN");
-		}
-		else if(ptr[KEY::META_LEFT])
-		{
-			printf("\n===>type META LEFT");
-		}
-	}
+			char* keyboard = (char*)this->deviceListener->getEvent().at(0).keyboard;
 
-	//this->_oldReadDevicesStatus();
+			if(keyboard[KEY::ALT]&&keyboard[KEY::TAB])
+			{
+				if(keyboard[KEY::ALT_LEFT])printf("\n===>type : ALT(left)+TAB");
+				if(keyboard[KEY::ALT_RIGHT])printf("\n===>type : ALT(right)+TAB");
+			}
+			else if(keyboard[KEY::TAB])
+			{
+				printf("\n===>type : TAB");
+			}
+		}
+	}
+	else
+	{
+		this->_oldReadDevicesStatus();
+	}
 }
 
 void OneLife::game::Application::_oldReadDevicesStatus()
@@ -630,7 +609,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 		{
 			printf( "Toggling fullscreen\n" );
 
-			mFullScreen = !mFullScreen;
+			this->currentScreen.status.fullScreen = !this->currentScreen.status.fullScreen;
 
 			setupSurface();
 
@@ -640,7 +619,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 			SingleTextureGL::contextChanged();
 		}
 			// alt-tab when not in fullscreen mode
-		else if( ! mFullScreen &&
+		else if( ! this->currentScreen.status.fullScreen &&
 				 ! mMinimized &&
 				 event.type == SDL_KEYDOWN &&
 				 event.key.keysym.sym == SDLK_TAB &&
@@ -671,7 +650,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 			}
 		}
 			// handle alt-tab to minimize out of full-screen mode
-		else if( mFullScreen &&
+		else if( this->currentScreen.status.fullScreen &&
 				 ! mMinimized &&
 				 event.type == SDL_KEYDOWN &&
 				 event.key.keysym.sym == SDLK_TAB &&
@@ -679,7 +658,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 
 			printf( "Minimizing from fullscreen on Alt-tab\n" );
 
-			mFullScreen = false;
+			this->currentScreen.status.fullScreen = false;
 
 			setupSurface();
 
@@ -742,7 +721,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 
 			printf( "Restoring to fullscreen after Alt-tab\n" );
 
-			mFullScreen = true;
+			this->currentScreen.status.fullScreen = true;
 
 			setupSurface();
 
@@ -1023,8 +1002,6 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 				callbackSpecialKeyboardUp( i, mouseX, mouseY );
 			}
 		}
-
-
 	}
 }
 
@@ -1550,22 +1527,262 @@ void OneLife::game::Application::update(OneLife::dataType::ui::Screen* dataScree
 	currentGamePage->handle(dataScreen);
 }
 
+/**
+ *
+ * @param dataScreen
+ */
 void OneLife::game::Application::render(OneLife::dataType::ui::Screen* dataScreen)
 {
-	char* keyboard = (char*)this->deviceListener->getEvent().at(0).content;
-
-	if( mStartedFullScreen && (keyboard[KEY::ALT_LEFT] && keyboard[KEY::RETURN]) /*event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN && ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) )*/ )
+	if(this->isNewSystemEnable)
 	{
-		printf( "Toggling fullscreen\n" );
+		char* keyboard = (char*)this->deviceListener->getEvent().at(0).keyboard;
 
-		mFullScreen = !mFullScreen;
+		// alt-enter, toggle fullscreen (but only if we started there,
+		// to prevent window content centering issues due to mWidth and
+		// mHeight changes mid-game)
+		if((mStartedFullScreen && keyboard[KEY::ALT] && keyboard[KEY::RETURN])
+			|| (mStartedFullScreen && keyboard[KEY::META] && keyboard[KEY::RETURN]))
+		{
+			printf( "\nToggling fullscreen" );
+			this->currentScreen.status.fullScreen = !this->currentScreen.status.fullScreen;
+			this->screenRenderer->switchFullScreenMode();
+		}
+		/*
+		// alt-tab when not in fullscreen mode
+		else if( ! this->currentScreen.status.fullScreen &&
+				 // ! mMinimized && //TODO: replace mMinimized with !this->currentScreen.status.fullScreen
+				 ((keyboard[KEY::ALT] && keyboard[KEY::TAB]) || (keyboard[KEY::META] && keyboard[KEY::TAB])))
+		{
+			//mWantToMimimize = true;//TODO: delete (seem not used)
+			mWasFullScreenBeforeMinimize = false;
 
-		setupSurface();
+			if( SDL_WM_GrabInput( SDL_GRAB_QUERY ) == SDL_GRAB_ON ) {
+				mWasInputGrabbedBeforeMinimize = true;
+			}
+			else {
+				mWasInputGrabbedBeforeMinimize = false;
+			}
 
-		callbackResize( mWide, mHigh );
 
-		// reload all textures into OpenGL
-		SingleTextureGL::contextChanged();
+			SDL_WM_GrabInput( SDL_GRAB_OFF );
+
+			// record TAB keystroke so that it's properly
+			// played back
+			if( mRecordingEvents &&
+				mRecordingOrPlaybackStarted ) {
+
+				int mouseX, mouseY;
+				SDL_GetMouseState( &mouseX, &mouseY );
+				char *eventString = autoSprintf( "kd %d %d %d",
+						9, mouseX, mouseY );
+
+				mUserEventBatch.push_back( eventString );
+			}
+		}
+		// handle alt-tab to minimize out of full-screen mode
+		else if( this->currentScreen.status.fullScreen &&
+				 ! mMinimized &&
+				 event.type == SDL_KEYDOWN &&
+				 event.key.keysym.sym == SDLK_TAB &&
+				 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) )
+		{
+			printf( "Minimizing from fullscreen on Alt-tab\n" );
+
+			this->currentScreen.status.fullScreen = false;
+
+			setupSurface();
+
+			callbackResize( mWide, mHigh );
+
+			// reload all textures into OpenGL
+			SingleTextureGL::contextChanged();
+
+			mWantToMimimize = true;
+			mWasFullScreenBeforeMinimize = true;
+
+			if( SDL_WM_GrabInput( SDL_GRAB_QUERY ) == SDL_GRAB_ON ) {
+				mWasInputGrabbedBeforeMinimize = true;
+			}
+			else {
+				mWasInputGrabbedBeforeMinimize = false;
+			}
+			SDL_WM_GrabInput( SDL_GRAB_OFF );
+
+			// record TAB keystroke so that it's properly
+			// played back
+			if( mRecordingEvents && mRecordingOrPlaybackStarted )
+			{
+
+				int mouseX, mouseY;
+				SDL_GetMouseState( &mouseX, &mouseY );
+				char *eventString = autoSprintf( "kd %d %d %d",
+						9, mouseX, mouseY );
+
+				mUserEventBatch.push_back( eventString );
+			}
+		}
+			// active event after minimizing from windowed mode
+		else if( mMinimized &&
+				 ! mWasFullScreenBeforeMinimize &&
+				 event.type == SDL_ACTIVEEVENT &&
+				 event.active.gain &&
+				 event.active.state == SDL_APPACTIVE )
+		{
+			// window becoming active out of minimization, needs
+			// to return to full-screen mode
+
+			printf( "Restoring to window after Alt-tab\n" );
+
+			mWantToMimimize = false;
+			mWasFullScreenBeforeMinimize = false;
+			mMinimized = false;
+
+			if( mWasInputGrabbedBeforeMinimize ) {
+				SDL_WM_GrabInput( SDL_GRAB_ON );
+			}
+		}
+		// active event after minimizing from fullscreen mode
+		else if( mMinimized &&
+				 mWasFullScreenBeforeMinimize &&
+				 event.type == SDL_ACTIVEEVENT &&
+				 event.active.gain &&
+				 event.active.state == SDL_APPACTIVE )
+		{
+			// window becoming active out of minimization, needs
+			// to return to full-screen mode
+
+			printf( "Restoring to fullscreen after Alt-tab\n" );
+
+			this->currentScreen.status.fullScreen = true;
+
+			setupSurface();
+
+			callbackResize( mWide, mHigh );
+
+			// reload all textures into OpenGL
+			SingleTextureGL::contextChanged();
+
+			mWantToMimimize = false;
+			mWasFullScreenBeforeMinimize = false;
+			mMinimized = false;
+
+			if( mWasInputGrabbedBeforeMinimize ) {
+				SDL_WM_GrabInput( SDL_GRAB_ON );
+			}
+		}
+		// map CTRL-q to ESC
+		// 17 is "DC1" which is ctrl-q on some platforms
+		else if( event.type == SDL_KEYDOWN &&
+				 ( ( event.key.keysym.sym == SDLK_q
+					 &&
+					 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT )
+					   || ( mods & KMOD_CTRL ) ) )
+				   ||
+				   ( ( event.key.keysym.unicode & 0xFF ) == 17 ) ) )
+		{
+
+			// map to 27, escape
+			int mouseX, mouseY;
+			SDL_GetMouseState( &mouseX, &mouseY );
+
+			callbackKeyboard( 27, mouseX, mouseY );
+		}
+		*/
+		else
+		{
+			/*
+			switch( event.type )
+			{
+				case SDL_QUIT: {
+					// map to 27, escape
+					int mouseX, mouseY;
+					SDL_GetMouseState( &mouseX, &mouseY );
+
+					callbackKeyboard( 27, mouseX, mouseY );
+				}
+					break;
+				case SDL_KEYDOWN:
+				case SDL_KEYUP: {
+					int mouseX, mouseY;
+					SDL_GetMouseState( &mouseX, &mouseY );
+
+
+					// check if special key
+					int mgKey = mapSDLSpecialKeyToMG( event.key.keysym.sym );
+
+					if( mgKey != 0 )
+					{
+						if( event.type == SDL_KEYDOWN ) {
+							callbackSpecialKeyboard( mgKey, mouseX, mouseY );
+						}
+						else {
+							callbackSpecialKeyboardUp( mgKey, mouseX, mouseY );
+						}
+					}
+					else
+					{
+						unsigned char asciiKey;
+
+						// try unicode first, if 8-bit clean (extended ASCII)
+						if( ( event.key.keysym.unicode & 0xFF00 ) == 0 && ( event.key.keysym.unicode & 0x00FF ) != 0 )
+						{
+							asciiKey = event.key.keysym.unicode & 0xFF;
+						}
+						else
+						{
+							// else unicode-to-ascii failed
+							// fall back
+							asciiKey = mapSDLKeyToASCII( event.key.keysym.sym );
+						}
+
+						if( asciiKey != 0 )
+						{
+							// shift and caps cancel each other
+							if( ( ( event.key.keysym.mod & KMOD_SHIFT )
+								  &&
+								  !( event.key.keysym.mod & KMOD_CAPS ) )
+								||
+								( !( event.key.keysym.mod & KMOD_SHIFT )
+								  &&
+								  ( event.key.keysym.mod & KMOD_CAPS ) ) ) {
+
+								asciiKey = toupper( asciiKey );
+							}
+
+							if( event.type == SDL_KEYDOWN ) {
+								callbackKeyboard( asciiKey, mouseX, mouseY );
+							}
+							else {
+								callbackKeyboardUp( asciiKey, mouseX, mouseY );
+							}
+						}
+					}
+				}
+					break;
+				case SDL_MOUSEMOTION:
+					if( event.motion.state & SDL_BUTTON( 1 )
+						||
+						event.motion.state & SDL_BUTTON( 2 )
+						||
+						event.motion.state & SDL_BUTTON( 3 ) ) {
+
+						callbackMotion( event.motion.x, event.motion.y );
+					}
+					else {
+						callbackPassiveMotion( event.motion.x,
+								event.motion.y );
+					}
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEBUTTONUP:
+					callbackMouse( event.button.button,
+							event.button.state,
+							event.button.x,
+							event.button.y );
+					break;
+			}
+			*/
+		}
 	}
 
 	this->screenRenderer->render();
@@ -1719,7 +1936,7 @@ void OneLife::game::Application::startRecordingOrPlayback()
 					"Recording game into file %s", fullFileName );
 
 			int fullScreenFlag = 0;
-			if( mFullScreen ) {
+			if( this->currentScreen.status.fullScreen ) {
 				fullScreenFlag = 1;
 			}
 
@@ -2989,7 +3206,7 @@ void OneLife::game::Application::setupSurface() {
 	// available
 	int borderless = 0;
 
-	if( mFullScreen ) {
+	if( this->currentScreen.status.fullScreen ) {
 #ifdef __mac__
 		borderless = 1;
         NSMenu_setMenuBarVisible(0);
@@ -3041,7 +3258,7 @@ void OneLife::game::Application::setupSurface() {
 	if( modes == (SDL_Rect**)-1 ) {
 		AppLog::info( "All resolutions available" );
 
-		if( mFullScreen && mDoNotChangeNativeResolution ) {
+		if( this->currentScreen.status.fullScreen && mDoNotChangeNativeResolution ) {
 			AppLog::info( "Sticking with user's current screen resolution" );
 
 			int borderlessHeightAdjust =
@@ -3061,7 +3278,7 @@ void OneLife::game::Application::setupSurface() {
 			}
 		}
 	}
-	else if( mForceSpecifiedDimensions && mFullScreen ) {
+	else if( mForceSpecifiedDimensions && this->currentScreen.status.fullScreen ) {
 
 		AppLog::info( "Requested video mode is forced (playback?)" );
 
@@ -3083,7 +3300,7 @@ void OneLife::game::Application::setupSurface() {
 					"dimensions %d x %d\n", mWide, mHigh );
 			AppLog::warning( "Reverting to windowed mode" );
 
-			mFullScreen = false;
+			this->currentScreen.status.fullScreen = false;
 
 			flags = SDL_OPENGL;
 #ifdef RASPBIAN
@@ -3093,7 +3310,7 @@ void OneLife::game::Application::setupSurface() {
 	}
 	else{
 
-		if( mFullScreen && mDoNotChangeNativeResolution ) {
+		if( this->currentScreen.status.fullScreen && mDoNotChangeNativeResolution ) {
 			AppLog::info( "Sticking with user's current screen resolution" );
 
 			mWide = currentW;
@@ -3296,13 +3513,13 @@ void OneLife::game::Application::setupSurface() {
 	}
 
 #ifdef RASPBIAN
-	screenGLStencilBufferSupported = true;
+	//screenGLStencilBufferSupported = true;//TODO: check if not used somewhere =>delete
 #else
 	int setStencilSize;
 	SDL_GL_GetAttribute( SDL_GL_STENCIL_SIZE, &setStencilSize );
 	if( setStencilSize > 0 ) {
 		// we have a stencil buffer
-		screenGLStencilBufferSupported = true;
+		//screenGLStencilBufferSupported = true;//TODO: check if not used somewhere =>delete
 	}
 #endif
 
@@ -3318,6 +3535,7 @@ void OneLife::game::Application::setupSurface() {
 /**********************************************************************************************************************/
 
 //!callback create for glut now use in SDL context
+
 void callbackResize( int inW, int inH ) {
 	OneLife::game::Application *s = currentScreenGL;
 	s->mWide = inW;

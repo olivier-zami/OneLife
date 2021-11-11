@@ -10,6 +10,7 @@
 #include <cstring>
 #include "../../dataTypes/hardware.h"
 
+using namespace OneLife::dataType::hardware;
 using namespace OneLife::dataType::hardware::keyboard;
 
 OneLife::game::DeviceListener::DeviceListener()
@@ -35,30 +36,42 @@ void OneLife::game::DeviceListener::listen()
 		switch(event.type)
 		{
 			case SDL_QUIT:
-				printf("\n===>handle quit signal");
+				printf("\n===>(deviceListener)handle quit signal");
 				this->exit = true;
 				break;
 			case SDL_KEYDOWN:
-				this->updateKeyboard(event.key.keysym.sym, KEY_ACTION::PRESS);
+				this->updateKeyboard(event.key.keysym.sym, SIGNAL::PRESS);
+				break;
+			case SDL_MOUSEMOTION:
+				this->mouse.position.x = event.motion.x;
+				this->mouse.position.y = event.motion.y;
+				break;
+			case SDL_MOUSEBUTTONDOWN:
+				this->updateMouse(event.button, SIGNAL::PRESS);
+				break;
+			case SDL_MOUSEBUTTONUP:
+				this->updateMouse(event.button, SIGNAL::RELEASE);
 				break;
 			default:
 				break;
 		}
 	}
-	OneLife::game::dataType::Message msg;
-	msg.type = OneLife::game::dataType::message::KEYBOARD;
-	msg.size = 0;
-	msg.content = this->keyboard.key;
-	this->lastEvent.push_back(msg);
+	OneLife::game::dataType::message::Device devMsg;
+	devMsg.keyboard = this->keyboard.key;
+	devMsg.mouse = &(this->mouse);
+	this->lastEvent.push_back(devMsg);
 }
 
 void OneLife::game::DeviceListener::reset()
 {
 	memset(this->keyboard.key, 0, this->keyboard.size);
 	this->lastEvent.clear();
+	this->mouse.leftButton = 0;
+	this->mouse.rightButton = 0;
+	this->mouse.middleButton = 0;
 }
 
-std::vector <OneLife::game::dataType::Message> OneLife::game::DeviceListener::getEvent()
+std::vector <OneLife::game::dataType::message::Device> OneLife::game::DeviceListener::getEvent()
 {
 	return this->lastEvent;
 }
@@ -72,12 +85,16 @@ void OneLife::game::DeviceListener::updateKeyboard(int key, int value)
 {
 	this->keyboard.key[(unsigned long int)this->localValue(key)] = value;
 	SDLMod mods = SDL_GetModState();
+	this->keyboard.key[KEY::ALT] = (mods & KMOD_ALT) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	this->keyboard.key[KEY::ALT_LEFT] = (mods & KMOD_LALT) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	this->keyboard.key[KEY::ALT_RIGHT] = (mods & KMOD_RALT) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
+	this->keyboard.key[KEY::CTRL] = (mods & KMOD_CTRL) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	this->keyboard.key[KEY::CTRL_LEFT] = (mods & KMOD_LCTRL) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	this->keyboard.key[KEY::CTRL_RIGHT] = (mods & KMOD_LCTRL) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
+	this->keyboard.key[KEY::META] = (mods & KMOD_META) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	this->keyboard.key[KEY::META_LEFT] = (mods & KMOD_LMETA) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	this->keyboard.key[KEY::META_RIGHT] = (mods & KMOD_RMETA) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
+	this->keyboard.key[KEY::SHIFT] = (mods & KMOD_SHIFT) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	this->keyboard.key[KEY::SHIFT_LEFT] = (mods & KMOD_LSHIFT) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	this->keyboard.key[KEY::SHIFT_RIGHT] = (mods & KMOD_RSHIFT) ? KEY_ACTION::PRESS : KEY_ACTION::NONE;
 	/*KMOD_NONE  = 0x0000,
@@ -85,6 +102,36 @@ void OneLife::game::DeviceListener::updateKeyboard(int key, int value)
 	KMOD_CAPS  = 0x2000,
 	KMOD_MODE  = 0x4000,
 	*/
+}
+
+void OneLife::game::DeviceListener::updateMouse(SDL_MouseButtonEvent ev, int value)
+{
+	switch(ev.button)
+	{
+		case SDL_BUTTON_LEFT:
+			printf("\n===>(deviceListener)push left button");
+			this->mouse.leftButton = value;
+			break;
+		case SDL_BUTTON_MIDDLE:
+			printf("\n===>(deviceListener)push middle button");
+			this->mouse.middleButton = value;
+			break;
+		case SDL_BUTTON_RIGHT:
+			printf("\n===>(deviceListener)push right button");
+			this->mouse.rightButton = value;
+			break;
+		case SDL_BUTTON_WHEELUP:
+			printf("\n===>(deviceListener)wheel %s", value==1 ? "up" : "down");
+			//currentScreenGL->mLastMouseButton = MouseButton::WHEELUP;
+			break;
+		case SDL_BUTTON_WHEELDOWN:
+			printf("\n===>(deviceListener)wheel down");
+			//currentScreenGL->mLastMouseButton = MouseButton::WHEELDOWN;
+			break;
+		default:
+			//currentScreenGL->mLastMouseButton = MouseButton::NONE;
+			break;
+	}
 }
 
 /**********************************************************************************************************************/
@@ -130,6 +177,8 @@ int OneLife::game::DeviceListener::localValue(int sdlValue)
 		case SDLK_x: value = KEY::X; break;
 		case SDLK_y: value = KEY::Y; break;
 		case SDLK_z: value = KEY::Z; break;
+		case SDLK_SPACE: value = KEY::SPACE; break;
+		case SDLK_TAB: value = KEY::TAB; break;
 		case SDLK_LALT: value = KEY::ALT_LEFT; break;
 		case SDLK_RALT: value = KEY::ALT_RIGHT; break;
 		case SDLK_LMETA: value = KEY::META_LEFT; break;
