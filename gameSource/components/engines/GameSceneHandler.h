@@ -23,34 +23,38 @@
 #include "OneLife/gameSource/game.h"//Uint8
 
 class GameSceneHandler :
-		public SceneHandlerGL, public MouseHandlerGL, public KeyboardHandlerGL,
-		public RedrawListenerGL, public ActionListener  {
+		public SceneHandlerGL,
+		public MouseHandlerGL,
+		public KeyboardHandlerGL,
+		public RedrawListenerGL,
+		public ActionListener
+{
+	public:
 
-public:
+		/**
+	 	* Constructs a sceen handler.
+	 	*
+	 	* @param inScreen the screen to interact with.
+	 	*   Must be destroyed by caller after this class is destroyed.
+	 	*/
+		GameSceneHandler();
+		virtual ~GameSceneHandler();
 
-	/**
-	 * Constructs a sceen handler.
-	 *
-	 * @param inScreen the screen to interact with.
-	 *   Must be destroyed by caller after this class is destroyed.
-	 */
-	GameSceneHandler();
+		void setPause(bool status);
+		void switchPause();
+		bool isPaused();
 
-	void doFeatureComputeFrame();
+		void doFeatureComputeFrame();
 
-	virtual ~GameSceneHandler();
-
-
-
-	/**
-	 * Executes necessary init code that reads from files.
-	 *
-	 * Must be called before using a newly-constructed GameSceneHandler.
-	 *
-	 * This call assumes that the needed files are in the current working
-	 * directory.
-	 */
-	void initFromFiles();
+		/**
+		 * Executes necessary init code that reads from files.
+		 *
+		 * Must be called before using a newly-constructed GameSceneHandler.
+		 *
+		 * This call assumes that the needed files are in the current working
+		 * directory.
+		 */
+		void initFromFiles();
 
 	// implements the SceneHandlerGL interface
 	virtual void drawScene();
@@ -77,9 +81,6 @@ public:
 
 	// implements the ActionListener interface
 	virtual void actionPerformed( GUIComponent *inTarget );
-
-
-	char mPaused;
 	char mPausedDuringFrameBatch;
 	char mLoadingDuringFrameBatch;
 
@@ -92,7 +93,8 @@ public:
 	double mLastFrameRate;
 
 
-protected:
+	protected:
+		static bool mPaused;
 
 	timeSec_t mStartTimeSeconds;
 

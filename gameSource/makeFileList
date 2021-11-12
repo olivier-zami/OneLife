@@ -46,6 +46,7 @@ procedures/graphics/drawGround.cpp \
 procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/game.cpp \
+settings.cpp \
 spriteBank.cpp \
 objectBank.cpp \
 transitionBank.cpp \

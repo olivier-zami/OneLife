@@ -177,9 +177,9 @@ static char shotDirExists = false;
 static int outputFrameCount = 0;
 static unsigned int frameNumber = 0;
 
+bool GameSceneHandler::mPaused = false;
 
-GameSceneHandler::GameSceneHandler()
-		: mPaused( false ),
+GameSceneHandler::GameSceneHandler():
 		  mPausedDuringFrameBatch( true ),
 		  mLoadingDuringFrameBatch( true ),
 		  mPausedSleepTime( 0 ),
@@ -204,7 +204,6 @@ GameSceneHandler::GameSceneHandler()
 	screen->addRedrawListener( sceneHandler );
 }
 
-
 GameSceneHandler::~GameSceneHandler() {
 	screen->removeMouseHandler( this );
 	//screen->removeSceneHandler( this );
@@ -226,6 +225,21 @@ GameSceneHandler::~GameSceneHandler() {
 
 }
 
+void GameSceneHandler::setPause(bool status)
+{
+	GameSceneHandler::mPaused = status;
+}
+
+void GameSceneHandler::switchPause()
+{
+	GameSceneHandler::mPaused = !GameSceneHandler::mPaused;
+}
+
+bool GameSceneHandler::isPaused()
+{
+	return GameSceneHandler::mPaused;
+}
+
 void GameSceneHandler::initFromFiles() {
 
 }
@@ -242,9 +256,6 @@ void GameSceneHandler::drawScene() {
 
 	glDisable( GL_CULL_FACE );
 	glDisable( GL_DEPTH_TEST );
-
-
-
 
 	if( visibleWidth != -1 && visibleHeight != -1 )
 	{
@@ -329,8 +340,8 @@ void GameSceneHandler::drawScene() {
 		}
 	}
 
-
-	if( shouldTakeScreenshot ) {
+	if( shouldTakeScreenshot )
+	{
 		takeScreenShot();
 
 		if( !outputAllFrames ) {

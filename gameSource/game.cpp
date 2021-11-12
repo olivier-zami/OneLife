@@ -60,6 +60,7 @@ int main( int inArgCount, char **inArgs )
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
 #include "OneLife/gameSource/application.h"
+#include "settings.h"//#include "OneLife/gameSource/settings.h"
 
 #ifdef RASPBIAN
 
@@ -93,6 +94,8 @@ extern NoClip soundSpriteNoClip;
 extern NoClip totalAudioMixNoClip;
 extern char *screenShotPrefix;
 // size of screen for fullscreen mode
+extern double viewWidth;
+extern double viewHeight;
 extern int screenWidth;
 extern int screenHeight;
 extern char outputAllFrames;
@@ -256,7 +259,12 @@ static char isSettingsFolderFound() {
 
 
 
-int mainFunction( int inNumArgs, char **inArgs ) {
+int mainFunction( int inNumArgs, char **inArgs )
+{
+
+	//!
+	OneLife::game::Settings gameSettings;
+	gameSettings.useSound = getUsesSound();
 
 #ifdef WIN32
 	HMODULE hShcore = LoadLibrary( _T( "shcore.dll" ) );
@@ -325,13 +333,7 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 #endif
 
 
-	// check result below, after opening log, so we can log failure
-	Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
-	if( getUsesSound() ) {
-		flags |= SDL_INIT_AUDIO;
-	}
 
-	int sdlResult = SDL_Init( flags );
 
 
 	// do this mac check after initing SDL,
@@ -344,46 +346,35 @@ int mainFunction( int inNumArgs, char **inArgs ) {
         // doesn't set a proper working directory for double-clicked
         // app bundles
 
-        // arg 0 is the path to the app executable
-        char *appDirectoryPath = stringDuplicate( inArgs[0] );
-
-        char *bundleName = autoSprintf( "%s_%d.app",
-                                        getAppName(), getAppVersion() );
-
+        char *appDirectoryPath = stringDuplicate( inArgs[0] );// arg 0 is the path to the app executable
+        char *bundleName = autoSprintf( "%s_%d.app", getAppName(), getAppVersion() );
         char *appNamePointer = strstr( appDirectoryPath, bundleName );
-
-        if( appNamePointer != NULL ) {
+        if( appNamePointer != NULL )
+		{
             // terminate full app path to get parent directory
             appNamePointer[0] = '\0';
-
             chdir( appDirectoryPath );
-            }
+		}
 
 
-        if( ! isSettingsFolderFound() ) {
+        if( ! isSettingsFolderFound() )
+		{
             // first, try setting dir based on preferences file
             char *prefFilePath = getPrefFilePath();
-
             FILE *prefFile = fopen( prefFilePath, "r" );
-
-            if( prefFile != NULL ) {
-
+            if( prefFile != NULL )
+			{
                 char path[200];
-
                 int numRead = fscanf( prefFile, "%199s", path );
 
-                if( numRead == 1 ) {
-                    chdir( path );
-                    }
+                if( numRead == 1 ) { chdir( path );}
                 fclose( prefFile );
-                }
-
+			}
             delete [] prefFilePath;
-            }
+		}
 
-
-        if( ! isSettingsFolderFound() ) {
-
+        if( ! isSettingsFolderFound() )
+		{
             showMessage( getAppName(), "First Start Up Error",
                          "Cannot find game data.\n\n"
                          "Newer versions of MacOS have strict sandboxing, "
@@ -394,107 +385,74 @@ int mainFunction( int inNumArgs, char **inArgs ) {
                          "Hopefully, you will only have to do this once.",
                          true );
 
-
             //showMessage( getAppName(), "Debug Info, Executable path =",
             //             inArgs[0], false );
 
-
             //showMessage( getAppName(), "Debug Info, Home dir =",
             //             getenv( "HOME" ), false );
-
 
             showMessage( getAppName(), "First Start Up",
                          "Please locate the game folder "
                          "in the next dialog box.",
                          false );
 
-            char *prompt = autoSprintf(
-                "Find the game folder (where the %s App is located):",
-                getAppName() );
-
+            char *prompt = autoSprintf("Find the game folder (where the %s App is located):", getAppName() );
             char *path = pickFolder( prompt );
-
             delete [] prompt;
 
-            if( path != NULL ) {
+            if( path != NULL )
+			{
                 //showMessage( getAppName(), "Debug Info, Chosen path =",
                 //             path, false );
 
-
                 char *prefFilePath = getPrefFilePath();
-
                 FILE *prefFile = fopen( prefFilePath, "w" );
-
-                if( prefFilePath == NULL ) {
-                    char *message =
-                        autoSprintf( "Failed to open this preferences file "
+                if( prefFilePath == NULL )
+				{
+                    char *message = autoSprintf( "Failed to open this preferences file "
                                      "for writing:\n\n%s\n\n"
                                      "You will have to find the game folder "
                                      "again at next startup.",
                                      prefFilePath );
-
                     showMessage( getAppName(), "First Start Up Error",
                                  message,
                                  true );
                     delete [] message;
-                    }
-                else {
+				}
+                else
+				{
                     fprintf( prefFile, path );
                     fclose( prefFile );
-                    }
-
+				}
                 delete [] prefFilePath;
-
-
                 chdir( path );
-
                 delete [] path;
-
-                if( !isSettingsFolderFound() ) {
+                if( !isSettingsFolderFound() )
+				{
                     showMessage( getAppName(), "First Start Up Error",
                                  "Still cannot find game data, exiting.",
                                  true );
                     return 1;
-                    }
-                }
-            else {
+				}
+			}
+            else
+			{
                 showMessage( getAppName(), "First Start Up Error",
                              "Picking a folder failed, exiting.",
                              true );
                 return 1;
-                }
-
-            }
-
-
+			}
+		}
         delete [] bundleName;
         delete [] appDirectoryPath;
 #endif
 
-
-
 	AppLog::setLog( new FileLog( "log.txt" ) );
 	AppLog::setLoggingLevel( Log::DETAIL_LEVEL );
-
 	AppLog::info( "New game starting up" );
 
-
-	if( sdlResult < 0 ) {
-		AppLog::getLog()->logPrintf(
-				Log::CRITICAL_ERROR_LEVEL,
-				"Couldn't initialize SDL: %s\n", SDL_GetError() );
-		return 0;
-	}
-
-
-	if( doesOverrideGameImageSize() ) {
-		getGameImageSize( &gameWidth, &gameHeight );
-	}
-
-	AppLog::getLog()->logPrintf(
-			Log::INFO_LEVEL,
-			"Target game image size:  %dx%d\n",
-			gameWidth, gameHeight );
+	if( doesOverrideGameImageSize() ) getGameImageSize( &gameWidth, &gameHeight );
+	AppLog::getLog()->logPrintf(Log::INFO_LEVEL, "Target game image size:  %dx%d\n", gameWidth, gameHeight );
 
 
 	// read screen size from settings
@@ -509,80 +467,48 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 		screenWidth = readWidth;
 		screenHeight = readHeight;
 	}
-
-	AppLog::getLog()->logPrintf(
-			Log::INFO_LEVEL,
-			"Ideal window dimensions:  %dx%d\n",
-			screenWidth, screenHeight );
-
+	AppLog::getLog()->logPrintf(Log::INFO_LEVEL, "Ideal window dimensions:  %dx%d\n", screenWidth, screenHeight );
 
 	if( ! isNonIntegerScalingAllowed() && screenWidth < gameWidth )
 	{
-
-		AppLog::info(
-				"Screen width smaller than target game width, fixing" );
+		AppLog::info("Screen width smaller than target game width, fixing" );
 		screenWidth = gameWidth;
 	}
-	if( ! isNonIntegerScalingAllowed() &&
-		screenHeight < gameHeight ) {
-		AppLog::info(
-				"Screen height smaller than target game height, fixing" );
+	if( ! isNonIntegerScalingAllowed() && screenHeight < gameHeight ) {
+		AppLog::info("Screen height smaller than target game height, fixing" );
 		screenHeight = gameHeight;
 	}
-
-
-	if( isNonIntegerScalingAllowed() ) {
-
+	if( isNonIntegerScalingAllowed() )
+	{
 		double screenRatio = (double)screenWidth / (double)screenHeight;
 		double gameRatio = (double)gameWidth / (double)gameHeight;
 
-		if( screenRatio > gameRatio ) {
+		if( screenRatio > gameRatio )
+		{
 			// screen too wide
-
-			// tell game about this by making game image wider than requested}
-
-			AppLog::info(
-					"Screen has wider aspect ratio than desired game image, "
-					"fixing by makign game image wider" );
-
+			// tell game about this by making game image wider than requested
+			AppLog::info("Screen has wider aspect ratio than desired game image, " "fixing by makign game image wider" );
 			gameWidth = (int)( screenRatio * gameHeight );
-
 			// if screen too narrow, this is already handled elsewhere
 		}
 	}
 
-
 	char fullscreenFound = false;
-	int readFullscreen = SettingsManager::getIntSetting( "fullscreen",
-														 &fullscreenFound );
-
+	int readFullscreen = SettingsManager::getIntSetting( "fullscreen", &fullscreenFound );
 	char fullscreen = true;
-
-	if( fullscreenFound && readFullscreen == 0 ) {
+	if( fullscreenFound && readFullscreen == 0 )
+	{
 		fullscreen = false;
 	}
-
-	if( fullscreen ) {
-		AppLog::info( "Trying to start in fullscreen mode." );
-	}
-	else {
-		AppLog::info( "Trying to start in window mode." );
-	}
-
+	if(fullscreen) { AppLog::info( "Trying to start in fullscreen mode." );}
+	else{AppLog::info( "Trying to start in window mode." );}
 
 	char useLargestWindowFound = false;
-	int readUseLargestWindow =
-			SettingsManager::getIntSetting( "useLargestWindow",
-											&useLargestWindowFound );
-
+	int readUseLargestWindow = SettingsManager::getIntSetting("useLargestWindow", &useLargestWindowFound );
 	char useLargestWindow = true;
-
-	if( useLargestWindowFound && readUseLargestWindow == 0 ) {
-		useLargestWindow = false;
-	}
-
-
-	if( !fullscreen && useLargestWindow ) {
+	if(useLargestWindowFound && readUseLargestWindow == 0) {useLargestWindow = false;}
+	if( !fullscreen && useLargestWindow )
+	{
 		AppLog::info( "Want to use largest window that fits on screen." );
 
 		const SDL_VideoInfo* currentScreenInfo = SDL_GetVideoInfo();
@@ -703,127 +629,99 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 		}
 	}
 
-
-
-
-
 	char frameRateFound = false;
-	int readFrameRate = SettingsManager::getIntSetting( "halfFrameRate",
-														&frameRateFound );
+	int readFrameRate = SettingsManager::getIntSetting( "halfFrameRate", &frameRateFound );
 
-	if( frameRateFound && readFrameRate >= 1 ) {
+	if( frameRateFound && readFrameRate >= 1 )
+	{
 		// cut frame rate in half N times
 		targetFrameRate /= (int)pow( 2, readFrameRate );
 	}
-
 	// can't draw less than 1 frame per second
-	if( targetFrameRate < 1 ) {
+	if( targetFrameRate < 1 )
+	{
 		targetFrameRate = 1;
 	}
 
-	SimpleVector<char*> *possibleFrameRatesSetting =
-			SettingsManager::getSetting( "possibleFrameRates" );
-
-	for( int i=0; i<possibleFrameRatesSetting->size(); i++ ) {
+	SimpleVector<char*> *possibleFrameRatesSetting = SettingsManager::getSetting( "possibleFrameRates" );
+	for( int i=0; i<possibleFrameRatesSetting->size(); i++ )
+	{
 		char *f = possibleFrameRatesSetting->getElementDirect( i );
-
 		int v;
-
 		int numRead = sscanf( f, "%d", &v );
-
-		if( numRead == 1 ) {
-			possibleFrameRates.push_back( v );
-		}
-
+		if( numRead == 1 ) possibleFrameRates.push_back( v );
 		delete [] f;
 	}
-
 	delete possibleFrameRatesSetting;
-
-
-	if( possibleFrameRates.size() == 0 ) {
+	if( possibleFrameRates.size() == 0 )
+	{
 		possibleFrameRates.push_back( 60 );
 		possibleFrameRates.push_back( 120 );
 		possibleFrameRates.push_back( 144 );
 	}
-
 	AppLog::info( "The following frame rates are considered possible:" );
 
-	for( int i=0; i<possibleFrameRates.size(); i++ ) {
+	for( int i=0; i<possibleFrameRates.size(); i++ )
+	{
 		AppLog::infoF( "%d fps", possibleFrameRates.getElementDirect( i ) );
 	}
 
-
-
 	char recordFound = false;
-	int readRecordFlag = SettingsManager::getIntSetting( "recordGame",
-														 &recordFound );
-
+	int readRecordFlag = SettingsManager::getIntSetting( "recordGame", &recordFound );
 	char recordGame = false;
-
-	if( recordFound && readRecordFlag == 1 ) {
+	if( recordFound && readRecordFlag == 1 )
+	{
 		recordGame = true;
 	}
 
-
-	int speedControlKeysFlag =
-			SettingsManager::getIntSetting( "enableSpeedControlKeys", 0 );
-
-	if( speedControlKeysFlag == 1 ) {
+	int speedControlKeysFlag = SettingsManager::getIntSetting( "enableSpeedControlKeys", 0 );
+	if( speedControlKeysFlag == 1 )
+	{
 		enableSpeedControlKeys = true;
 	}
 
-
-
-	int outputAllFramesFlag =
-			SettingsManager::getIntSetting( "outputAllFrames", 0 );
-
-	if( outputAllFramesFlag == 1 ) {
+	int outputAllFramesFlag = SettingsManager::getIntSetting( "outputAllFrames", 0 );
+	if( outputAllFramesFlag == 1 )
+	{
 		outputAllFrames = true;
 		// start with very first frame
 		shouldTakeScreenshot = true;
-
 		screenShotPrefix = stringDuplicate( "frame" );
 	}
 
-	int blendOutputFramePairsFlag =
-			SettingsManager::getIntSetting( "blendOutputFramePairs", 0 );
-
-	if( blendOutputFramePairsFlag == 1 ) {
+	int blendOutputFramePairsFlag = SettingsManager::getIntSetting( "blendOutputFramePairs", 0 );
+	if( blendOutputFramePairsFlag == 1 )
+	{
 		blendOutputFramePairs = true;
 	}
 
-	blendOutputFrameFraction =
-			SettingsManager::getFloatSetting( "blendOutputFrameFraction", 0.0f );
+	blendOutputFrameFraction = SettingsManager::getFloatSetting( "blendOutputFrameFraction", 0.0f );
 
 	webProxy = SettingsManager::getStringSetting( "webProxy" );
-
-	if( webProxy != NULL &&
-		strcmp( webProxy, "" ) == 0 ) {
-
+	if( webProxy != NULL && strcmp( webProxy, "" ) == 0 )
+	{
 		delete [] webProxy;
 		webProxy = NULL;
 	}
 
-
 	// make sure dir is writeable
 	FILE *testFile = fopen( "testWrite.txt", "w" );
-
-	if( testFile == NULL ) {
+	if( testFile == NULL )
+	{
 		writeFailed = true;
 	}
-	else {
+	else
+	{
 		fclose( testFile );
-
 		remove( "testWrite.txt" );
-
 		writeFailed = false;
 	}
 
 
 	// don't try to record games if we can't write to dir
 	// can cause a crash.
-	if( writeFailed ) {
+	if( writeFailed )
+	{
 		recordGame = false;
 	}
 
@@ -831,19 +729,29 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 
 	char *hashSalt = getHashSalt();
 
-	screen = new OneLife::game::Application(
-			screenWidth,
-			screenHeight,
-			fullscreen,
-			shouldNativeScreenResolutionBeUsed(),
-			targetFrameRate,
-			recordGame,
-			customData,
-			hashSalt,
-			getWindowTitle(),
-			NULL, NULL, NULL );
+	/******************************************************************************************************************/
+	//try //TODO catch error after Exception implementation
+	//{
+		screen = new OneLife::game::Application(
+				gameSettings,
+				screenWidth,
+				screenHeight,
+				fullscreen,
+				shouldNativeScreenResolutionBeUsed(),
+				targetFrameRate,
+				recordGame,
+				customData,
+				hashSalt,
+				getWindowTitle(),
+				NULL, NULL, NULL );
 
-	screen->setConnection();
+		screen->setConnection();
+	//}
+	if(false)//catch() //TODO catch fail on OneLife::game::Application instantiation
+	{
+		AppLog::getLog()->logPrintf(Log::CRITICAL_ERROR_LEVEL, "Couldn't initialize SDL: %s\n", SDL_GetError() );
+		return 0;
+	}
 
 	delete [] customData;
 	delete [] hashSalt;
@@ -1016,7 +924,8 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 	// translation language
 	File *languageNameFile = new File( NULL, "language.txt" );
 
-	if( languageNameFile->exists() ) {
+	if( languageNameFile->exists() )
+	{
 		char *languageNameText = languageNameFile->readFileContents();
 
 		SimpleVector<char *> *tokens = tokenizeString( languageNameText );
@@ -1057,21 +966,12 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 		}
 		delete tokens;
 	}
-
 	delete languageNameFile;
 
-
-
-
-	// register cleanup function, since screen->start() will never return
-	atexit( cleanUpAtExit );
-
-
+	atexit( cleanUpAtExit );// register cleanup function, since screen->start() will never return
 
 
 	screen->switchTo2DMode();
-
-
 
 	if( getUsesSound() )
 	{
@@ -1239,21 +1139,12 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 		SDL_UnlockAudio();
 	}
 
-
-
-
-
-
-	if( ! writeFailed ) {
+	if( ! writeFailed )
+	{
 		demoMode = isDemoMode();
 	}
 
-
-
-	initDrawString( pixelZoomFactor * gameWidth,
-					pixelZoomFactor * gameHeight );
-
-
+	initDrawString( pixelZoomFactor * gameWidth, pixelZoomFactor * gameHeight );
 
 	//glLineWidth( pixelZoomFactor );
 
@@ -1288,7 +1179,8 @@ int mainFunction( int inNumArgs, char **inArgs ) {
 	int readTarget = SettingsManager::getIntSetting( "targetFrameRate", -1 );
 	int readCounting = SettingsManager::getIntSetting( "countingOnVsync", -1 );
 
-	if( readTarget != -1 && readCounting != -1 ) {
+	if( readTarget != -1 && readCounting != -1 )
+	{
 		targetFrameRate = readTarget;
 		countingOnVsync = readCounting;
 
@@ -1319,11 +1211,11 @@ unsigned int getRandSeed() {
 }
 
 void pauseGame() {
-	sceneHandler->mPaused = !( sceneHandler->mPaused );
+	sceneHandler->switchPause();
 }
 
 char isPaused() {
-	return sceneHandler->mPaused;
+	return sceneHandler->isPaused();
 }
 
 void blockQuitting( char inNoQuitting ) {

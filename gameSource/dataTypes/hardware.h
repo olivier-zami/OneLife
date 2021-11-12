@@ -7,6 +7,10 @@
 
 namespace OneLife::dataType::hardware
 {
+	typedef struct{
+
+	}Screen;
+
 	typedef enum{
 		NONE		= 0,
 		PRESS 		= 1,

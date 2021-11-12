@@ -21,24 +21,28 @@
 #include "OneLife/gameSource/components/engines/deviceListener.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/socket.h"
+#include "OneLife/gameSource/settings.h"
 
 namespace OneLife::game
 {
 	class Application
 	{
 		public:
-			Application(int inWide, int inHigh, char inFullScreen,
-						char inDoNotChangeNativeResolution,
-						unsigned int inMaxFrameRate,
-						char inRecordEvents,
-						const char *inCustomRecordedGameData,
-						const char *inHashSalt,
-						const char *inWindowName,
-						KeyboardHandlerGL *inKeyHandler = NULL,
-						MouseHandlerGL *inMouseHandler = NULL,
-						SceneHandlerGL *inSceneHandler = NULL  );
+			Application(
+					OneLife::game::Settings settings,
+					int inWide, int inHigh, char inFullScreen,
+					char inDoNotChangeNativeResolution,
+					unsigned int inMaxFrameRate,
+					char inRecordEvents,
+					const char *inCustomRecordedGameData,
+					const char *inHashSalt,
+					const char *inWindowName,
+					KeyboardHandlerGL *inKeyHandler = NULL,
+					MouseHandlerGL *inMouseHandler = NULL,
+					SceneHandlerGL *inSceneHandler = NULL  );
 			~Application();
 
+			void init(OneLife::game::Settings settings);
 			void setConnection();
 			OneLife::game::component::Socket* getConnection();
 
@@ -539,6 +543,8 @@ namespace OneLife::game
 			void sendClientMessage();
 
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
+			unsigned int idScreen;
+
 			OneLife::dataType::ui::Screen currentScreen;
 			OneLife::game::component::Socket* connection;
 			OneLife::game::DeviceListener* deviceListener;

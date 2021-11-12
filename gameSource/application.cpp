@@ -88,9 +88,9 @@ static int lastMouseX = 0;
 static int lastMouseY = 0;
 static int lastMouseDownX = 0;
 static int lastMouseDownY = 0;
-static char mPaused = false;
 
 OneLife::game::Application::Application(
+		OneLife::game::Settings currentGame,
 		int inWide, int inHigh, char inFullScreen,
 		char inDoNotChangeNativeResolution,
 		unsigned int inMaxFrameRate,
@@ -117,7 +117,14 @@ OneLife::game::Application::Application(
 		mKeyboardHandlerVector( new SimpleVector<KeyboardHandlerGL*>() ),
 		mRedrawListenerVector( new SimpleVector<RedrawListenerGL*>() )
 {
+	this->idScreen = 0;
 	this->isNewSystemEnable = false;
+
+	//!init SDL context ...
+	Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
+	if(currentGame.useSound) flags |= SDL_INIT_AUDIO;
+	int sdlResult = SDL_Init( flags );
+	if(sdlResult < 0);//TODO throw exception
 
 	//!init current screen ...
 	this->currentScreen.status.fullScreen = inFullScreen;
@@ -181,8 +188,8 @@ OneLife::game::Application::Application(
 	int numChildren;
 	File **childFiles = playbackDir.getChildFiles( &numChildren );
 
-	if( numChildren > 0 ) {
-
+	if( numChildren > 0 )
+	{
 		// take first
 		char *fullFileName = childFiles[0]->getFullFileName();
 		char *partialFileName = childFiles[0]->getFileName();
@@ -409,6 +416,11 @@ OneLife::game::Application::~Application()
 		}
 
 	}
+}
+
+void OneLife::game::Application::init(OneLife::game::Settings settings)
+{
+
 }
 
 void OneLife::game::Application::setConnection()
@@ -1015,8 +1027,9 @@ void OneLife::game::Application::selectScreen()
 	//printf("\n==========>select screen");
 
 	//!SEARCH LEG000001 for legacy place
-	if( demoMode )
+	if(demoMode)
 	{
+		if(this->idScreen !=1){printf("\n===>demoMode");this->idScreen = 1;}
 		if( ! isDemoCodePanelShowing() )
 		{
 			demoMode = false;// stop demo mode when panel done
@@ -1027,9 +1040,11 @@ void OneLife::game::Application::selectScreen()
 	}
 	else if( writeFailed )
 	{
+		if(this->idScreen !=2){printf("\n===>write failed");this->idScreen = 2;}
 		drawString( translate( "writeFailed" ), true );
 	}
 	else if( !this->isPlayingBack() && measureFrameRate ) {
+		if(this->idScreen !=3){printf("\n===>!isPlayingBack && measureFrameRate");this->idScreen = 3;}
 		if( !measureRecorded )
 		{
 			this->useFrameSleep( false );
@@ -1176,19 +1191,21 @@ void OneLife::game::Application::selectScreen()
 		}
 		//return;
 	}
-	else if( !loadingMessageShown ) {
+	else if( !loadingMessageShown ){
+		if(this->idScreen !=4){printf("\n===>!loadingMessageShown");this->idScreen = 4;}
 		drawString( translate( "loading" ), true );
-
 		loadingMessageShown = true;
-	}
+	}//step1
 	else if( loadingFailedFlag ) {
+		if(this->idScreen !=5){printf("\n===>loadingFailedFlag");this->idScreen = 5;}
 		drawString( loadingFailedMessage, true );
 	}
 	else if( !writeFailed && !loadingFailedFlag && !frameDrawerInited ) {
+		if(this->idScreen !=6){printf("\n===>!writeFailed && !loadingFailedFlag && !frameDrawerInited");this->idScreen = 6;}
 		drawString( translate( "loading" ), true );
 
-		initFrameDrawer( pixelZoomFactor * gameWidth,
-				pixelZoomFactor * gameHeight,
+		initFrameDrawer( pixelZoomFactor * 320,
+				pixelZoomFactor * 200,
 				targetFrameRate,
 				this->getCustomRecordedGameData(),
 				this->isPlayingBack() );//!currentGamePage initialized inside
@@ -1252,11 +1269,13 @@ void OneLife::game::Application::selectScreen()
 		// this is a good time, a while after launch, to do the post
 		// update step
 		postUpdate();
-	}
-	else if( !writeFailed && !loadingFailedFlag  )// demo mode done or was never enabled
+
+	}//step2
+	else if( !writeFailed && !loadingFailedFlag  )//step3 (demo mode done or was never enabled )
 	{
-		if( pauseOnMinimize && this->isMinimized() ) mPaused = true;// auto-pause when minimized
-		char update = !mPaused;//TODO: paused is triggered in gameSceneHandler => change this! // don't update while paused
+		if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}
+		if( pauseOnMinimize && this->isMinimized() ) sceneHandler->setPause(true);// auto-pause when minimized
+		char update = !sceneHandler->isPaused();//TODO: paused is triggered in gameSceneHandler => change this! // don't update while paused
 
 		//printf("\n==========>render scene !!!!");
 		drawFrame( update );//TODO: screenSelection separation <========================================================
@@ -1381,7 +1400,8 @@ void OneLife::game::Application::selectScreen()
 		{
 			// draw mouse position info
 
-			if( mouseDown ) {
+			if( mouseDown )
+			{
 				if( isLastMouseButtonRight() ) {
 					mouseRightDown = true;
 					setDrawColor( 1, 0, 1, 0.5 );
@@ -1391,7 +1411,8 @@ void OneLife::game::Application::selectScreen()
 					setDrawColor( 1, 0, 0, 0.5 );
 				}
 			}
-			else {
+			else
+			{
 				setDrawColor( 1, 1, 1, 0.5 );
 			}
 
@@ -1407,7 +1428,8 @@ void OneLife::game::Application::selectScreen()
 
 			int mouseClickDisplayDuration = 20 * targetFrameRate / 60.0;
 
-			if( mouseDownSteps < mouseClickDisplayDuration ) {
+			if( mouseDownSteps < mouseClickDisplayDuration )
+			{
 
 				float mouseClickProgress =
 						mouseDownSteps / (float)mouseClickDisplayDuration;
@@ -1517,7 +1539,7 @@ void OneLife::game::Application::selectScreen()
 		/**************************************************************************************************************/
 	}
 
-	sceneHandler->drawScene();//TODO: screenHandler/this->handle/update(screen)->readMessage(message);
+
 }
 
 void OneLife::game::Application::update(OneLife::dataType::ui::Screen* dataScreen)
@@ -1533,6 +1555,7 @@ void OneLife::game::Application::update(OneLife::dataType::ui::Screen* dataScree
  */
 void OneLife::game::Application::render(OneLife::dataType::ui::Screen* dataScreen)
 {
+	sceneHandler->drawScene();//TODO: screenHandler/this->handle/update(screen)->readMessage(message);
 	if(this->isNewSystemEnable)
 	{
 		char* keyboard = (char*)this->deviceListener->getEvent().at(0).keyboard;

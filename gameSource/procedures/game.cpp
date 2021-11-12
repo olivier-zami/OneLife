@@ -74,6 +74,12 @@ extern CustomRandomSource randSource;
 #include "OneLife/gameSource/message.h"
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
+#include "OneLife/gameSource/settings.h"
+
+extern double viewWidth;
+extern double viewHeight;
+extern int musicOff;
+
 
 // should we pull the map
 static char mapPullMode = 0;
@@ -129,19 +135,12 @@ float gui_fov_preferred_max_scale = 3.0f;
 int gui_fov_offset_x = (int)(((1280 * gui_fov_target_scale_hud) - 1280)/2);
 int gui_fov_offset_y = (int)(((720 * gui_fov_target_scale_hud) - 720)/2);
 
-
-double viewWidth = 1280;
-double viewHeight = 720;
-
-
 // this is the desired visible width
 // if our screen is wider than this (wider than 16:9 aspect ratio)
 // then we will put letterbox bars on the sides
 // Usually, if screen is not 16:9, it will be taller, not wider,
 // and we will put letterbox bars on the top and bottom 
 double visibleViewWidth = viewWidth;
-
-
 
 void setFOVScale() {
 
@@ -173,22 +172,14 @@ void setFOVScale() {
     visibleViewWidth = viewWidth;
 }
 
-
 // Used in hue shifting objects, animaionts and ground sprites
 // when the character is tripping
 bool isTrippingEffectOn = false;
-
-
 // fraction of viewWidth visible vertically (aspect ratio)
 double viewHeightFraction;
-
 int screenW, screenH;
-
 char initDone = false;
-
 float mouseSpeed;
-
-
 int maxSimultaneousExpectedSoundEffects = 10;
 
 // fraction of full volume devoted to music
@@ -201,61 +192,30 @@ int maxSimultaneousExpectedSoundEffects = 10;
 // on the other hand, it's stereo, compressed, full-frequency etc.
 // so it's subjectively louder
 double musicHeadroom = 1.0;
-
-
-
-
-int musicOff = 0;
 float musicLoudness;
-
 int webRetrySeconds;
-
-
 double frameRateFactor = 1;
 int baseFramesPerSecond = 60;
 int targetFramesPerSecond = baseFramesPerSecond;
-
 char firstDrawFrameCalled = false;
 int firstServerMessagesReceived = 0;
-
-
 char upKey = 'w';
 char leftKey = 'a';
 char downKey = 's';
 char rightKey = 'd';
 
 
-
-
-
-
-
-char doesOverrideGameImageSize() {
-    return true;
-    }
-
-
-
-void getGameImageSize( int *outWidth, int *outHeight ) {
-    *outWidth = (int)viewWidth;
-    *outHeight = (int)viewHeight;
-    }
-
-
 char shouldNativeScreenResolutionBeUsed() {
     return true;
     }
-
 
 char isNonIntegerScalingAllowed() {
     return true;
     }
 
-
 const char *getWindowTitle() {
     return "OneLife";
     }
-
 
 const char *getAppName() {
     return "OneLife";
@@ -270,31 +230,23 @@ const char *getLinuxAppName() {
     return "OneLifeApp";
     }
 
-
-
 const char *getFontTGAFileName() {
     return "font_32_64.tga";
     }
-
 
 char isDemoMode() {
     return false;
     }
 
-
 const char *getDemoCodeSharedSecret() {
     return "fundamental_right";
     }
-
 
 const char *getDemoCodeServerURL() {
     return "http://FIXME/demoServer/server.php";
     }
 
-
-
 char gamePlayingBack = false;
-
 Font *mainFont;
 Font *mainFontFixed;
 // closer spacing
@@ -305,19 +257,11 @@ Font *pencilFont;
 Font *pencilErasedFont;
 Font *smallFont;
 Font *titleFont;
-
-
 static float pauseScreenFade = 0;
-
 char *currentUserTypedMessage = NULL;
-
-
-
 // for delete key repeat during message typing
 static int holdDeleteKeySteps = -1;
 static int stepsBetweenDeleteRepeat;
-
-
 
 static void updateDataVersionNumber() {
     File file( NULL, "dataVersionNumber.txt" );
@@ -337,11 +281,7 @@ static void updateDataVersionNumber() {
         }
     }
 
-
-
-
 #define SETTINGS_HASH_SALT "another_loss"
-
 
 static const char *customDataFormatWriteString = 
     "version%d_mouseSpeed%f_musicOff%d_musicLoudness%f"
@@ -350,7 +290,6 @@ static const char *customDataFormatWriteString =
 static const char *customDataFormatReadString = 
     "version%d_mouseSpeed%f_musicOff%d_musicLoudness%f"
     "_webRetrySeconds%d";
-
 
 char *getCustomRecordedGameData() {    
     
@@ -377,8 +316,6 @@ char *getCustomRecordedGameData() {
     return result;
     }
 
-
-
 char showMouseDuringPlayback() {
     // since we rely on the system mouse pointer during the game (and don't
     // draw our own pointer), we need to see the recorded pointer position
@@ -386,14 +323,9 @@ char showMouseDuringPlayback() {
     return true;
     }
 
-
-
 char *getHashSalt() {
     return stringDuplicate( SETTINGS_HASH_SALT );
     }
-
-
-
 
 void initDrawString( int inWidth, int inHeight ) {
 
@@ -422,575 +354,14 @@ void initDrawString( int inWidth, int inHeight ) {
     setLetterbox( visibleViewWidth, viewHeight );
     }
 
-
 void freeDrawString() {
     delete mainFont;
-    }
-
-
-
-void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
-                      const char *inCustomRecordedGameData,
-                      char inPlayingBack ) {
-
-    // it's always safe to call this, just in case we're launching post-update
-    postUpdate();
-        
-
-    instructionsSprite = loadWhiteSprite( "instructions.tga" );
-    
-    
-
-    initAgeControl();
-    
-    updateDataVersionNumber();
-
-
-    AppLog::printOutNextMessage();
-    AppLog::infoF( "OneLife client v%d (binV=%d, dataV=%d) starting up",
-                   versionNumber, binVersionNumber, dataVersionNumber );
-            
-
-    toggleLinearMagFilter( true );
-    toggleMipMapGeneration( true );
-    toggleMipMapMinFilter( true );
-    toggleTransparentCropping( true );
-    
-    gamePlayingBack = inPlayingBack;
-    
-    screenW = inWidth;
-    screenH = inHeight;
-    
-    if( inTargetFrameRate != baseFramesPerSecond ) {
-        frameRateFactor = 
-            (double)baseFramesPerSecond / (double)inTargetFrameRate;
-        
-        numLoadingSteps /= frameRateFactor;
-        }
-    
-    targetFramesPerSecond = inTargetFrameRate;
-    
-    
-
-
-    setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
-
-    viewHeightFraction = inHeight / (double)inWidth;
-    
-
-    if( viewHeightFraction < 9.0 / 16.0 ) {
-        // weird, wider than 16:9 aspect ratio
-        
-        viewWidth = viewHeight / viewHeightFraction;
-        }
-    
-    setViewSize( viewWidth );
-    setLetterbox( visibleViewWidth, viewHeight );
-    setCursorVisible( true );
-
-	/******************************************************************************************************************/
-	//!set default screen
-    grabInput( false );
-	/******************************************************************************************************************/
-    
-    // world coordinates
-    setMouseReportingMode( true );
-    
-    
-    
-    mainFontReview = new Font( getFontTGAFileName(), 4, 8, false, 16 );
-    mainFontReview->setMinimumPositionPrecision( 1 );
-
-    mainFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16 );
-    numbersFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16, 16 );
-    
-    mainFontFixed->setMinimumPositionPrecision( 1 );
-    numbersFontFixed->setMinimumPositionPrecision( 1 );
-    
-    smallFont = new Font( getFontTGAFileName(), 3, 8, false, 8 * gui_fov_scale_hud );
-
-    titleFont = 
-        new Font( "font_handwriting_32_32.tga", 3, 6, false, 20 * gui_fov_scale_hud );
-	
-    handwritingFont = 
-        new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
-
-    handwritingFont->setMinimumPositionPrecision( 1 );
-
-    pencilFont = 
-        new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
-
-    pencilFont->setMinimumPositionPrecision( 1 );
-
-    pencilErasedFont = 
-        new Font( "font_pencil_erased_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
-
-    pencilErasedFont->setMinimumPositionPrecision( 1 );
-
-    pencilErasedFont->copySpacing( pencilFont );
-    
-    
-    float mouseSpeedSetting = 1.0f;
-    
-    int musicOffSetting = 0;
-    float musicLoudnessSetting = 1.0f;
-    
-    int webRetrySecondsSetting = 10;
-
-    
-    int readVersionNumber;
-    
-    int numRead = sscanf( inCustomRecordedGameData, 
-                          customDataFormatReadString, 
-                          &readVersionNumber,
-                          &mouseSpeedSetting, 
-                          &musicOffSetting,
-                          &musicLoudnessSetting,
-                          &webRetrySecondsSetting );
-    if( numRead != 6 ) {
-        // no recorded game?
-        }
-    else {
-
-        if( readVersionNumber != versionNumber ) {
-            AppLog::printOutNextMessage();
-            AppLog::warningF( 
-                "WARNING:  version number in playback file is %d "
-                "but game version is %d...",
-                readVersionNumber, versionNumber );
-            }
-        }
-
-    
-    userEmail = SettingsManager::getStringSetting( "email" );    
-    accountKey = SettingsManager::getStringSetting( "accountKey" );
-
-    
-    double mouseParam = 0.000976562;
-
-    mouseParam *= mouseSpeedSetting;
-
-    mouseSpeed = mouseParam * inWidth / viewWidth;
-
-    musicOff = musicOffSetting;
-    musicLoudness = musicLoudnessSetting;
-    
-    
-    webRetrySeconds = webRetrySecondsSetting;
-
-    reflectorURL = SettingsManager::getStringSetting( "reflectorURL" );
-
-    if( reflectorURL == NULL ) {
-        reflectorURL = 
-            stringDuplicate( 
-                "http://localhost/jcr13/oneLifeReflector/server.php" );
-        }
-
-
-
-    setSoundLoudness( 1.0 );
-    setSoundPlaying( true );
-
-    
-
-
-    const char *resultNamesA[4] = { "serverIP", "serverPort",
-                                    "requiredVersionNumber",
-                                    "autoUpdateURL" };
-    
-    getServerAddressPage = new ServerActionPage( reflectorURL,
-                                                 "reflect", 
-                                                 4, resultNamesA, false );
-    
-    
-    finalMessagePage = new FinalMessagePage;
-    loadingPage = new LoadingPage;
-    autoUpdatePage = new AutoUpdatePage;
-    livingLifePage = NULL;
-    existingAccountPage = new ExistingAccountPage;
-    extendedMessagePage = new ExtendedMessagePage;
-    rebirthChoicePage = new RebirthChoicePage;
-    settingsPage = new SettingsPage;
-
-
-    char *reviewURL = 
-        SettingsManager::getStringSetting( "reviewServerURL", "" );
-    
-    if( strcmp( reviewURL, "" ) == 0 ) {
-        existingAccountPage->showReviewButton( false );
-        rebirthChoicePage->showReviewButton( false );
-        }
-
-    reviewPage = new ReviewPage( reviewURL );
-    
-
-    twinPage = new TwinPage();
-
-    pollPage = new PollPage( reviewURL );
-    delete [] reviewURL;
-    
-    geneticHistoryPage = new GeneticHistoryPage();
-    
-
-    // 0 music headroom needed, because we fade sounds before playing music
-    setVolumeScaling( 10, 0 );
-    //setSoundSpriteRateRange( 0.95, 1.05 );
-    setSoundSpriteVolumeRange( 0.60, 1.0 );
-    
-    char rebuilding;
-    
-    int numSprites = 
-        initSpriteBankStart( &rebuilding );
-                        
-    if( rebuilding ) {
-        loadingPage->setCurrentPhase( translate( "spritesRebuild" ) );
-        }
-    else {
-        loadingPage->setCurrentPhase( translate( "sprites" ) );
-        }
-    loadingPage->setCurrentProgress( 0 );
-                        
-
-    loadingStepBatchSize = numSprites / numLoadingSteps;
-    
-    if( loadingStepBatchSize < 1 ) {
-        loadingStepBatchSize = 1;
-        }
-
-    // for filter support in LivingLifePage
-    enableObjectSearch( true );
-
-
-    currentGamePage = loadingPage;
-
-    //testPage = new TestPage;
-    //currentGamePage = testPage;
-
-    currentGamePage->base_makeActive( true );
-
-    initDone = true;
     }
 
 // draw code separated from updates
 // some updates are still embedded in draw code, so pass a switch to 
 // turn them off
 static void drawFrameNoUpdate( char inUpdate );
-
-
-
-
-static void drawPauseScreen() {
-
-    double viewHeight = viewHeightFraction * viewWidth;
-
-    setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
-        
-    drawSquare( lastScreenViewCenter, 1.05 * ( viewHeight / 3 ) );
-        
-
-    setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-        
-    drawSquare( lastScreenViewCenter, viewHeight / 3 );
-        
-
-    setDrawColor( 1, 1, 1, pauseScreenFade );
-
-    doublePair messagePos = lastScreenViewCenter;
-
-    messagePos.y += 4.5  * (viewHeight / 15);
-
-    mainFont->drawString( translate( "pauseMessage1" ), 
-                           messagePos, alignCenter );
-        
-    messagePos.y -= 1.25 * (viewHeight / 15);
-    mainFont->drawString( translate( "pauseMessage2" ), 
-                           messagePos, alignCenter );
-
-
-    if( currentGamePage == livingLifePage ) {
-        
-        doublePair drawPos = { -9, 0 };
-        
-        drawPos = add( drawPos, lastScreenViewCenter );
-
-        drawSprite( instructionsSprite, drawPos, gui_fov_scale );
-
-        TextAlignment a = getMessageAlign();
-
-
-
-        drawPos = lastScreenViewCenter;
-        
-        drawPos.x -= 600 * gui_fov_scale;
-        drawPos.y += 320 * gui_fov_scale;
-        
-
-        doublePair rectPos = drawPos;
-        rectPos.x += 155 * gui_fov_scale;
-        rectPos.y -= 320 * gui_fov_scale;
-        
-        setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
-        
-        drawRect( rectPos, 182 * gui_fov_scale, 362 * gui_fov_scale );
-
-        setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-
-        drawRect( rectPos, 170 * gui_fov_scale, 350 * gui_fov_scale  );
-
-        
-        setMessageAlign( alignLeft );
-        drawMessage( translate( "commandHintsA" ), drawPos, false, 
-                     pauseScreenFade );
-
-
-
-        drawPos = lastScreenViewCenter;
-        
-        drawPos.x += 285 * gui_fov_scale;
-        drawPos.y += 320 * gui_fov_scale;
-        
-
-        rectPos = drawPos;
-        rectPos.x += 160 * gui_fov_scale;
-        rectPos.y -= 320 * gui_fov_scale;
-        
-        setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
-        
-        drawRect( rectPos, 187 * gui_fov_scale, 362 * gui_fov_scale );
-
-        setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-
-        drawRect( rectPos, 175 * gui_fov_scale, 350 * gui_fov_scale  );
-
-        
-        setMessageAlign( alignLeft );
-        drawMessage( translate( "commandHintsB" ), drawPos, false, 
-                     pauseScreenFade );
-        
-        setMessageAlign( a );
-        }
-    
-
-    if( currentUserTypedMessage != NULL ) {
-            
-        messagePos.y -= 1.25 * (viewHeight / 15);
-            
-        double maxWidth = 0.95 * ( viewHeight / 1.5 );
-            
-        int maxLines = 9;
-
-        SimpleVector<char *> *tokens = 
-            tokenizeString( currentUserTypedMessage );
-
-
-        // collect all lines before drawing them
-        SimpleVector<char *> lines;
-        
-            
-        while( tokens->size() > 0 ) {
-
-            // build up a a line
-
-            // always take at least first token, even if it is too long
-            char *currentLineString = 
-                stringDuplicate( *( tokens->getElement( 0 ) ) );
-                
-            delete [] *( tokens->getElement( 0 ) );
-            tokens->deleteElement( 0 );
-            
-            
-
-            
-
-            
-            char nextTokenIsFileSeparator = false;
-                
-            char *nextLongerString = NULL;
-                
-            if( tokens->size() > 0 ) {
-
-                char *nextToken = *( tokens->getElement( 0 ) );
-                
-                if( nextToken[0] == 28 ) {
-                    nextTokenIsFileSeparator = true;
-                    }
-                else {
-                    nextLongerString =
-                        autoSprintf( "%s %s ",
-                                     currentLineString,
-                                     *( tokens->getElement( 0 ) ) );
-                    }
-                
-                }
-                
-            while( !nextTokenIsFileSeparator 
-                   &&
-                   nextLongerString != NULL 
-                   && 
-                   mainFont->measureString( nextLongerString ) 
-                   < maxWidth 
-                   &&
-                   tokens->size() > 0 ) {
-                    
-                delete [] currentLineString;
-                    
-                currentLineString = nextLongerString;
-                    
-                nextLongerString = NULL;
-                    
-                // token consumed
-                delete [] *( tokens->getElement( 0 ) );
-                tokens->deleteElement( 0 );
-                    
-                if( tokens->size() > 0 ) {
-                    
-                    char *nextToken = *( tokens->getElement( 0 ) );
-                
-                    if( nextToken[0] == 28 ) {
-                        nextTokenIsFileSeparator = true;
-                        }
-                    else {
-                        nextLongerString =
-                            autoSprintf( "%s%s ",
-                                         currentLineString,
-                                         *( tokens->getElement( 0 ) ) );
-                        }
-                    }
-                }
-                
-            if( nextLongerString != NULL ) {    
-                delete [] nextLongerString;
-                }
-                
-            while( mainFont->measureString( currentLineString ) > 
-                   maxWidth ) {
-                    
-                // single token that is too long by itself
-                // simply trim it and discard part of it 
-                // (user typing nonsense anyway)
-                    
-                currentLineString[ strlen( currentLineString ) - 1 ] =
-                    '\0';
-                }
-                
-            if( currentLineString[ strlen( currentLineString ) - 1 ] 
-                == ' ' ) {
-                // trim last bit of whitespace
-                currentLineString[ strlen( currentLineString ) - 1 ] = 
-                    '\0';
-                }
-
-                
-            lines.push_back( currentLineString );
-
-            
-            if( nextTokenIsFileSeparator ) {
-                // file separator
-
-                // put a paragraph separator in
-                lines.push_back( stringDuplicate( "---" ) );
-
-                // token consumed
-                delete [] *( tokens->getElement( 0 ) );
-                tokens->deleteElement( 0 );
-                }
-            }   
-
-
-        // all tokens deleted above
-        delete tokens;
-
-
-        double messageLineSpacing = 0.625 * (viewHeight / 15);
-        
-        int numLinesToSkip = lines.size() - maxLines;
-
-        if( numLinesToSkip < 0 ) {
-            numLinesToSkip = 0;
-            }
-        
-        
-        for( int i=0; i<numLinesToSkip-1; i++ ) {
-            char *currentLineString = *( lines.getElement( i ) );
-            delete [] currentLineString;
-            }
-        
-        int lastSkipLine = numLinesToSkip - 1;
-
-        if( lastSkipLine >= 0 ) {
-            
-            char *currentLineString = *( lines.getElement( lastSkipLine ) );
-
-            // draw above and faded out somewhat
-
-            doublePair lastSkipLinePos = messagePos;
-            
-            lastSkipLinePos.y += messageLineSpacing;
-
-            setDrawColor( 1, 1, 0.5, 0.125 * pauseScreenFade );
-
-            mainFont->drawString( currentLineString, 
-                                   lastSkipLinePos, alignCenter );
-
-            
-            delete [] currentLineString;
-            }
-        
-
-        setDrawColor( 1, 1, 0.5, pauseScreenFade );
-
-        for( int i=numLinesToSkip; i<lines.size(); i++ ) {
-            char *currentLineString = *( lines.getElement( i ) );
-            
-            if( false && lastSkipLine >= 0 ) {
-            
-                if( i == numLinesToSkip ) {
-                    // next to last
-                    setDrawColor( 1, 1, 0.5, 0.25 * pauseScreenFade );
-                    }
-                else if( i == numLinesToSkip + 1 ) {
-                    // next after that
-                    setDrawColor( 1, 1, 0.5, 0.5 * pauseScreenFade );
-                    }
-                else if( i == numLinesToSkip + 2 ) {
-                    // rest are full fade
-                    setDrawColor( 1, 1, 0.5, pauseScreenFade );
-                    }
-                }
-            
-            mainFont->drawString( currentLineString, 
-                                   messagePos, alignCenter );
-
-            delete [] currentLineString;
-                
-            messagePos.y -= messageLineSpacing;
-            }
-        }
-        
-        
-
-    setDrawColor( 1, 1, 1, pauseScreenFade );
-
-    messagePos = lastScreenViewCenter;
-
-    messagePos.y -= 3.75 * ( viewHeight / 15 );
-    //mainFont->drawString( translate( "pauseMessage3" ), 
-    //                      messagePos, alignCenter );
-
-    messagePos.y -= 0.625 * (viewHeight / 15);
-
-    const char* quitMessageKey = "pauseMessage3";
-    
-    if( isQuittingBlocked() ) {
-        quitMessageKey = "pauseMessage3b";
-        }
-
-    mainFont->drawString( translate( quitMessageKey ), 
-                          messagePos, alignCenter );
-
-    }
-
-
 
 void deleteCharFromUserTypedMessage() {
     if( currentUserTypedMessage != NULL ) {
@@ -1012,9 +383,558 @@ void deleteCharFromUserTypedMessage() {
         }
     }
 
+void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
+					  const char *inCustomRecordedGameData,
+					  char inPlayingBack ) {
+
+	// it's always safe to call this, just in case we're launching post-update
+	postUpdate();
+
+
+	instructionsSprite = loadWhiteSprite( "instructions.tga" );
 
 
 
+	initAgeControl();
+
+	updateDataVersionNumber();
+
+
+	AppLog::printOutNextMessage();
+	AppLog::infoF( "OneLife client v%d (binV=%d, dataV=%d) starting up",
+			versionNumber, binVersionNumber, dataVersionNumber );
+
+
+	toggleLinearMagFilter( true );
+	toggleMipMapGeneration( true );
+	toggleMipMapMinFilter( true );
+	toggleTransparentCropping( true );
+
+	gamePlayingBack = inPlayingBack;
+
+	screenW = inWidth;
+	screenH = inHeight;
+
+	if( inTargetFrameRate != baseFramesPerSecond ) {
+		frameRateFactor =
+				(double)baseFramesPerSecond / (double)inTargetFrameRate;
+
+		numLoadingSteps /= frameRateFactor;
+	}
+
+	targetFramesPerSecond = inTargetFrameRate;
+
+
+
+
+	setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+
+	viewHeightFraction = inHeight / (double)inWidth;
+
+
+	if( viewHeightFraction < 9.0 / 16.0 ) {
+		// weird, wider than 16:9 aspect ratio
+
+		viewWidth = viewHeight / viewHeightFraction;
+	}
+
+	setViewSize( viewWidth );
+	setLetterbox( visibleViewWidth, viewHeight );
+	setCursorVisible( true );
+
+	/******************************************************************************************************************/
+	//!set default screen
+	grabInput( false );
+	/******************************************************************************************************************/
+
+	// world coordinates
+	setMouseReportingMode( true );
+
+
+
+	mainFontReview = new Font( getFontTGAFileName(), 4, 8, false, 16 );
+	mainFontReview->setMinimumPositionPrecision( 1 );
+
+	mainFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16 );
+	numbersFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16, 16 );
+
+	mainFontFixed->setMinimumPositionPrecision( 1 );
+	numbersFontFixed->setMinimumPositionPrecision( 1 );
+
+	smallFont = new Font( getFontTGAFileName(), 3, 8, false, 8 * gui_fov_scale_hud );
+
+	titleFont =
+			new Font( "font_handwriting_32_32.tga", 3, 6, false, 20 * gui_fov_scale_hud );
+
+	handwritingFont =
+			new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
+
+	handwritingFont->setMinimumPositionPrecision( 1 );
+
+	pencilFont =
+			new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
+
+	pencilFont->setMinimumPositionPrecision( 1 );
+
+	pencilErasedFont =
+			new Font( "font_pencil_erased_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
+
+	pencilErasedFont->setMinimumPositionPrecision( 1 );
+
+	pencilErasedFont->copySpacing( pencilFont );
+
+
+	float mouseSpeedSetting = 1.0f;
+
+	int musicOffSetting = 0;
+	float musicLoudnessSetting = 1.0f;
+
+	int webRetrySecondsSetting = 10;
+
+
+	int readVersionNumber;
+
+	int numRead = sscanf( inCustomRecordedGameData,
+			customDataFormatReadString,
+			&readVersionNumber,
+			&mouseSpeedSetting,
+			&musicOffSetting,
+			&musicLoudnessSetting,
+			&webRetrySecondsSetting );
+	if( numRead != 6 ) {
+		// no recorded game?
+	}
+	else {
+
+		if( readVersionNumber != versionNumber ) {
+			AppLog::printOutNextMessage();
+			AppLog::warningF(
+					"WARNING:  version number in playback file is %d "
+					"but game version is %d...",
+					readVersionNumber, versionNumber );
+		}
+	}
+
+
+	userEmail = SettingsManager::getStringSetting( "email" );
+	accountKey = SettingsManager::getStringSetting( "accountKey" );
+
+
+	double mouseParam = 0.000976562;
+
+	mouseParam *= mouseSpeedSetting;
+
+	mouseSpeed = mouseParam * inWidth / viewWidth;
+
+	musicOff = musicOffSetting;
+	musicLoudness = musicLoudnessSetting;
+
+
+	webRetrySeconds = webRetrySecondsSetting;
+
+	reflectorURL = SettingsManager::getStringSetting( "reflectorURL" );
+
+	if( reflectorURL == NULL ) {
+		reflectorURL =
+				stringDuplicate(
+						"http://localhost/jcr13/oneLifeReflector/server.php" );
+	}
+
+
+
+	setSoundLoudness( 1.0 );
+	setSoundPlaying( true );
+
+
+
+
+	const char *resultNamesA[4] = { "serverIP", "serverPort",
+									"requiredVersionNumber",
+									"autoUpdateURL" };
+
+	getServerAddressPage = new ServerActionPage( reflectorURL,
+			"reflect",
+			4, resultNamesA, false );
+
+
+	finalMessagePage = new FinalMessagePage;
+	loadingPage = new LoadingPage;
+	autoUpdatePage = new AutoUpdatePage;
+	livingLifePage = NULL;
+	existingAccountPage = new ExistingAccountPage;
+	extendedMessagePage = new ExtendedMessagePage;
+	rebirthChoicePage = new RebirthChoicePage;
+	settingsPage = new SettingsPage;
+
+
+	char *reviewURL =
+			SettingsManager::getStringSetting( "reviewServerURL", "" );
+
+	if( strcmp( reviewURL, "" ) == 0 ) {
+		existingAccountPage->showReviewButton( false );
+		rebirthChoicePage->showReviewButton( false );
+	}
+
+	reviewPage = new ReviewPage( reviewURL );
+
+
+	twinPage = new TwinPage();
+
+	pollPage = new PollPage( reviewURL );
+	delete [] reviewURL;
+
+	geneticHistoryPage = new GeneticHistoryPage();
+
+
+	// 0 music headroom needed, because we fade sounds before playing music
+	setVolumeScaling( 10, 0 );
+	//setSoundSpriteRateRange( 0.95, 1.05 );
+	setSoundSpriteVolumeRange( 0.60, 1.0 );
+
+	char rebuilding;
+
+	int numSprites =
+			initSpriteBankStart( &rebuilding );
+
+	if( rebuilding ) {
+		loadingPage->setCurrentPhase( translate( "spritesRebuild" ) );
+	}
+	else {
+		loadingPage->setCurrentPhase( translate( "sprites" ) );
+	}
+	loadingPage->setCurrentProgress( 0 );
+
+
+	loadingStepBatchSize = numSprites / numLoadingSteps;
+
+	if( loadingStepBatchSize < 1 ) {
+		loadingStepBatchSize = 1;
+	}
+
+	// for filter support in LivingLifePage
+	enableObjectSearch( true );
+
+
+	currentGamePage = loadingPage;
+
+	//testPage = new TestPage;
+	//currentGamePage = testPage;
+
+	currentGamePage->base_makeActive( true );
+
+	initDone = true;
+}
+
+static void drawPauseScreen() {
+
+	double viewHeight = viewHeightFraction * viewWidth;
+
+	setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
+
+	drawSquare( lastScreenViewCenter, 1.05 * ( viewHeight / 3 ) );
+
+
+	setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
+
+	drawSquare( lastScreenViewCenter, viewHeight / 3 );
+
+
+	setDrawColor( 1, 1, 1, pauseScreenFade );
+
+	doublePair messagePos = lastScreenViewCenter;
+
+	messagePos.y += 4.5  * (viewHeight / 15);
+
+	mainFont->drawString( translate( "pauseMessage1" ),
+			messagePos, alignCenter );
+
+	messagePos.y -= 1.25 * (viewHeight / 15);
+	mainFont->drawString( translate( "pauseMessage2" ),
+			messagePos, alignCenter );
+
+
+	if( currentGamePage == livingLifePage ) {
+
+		doublePair drawPos = { -9, 0 };
+
+		drawPos = add( drawPos, lastScreenViewCenter );
+
+		drawSprite( instructionsSprite, drawPos, gui_fov_scale );
+
+		TextAlignment a = getMessageAlign();
+
+
+
+		drawPos = lastScreenViewCenter;
+
+		drawPos.x -= 600 * gui_fov_scale;
+		drawPos.y += 320 * gui_fov_scale;
+
+
+		doublePair rectPos = drawPos;
+		rectPos.x += 155 * gui_fov_scale;
+		rectPos.y -= 320 * gui_fov_scale;
+
+		setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
+
+		drawRect( rectPos, 182 * gui_fov_scale, 362 * gui_fov_scale );
+
+		setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
+
+		drawRect( rectPos, 170 * gui_fov_scale, 350 * gui_fov_scale  );
+
+
+		setMessageAlign( alignLeft );
+		drawMessage( translate( "commandHintsA" ), drawPos, false,
+				pauseScreenFade );
+
+
+
+		drawPos = lastScreenViewCenter;
+
+		drawPos.x += 285 * gui_fov_scale;
+		drawPos.y += 320 * gui_fov_scale;
+
+
+		rectPos = drawPos;
+		rectPos.x += 160 * gui_fov_scale;
+		rectPos.y -= 320 * gui_fov_scale;
+
+		setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
+
+		drawRect( rectPos, 187 * gui_fov_scale, 362 * gui_fov_scale );
+
+		setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
+
+		drawRect( rectPos, 175 * gui_fov_scale, 350 * gui_fov_scale  );
+
+
+		setMessageAlign( alignLeft );
+		drawMessage( translate( "commandHintsB" ), drawPos, false,
+				pauseScreenFade );
+
+		setMessageAlign( a );
+	}
+
+
+	if( currentUserTypedMessage != NULL ) {
+
+		messagePos.y -= 1.25 * (viewHeight / 15);
+
+		double maxWidth = 0.95 * ( viewHeight / 1.5 );
+
+		int maxLines = 9;
+
+		SimpleVector<char *> *tokens =
+				tokenizeString( currentUserTypedMessage );
+
+
+		// collect all lines before drawing them
+		SimpleVector<char *> lines;
+
+
+		while( tokens->size() > 0 ) {
+
+			// build up a a line
+
+			// always take at least first token, even if it is too long
+			char *currentLineString =
+					stringDuplicate( *( tokens->getElement( 0 ) ) );
+
+			delete [] *( tokens->getElement( 0 ) );
+			tokens->deleteElement( 0 );
+
+
+
+
+
+
+			char nextTokenIsFileSeparator = false;
+
+			char *nextLongerString = NULL;
+
+			if( tokens->size() > 0 ) {
+
+				char *nextToken = *( tokens->getElement( 0 ) );
+
+				if( nextToken[0] == 28 ) {
+					nextTokenIsFileSeparator = true;
+				}
+				else {
+					nextLongerString =
+							autoSprintf( "%s %s ",
+									currentLineString,
+									*( tokens->getElement( 0 ) ) );
+				}
+
+			}
+
+			while( !nextTokenIsFileSeparator
+				   &&
+				   nextLongerString != NULL
+				   &&
+				   mainFont->measureString( nextLongerString )
+				   < maxWidth
+				   &&
+				   tokens->size() > 0 ) {
+
+				delete [] currentLineString;
+
+				currentLineString = nextLongerString;
+
+				nextLongerString = NULL;
+
+				// token consumed
+				delete [] *( tokens->getElement( 0 ) );
+				tokens->deleteElement( 0 );
+
+				if( tokens->size() > 0 ) {
+
+					char *nextToken = *( tokens->getElement( 0 ) );
+
+					if( nextToken[0] == 28 ) {
+						nextTokenIsFileSeparator = true;
+					}
+					else {
+						nextLongerString =
+								autoSprintf( "%s%s ",
+										currentLineString,
+										*( tokens->getElement( 0 ) ) );
+					}
+				}
+			}
+
+			if( nextLongerString != NULL ) {
+				delete [] nextLongerString;
+			}
+
+			while( mainFont->measureString( currentLineString ) >
+				   maxWidth ) {
+
+				// single token that is too long by itself
+				// simply trim it and discard part of it
+				// (user typing nonsense anyway)
+
+				currentLineString[ strlen( currentLineString ) - 1 ] =
+						'\0';
+			}
+
+			if( currentLineString[ strlen( currentLineString ) - 1 ]
+				== ' ' ) {
+				// trim last bit of whitespace
+				currentLineString[ strlen( currentLineString ) - 1 ] =
+						'\0';
+			}
+
+
+			lines.push_back( currentLineString );
+
+
+			if( nextTokenIsFileSeparator ) {
+				// file separator
+
+				// put a paragraph separator in
+				lines.push_back( stringDuplicate( "---" ) );
+
+				// token consumed
+				delete [] *( tokens->getElement( 0 ) );
+				tokens->deleteElement( 0 );
+			}
+		}
+
+
+		// all tokens deleted above
+		delete tokens;
+
+
+		double messageLineSpacing = 0.625 * (viewHeight / 15);
+
+		int numLinesToSkip = lines.size() - maxLines;
+
+		if( numLinesToSkip < 0 ) {
+			numLinesToSkip = 0;
+		}
+
+
+		for( int i=0; i<numLinesToSkip-1; i++ ) {
+			char *currentLineString = *( lines.getElement( i ) );
+			delete [] currentLineString;
+		}
+
+		int lastSkipLine = numLinesToSkip - 1;
+
+		if( lastSkipLine >= 0 ) {
+
+			char *currentLineString = *( lines.getElement( lastSkipLine ) );
+
+			// draw above and faded out somewhat
+
+			doublePair lastSkipLinePos = messagePos;
+
+			lastSkipLinePos.y += messageLineSpacing;
+
+			setDrawColor( 1, 1, 0.5, 0.125 * pauseScreenFade );
+
+			mainFont->drawString( currentLineString,
+					lastSkipLinePos, alignCenter );
+
+
+			delete [] currentLineString;
+		}
+
+
+		setDrawColor( 1, 1, 0.5, pauseScreenFade );
+
+		for( int i=numLinesToSkip; i<lines.size(); i++ ) {
+			char *currentLineString = *( lines.getElement( i ) );
+
+			if( false && lastSkipLine >= 0 ) {
+
+				if( i == numLinesToSkip ) {
+					// next to last
+					setDrawColor( 1, 1, 0.5, 0.25 * pauseScreenFade );
+				}
+				else if( i == numLinesToSkip + 1 ) {
+					// next after that
+					setDrawColor( 1, 1, 0.5, 0.5 * pauseScreenFade );
+				}
+				else if( i == numLinesToSkip + 2 ) {
+					// rest are full fade
+					setDrawColor( 1, 1, 0.5, pauseScreenFade );
+				}
+			}
+
+			mainFont->drawString( currentLineString,
+					messagePos, alignCenter );
+
+			delete [] currentLineString;
+
+			messagePos.y -= messageLineSpacing;
+		}
+	}
+
+
+
+	setDrawColor( 1, 1, 1, pauseScreenFade );
+
+	messagePos = lastScreenViewCenter;
+
+	messagePos.y -= 3.75 * ( viewHeight / 15 );
+	//mainFont->drawString( translate( "pauseMessage3" ),
+	//                      messagePos, alignCenter );
+
+	messagePos.y -= 0.625 * (viewHeight / 15);
+
+	const char* quitMessageKey = "pauseMessage3";
+
+	if( isQuittingBlocked() ) {
+		quitMessageKey = "pauseMessage3b";
+	}
+
+	mainFont->drawString( translate( quitMessageKey ),
+			messagePos, alignCenter );
+
+}
 
 static void startConnecting() {
     userReconnect = false;
@@ -1066,8 +986,6 @@ static void startConnecting() {
 
     }
 
-
-
 void showDiedPage() {
     userReconnect = false;
     
@@ -1096,8 +1014,6 @@ void showDiedPage() {
     currentGamePage->base_makeActive( true );
     }
 
-
-
 void showReconnectPage() {
     lastScreenViewCenter.x = 0;
     lastScreenViewCenter.y = 0;
@@ -1122,8 +1038,6 @@ void showReconnectPage() {
     
     currentGamePage->base_makeActive( true );
     }
-
-    
 
 void drawFrame( char inUpdate ) {    
 
@@ -2016,7 +1930,6 @@ void drawFrame( char inUpdate ) {
     if( pauseScreenFade > 0 ) drawPauseScreen(); // draw tail end of pause screen, if it is still visible
 }
 
-
 void drawFrameNoUpdate( char inUpdate ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_draw( lastScreenViewCenter, viewWidth );
@@ -2193,9 +2106,4 @@ void specialKeyDown( int inKey ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyDown( inKey );
         }
-}
-
-char getUsesSound()
-{
-    return ! musicOff;
 }

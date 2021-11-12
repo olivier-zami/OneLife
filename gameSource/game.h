@@ -36,10 +36,6 @@ const char *getWindowTitle();
 char doesOverrideGameImageSize();
 
 
-// only called if doesOverrideGameImageSize returns true
-void getGameImageSize( int *outWidth, int *outHeight );
-
-
 // only affects games running in fullscreen
 // If true, we will leave the user's resolution alone, and scale the game
 // up (or down) to whatever resolution they are running.
@@ -195,12 +191,6 @@ void specialKeyUp( int inKeyCode );
 #include <stdint.h>
 typedef int16_t Sint16;
 typedef uint8_t Uint8;
-
-
-// should sound be initialized?
-char getUsesSound();
-
-
 
 // called before the first call to getSoundSamples
 // allows static allocation of buffers used in callback

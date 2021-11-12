@@ -409,13 +409,10 @@ void audioCallback( void *inUserData, Uint8 *inStream, int inLengthToFill ) {
 	}
 
 	// now apply global loudness fade for pause
-	if( ( currentSoundLoudness != soundLoudness && ! sceneHandler->mPaused )
-		||
-		( currentSoundLoudness != 0.0f && sceneHandler->mPaused )
-		||
-		currentSoundLoudness != 1.0f ) {
-
-
+	if( ( currentSoundLoudness != soundLoudness && ! sceneHandler->isPaused() )
+		|| ( currentSoundLoudness != 0.0f && sceneHandler->isPaused() )
+		|| currentSoundLoudness != 1.0f )
+	{
 		int nextByte = 0;
 		for( int i=0; i<numSamples; i++ ) {
 			Sint16 lSample =
@@ -435,19 +432,16 @@ void audioCallback( void *inUserData, Uint8 *inStream, int inLengthToFill ) {
 			inStream[nextByte++] = (Uint8)( rSample & 0xFF );
 			inStream[nextByte++] = (Uint8)( ( rSample >> 8 ) & 0xFF );
 
-			if( currentSoundLoudness != soundLoudness &&
-				! sceneHandler->mPaused ) {
+			if( currentSoundLoudness != soundLoudness && !sceneHandler->isPaused() )
+			{
 				currentSoundLoudness += soundLoudnessIncrementPerSample;
-
 				if( currentSoundLoudness > soundLoudness ) {
 					currentSoundLoudness = soundLoudness;
 				}
 			}
-			else if( currentSoundLoudness != 0 &&
-					 sceneHandler->mPaused ) {
-
+			else if( currentSoundLoudness != 0 && sceneHandler->isPaused() )
+			{
 				currentSoundLoudness -= soundLoudnessIncrementPerSample;
-
 				if( currentSoundLoudness < 0 ) {
 					currentSoundLoudness = 0;
 				}
