@@ -142,4 +142,5 @@ Image *getScreenRegionInternal(
 const char *translate( const char *inTranslationKey );//defined in game.cpp
 void saveFrameRateSettings();
 void audioCallback( void *inUserData, Uint8 *inStream, int inLengthToFill );
+void deleteCharFromUserTypedMessage();
 #endif //ONELIFE_GAMESCENEHANDLER_H

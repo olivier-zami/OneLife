@@ -1,6 +1,7 @@
 #include "PageComponent.h"
 
 #include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 
 
 PageComponent::PageComponent( double inX, double inY )

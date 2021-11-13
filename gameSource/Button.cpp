@@ -4,6 +4,7 @@
 #include "OneLife/gameSource/game.h"
 #include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
+#include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 
 #include <math.h>
 

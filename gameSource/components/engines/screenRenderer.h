@@ -41,6 +41,8 @@ namespace OneLife::game
 
 int computeAspectRatio( int inW, int inH );//src in application.cpp
 void grabInput( char inGrabOn );
-
+void drawFrameNoUpdate( char inUpdate );
+void showDiedPage();
+void showReconnectPage();
 
 #endif //INC_2HOL_SCREENRENDERER_H

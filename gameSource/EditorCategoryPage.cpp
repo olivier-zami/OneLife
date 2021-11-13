@@ -3,32 +3,16 @@
 #include "OneLife/gameSource/game.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
-
 #include "minorGems/util/stringUtils.h"
-
-
-
 #include "message.h"
-
-
-
-
-
-
 
 extern Font *mainFont;
 extern Font *smallFont;
 
-
-
 #include "ObjectPickable.h"
 
 static ObjectPickable objectPickableParent;
-
 static ObjectPickable objectPickableChild;
-
-
-
 
 char parentUnpickable( int inID ) {
     // if it's already a category itself, we must let it be picked

@@ -45,6 +45,7 @@ procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
 procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
+procedures/graphics/modalObjects/drawPausePanel.cpp \
 procedures/game.cpp \
 settings.cpp \
 spriteBank.cpp \

@@ -342,9 +342,6 @@ SoundSpriteHandle loadSoundSprite( const char *inAIFFFileName );
 SoundSpriteHandle loadSoundSprite( const char *inFolderName,
 								   const char *inAIFFFileName );
 
-// for moving view around
-void setViewCenterPosition( float inX, float inY );
-
 doublePair getViewCenterPosition();
 
 

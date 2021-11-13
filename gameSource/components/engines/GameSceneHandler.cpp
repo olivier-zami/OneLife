@@ -1035,6 +1035,7 @@ doublePair getViewCenterPosition()
 	return p;
 }
 
+// for moving view around
 void setViewCenterPosition( float inX, float inY ) {
 	viewCenterX = inX;
 	viewCenterY = inY;
@@ -1374,4 +1375,23 @@ void loadingFailed( const char *inFailureMessage ) {//TODO: check if unused
 	loadingFailedMessage = stringDuplicate( inFailureMessage );
 }
 
+void deleteCharFromUserTypedMessage() {
+	if( currentUserTypedMessage != NULL ) {
+
+		int length = strlen( currentUserTypedMessage );
+
+		char fileSeparatorDeleted = false;
+		if( length > 2 ) {
+			if( currentUserTypedMessage[ length - 2 ] == 28 ) {
+				// file separator with spaces around it
+				// delete whole thing with one keypress
+				currentUserTypedMessage[ length - 3 ] = '\0';
+				fileSeparatorDeleted = true;
+			}
+		}
+		if( !fileSeparatorDeleted && length > 0 ) {
+			currentUserTypedMessage[ length - 1 ] = '\0';
+		}
+	}
+}
 

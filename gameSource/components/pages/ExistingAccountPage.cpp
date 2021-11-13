@@ -13,21 +13,15 @@
 #include "OneLife/gameSource/lifeTokens.h"
 #include "OneLife/gameSource/fitnessScore.h"
 
-static JenkinsRandomSource randSource;
-
-
 extern Font *mainFont;
-
-
 extern char gamePlayingBack;
-
 extern char *userEmail;
 extern char *accountKey;
-
-
 extern SpriteHandle instructionsSprite;
 
-extern char loginEditOverride;
+char loginEditOverride = false;
+static JenkinsRandomSource randSource;
+
 
 
 

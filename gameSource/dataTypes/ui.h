@@ -12,6 +12,12 @@ namespace OneLife::dataType::ui
 	typedef struct{
 		const char* label;
 		struct{
+			struct{
+				bool isDrawn;
+				float alpha;
+			}pausePanel;
+		}modal;
+		struct{
 			double pause;
 			bool fullScreen;
 		}status;

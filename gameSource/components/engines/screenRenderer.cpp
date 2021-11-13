@@ -15,6 +15,7 @@
 extern GamePage *currentGamePage;
 extern double viewWidth;
 extern doublePair lastScreenViewCenter;
+extern char userReconnect;
 
 OneLife::game::ScreenRenderer::ScreenRenderer(OneLife::dataType::ui::Screen screen)
 {
@@ -425,4 +426,77 @@ void grabInput( char inGrabOn ) {
 	else {
 		SDL_WM_GrabInput( SDL_GRAB_OFF );
 	}
+}
+
+// draw code separated from updates
+// some updates are still embedded in draw code, so pass a switch to
+// turn them off
+void drawFrameNoUpdate( char inUpdate ) {
+	if( currentGamePage != NULL ) {
+		currentGamePage->base_draw( lastScreenViewCenter, viewWidth );
+	}
+}
+
+/**********************************************************************************************************************/
+
+#include "OneLife/gameSource/components/engines/GameSceneHandler.h"
+#include "OneLife/gameSource/components/pages/ExtendedMessagePage.h"
+extern ExtendedMessagePage *extendedMessagePage;
+#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+extern LivingLifePage *livingLifePage;
+#include "OneLife/gameSource/components/engines/GameSceneHandler.h"
+extern char userReconnect;
+extern char *userTwinCode;
+
+void showDiedPage() {
+	userReconnect = false;
+
+	lastScreenViewCenter.x = 0;
+	lastScreenViewCenter.y = 0;
+
+	setViewCenterPosition( lastScreenViewCenter.x,
+			lastScreenViewCenter.y );
+
+	currentGamePage = extendedMessagePage;
+
+	extendedMessagePage->setMessageKey( "youDied" );
+
+	char *reason = livingLifePage->getDeathReason();
+
+	if( reason == NULL ) {
+		extendedMessagePage->setSubMessage( "" );
+	}
+	else {
+		extendedMessagePage->setSubMessage( reason );
+
+		delete [] reason;
+	}
+
+
+	currentGamePage->base_makeActive( true );
+}
+
+void showReconnectPage() {
+	lastScreenViewCenter.x = 0;
+	lastScreenViewCenter.y = 0;
+
+	setViewCenterPosition( lastScreenViewCenter.x,
+			lastScreenViewCenter.y );
+
+	currentGamePage = extendedMessagePage;
+
+	extendedMessagePage->setMessageKey( "connectionLost" );
+
+	extendedMessagePage->setSubMessage( translate( "willTryReconnect" ) );
+
+	userReconnect = true;
+
+	// don't reconnect as twin
+	// that will cause them to wait for their party again.
+	if( userTwinCode != NULL ) {
+		delete [] userTwinCode;
+		userTwinCode = NULL;
+	}
+
+	currentGamePage->base_makeActive( true );
 }

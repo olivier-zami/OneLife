@@ -755,3 +755,71 @@ void replaceLastMessageSent( char *inNewMessage ) {
 	}
 	lastMessageSentToServer = inNewMessage;
 }
+
+/**********************************************************************************************************************/
+#include "OneLife/gameSource/components/GamePage.h"
+#include "minorGems/util/SettingsManager.h"
+extern char userReconnect;
+char usingCustomServer = false;
+char *serverIP = NULL;
+int serverPort = 0;
+extern GamePage *currentGamePage;
+#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+extern LivingLifePage *livingLifePage;
+#include "OneLife/gameSource/components/pages/ServerActionPage.h"
+extern ServerActionPage *getServerAddressPage;
+extern char *reflectorURL;
+extern char *userEmail;
+extern char *userTwinCode;
+#include "minorGems/crypto/hashes/sha1.h"
+
+void startConnecting()
+{
+	userReconnect = false;
+
+	if( SettingsManager::getIntSetting( "useCustomServer", 0 ) ) {
+		usingCustomServer = true;
+
+		if( serverIP != NULL ) {
+			delete [] serverIP;
+			serverIP = NULL;
+		}
+		serverIP = SettingsManager::getStringSetting(
+				"customServerAddress" );
+		if( serverIP == NULL ) {
+			serverIP = stringDuplicate( "127.0.0.1" );
+		}
+		serverPort = SettingsManager::getIntSetting(
+				"customServerPort", 8005 );
+
+		printf( "Using custom server address: %s:%d\n",
+				serverIP, serverPort );
+
+		currentGamePage = livingLifePage;
+		currentGamePage->base_makeActive( true );
+	}
+	else {
+		usingCustomServer = false;
+
+		printf( "Starting fetching server URL from reflector %s\n",
+				reflectorURL );
+
+		getServerAddressPage->clearActionParameters();
+
+
+		getServerAddressPage->setActionParameter( "email",
+				userEmail );
+
+		if( userTwinCode != NULL ) {
+			char *codeHash = computeSHA1Digest( userTwinCode );
+			getServerAddressPage->setActionParameter( "twin_code",
+					codeHash );
+			delete [] codeHash;
+		}
+
+
+		currentGamePage = getServerAddressPage;
+		currentGamePage->base_makeActive( true );
+	}
+
+}

@@ -108,6 +108,7 @@ char *getNextServerMessageRaw();
 char *getNextServerMessage();
 messageType getMessageType( char *inMessage );
 void replaceLastMessageSent( char *inNewMessage );
+void startConnecting();
 
 
 #endif //ONELIFE_SOCKET_H
