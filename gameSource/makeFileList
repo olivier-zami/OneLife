@@ -17,6 +17,7 @@ LAYER_SOURCE = \
 minitech.cpp \
 game.cpp \
 application.cpp \
+components/agent.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
 components/engines/audioRenderer.cpp \
@@ -50,6 +51,7 @@ procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
 procedures/game.cpp \
+procedures/maths/gridPos.cpp \
 settings.cpp \
 spriteBank.cpp \
 objectBank.cpp \
