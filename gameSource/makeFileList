@@ -40,6 +40,7 @@ components/pages/SettingsPage.cpp \
 components/pages/TwinPage.cpp \
 components/socket.cpp \
 dataTypes/exception/exception.cpp \
+features/family.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
