@@ -42,6 +42,7 @@
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 #include "OneLife/gameSource/features/family.h"
+#include "OneLife/gameSource/features/homeland.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -97,6 +98,8 @@ extern SimpleVector<char*> readyPendingReceivedMessages;
 extern char waitForFrameMessages;
 extern SimpleVector<char*> serverFrameMessages;
 extern char *lastMessageSentToServer;
+extern SimpleVector<HomePos> homePosStack;
+extern SimpleVector<HomePos> oldHomePosStack;
 
 //FOV
 extern int gui_hud_mode;
@@ -199,10 +202,9 @@ void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 	screen->draw = nullptr;
 }
 
-
+/**********************************************************************************************************************/
 
 SimpleVector<LocationSpeech> locationSpeech;
-
 
 static void clearLocationSpeech() {
     for( int i=0; i<locationSpeech.size(); i++ ) {
@@ -240,146 +242,10 @@ static doublePair recalcOffset( doublePair ofs, bool force = false ) {
     }
 
 
-// most recent home at end
-
-typedef struct {
-        GridPos pos;
-        char ancient;
-    } HomePos;
-
-    
-
-static SimpleVector<HomePos> homePosStack;
-static SimpleVector<HomePos> oldHomePosStack;
-
-// used on reconnect to decide whether to delete old home positions
-static int lastPlayerID = -1;
-
+static int lastPlayerID = -1;// used on reconnect to decide whether to delete old home positions
 
 extern bool isTrippingEffectOn;
 extern void setTrippingColor( double x, double y );
-
-
-
-// returns pointer to record, NOT destroyed by caller, or NULL if 
-// home unknown
-static  GridPos *getHomeLocation() {
-    int num = homePosStack.size();
-    if( num > 0 ) {
-        return &( homePosStack.getElement( num - 1 )->pos );
-        }
-    else {
-        return NULL;
-        }
-    }
-
-
-
-static void removeHomeLocation( int inX, int inY ) {
-    for( int i=0; i<homePosStack.size(); i++ ) {
-        GridPos p = homePosStack.getElementDirect( i ).pos;
-        
-        if( p.x == inX && p.y == inY ) {
-            homePosStack.deleteElement( i );
-            break;
-            }
-        }
-    }
-
-
-
-static void addHomeLocation( int inX, int inY ) {
-    removeHomeLocation( inX, inY );
-    GridPos newPos = { inX, inY };
-    HomePos p;
-    p.pos = newPos;
-    p.ancient = false;
-    
-    homePosStack.push_back( p );
-    }
-
-
-static void addAncientHomeLocation( int inX, int inY ) {
-    removeHomeLocation( inX, inY );
-
-    // remove all ancient pos
-    // there can be only one ancient
-    for( int i=0; i<homePosStack.size(); i++ ) {
-        if( homePosStack.getElementDirect( i ).ancient ) {
-            homePosStack.deleteElement( i );
-            i--;
-            }
-        }
-
-    GridPos newPos = { inX, inY };
-    HomePos p;
-    p.pos = newPos;
-    p.ancient = true;
-    
-    homePosStack.push_front( p );
-    }
-
-
-
-
-
-
-// returns if -1 no home needs to be shown (home unknown)
-// otherwise, returns 0..7 index of arrow
-static int getHomeDir( doublePair inCurrentPlayerPos, 
-                       double *outTileDistance = NULL,
-                       char *outTooClose = NULL ) {
-    GridPos *p = getHomeLocation();
-    
-    if( p == NULL ) {
-        return -1;
-        }
-    
-    
-    if( outTooClose != NULL ) {
-        *outTooClose = false;
-        }
-    
-
-    doublePair homePos = { (double)p->x, (double)p->y };
-    
-    doublePair vector = sub( homePos, inCurrentPlayerPos );
-
-    double dist = length( vector );
-
-    if( outTileDistance != NULL ) {
-        *outTileDistance = dist;
-        }
-
-    if( dist < 5 ) {
-        // too close
-
-        if( outTooClose != NULL ) {
-            *outTooClose = true;
-            }
-        
-        if( dist == 0 ) {
-            // can't compute angle
-            return -1;
-            }
-        }
-    
-    
-    double a = angle( vector );
-
-    // north is 0
-    a -= M_PI / 2; 
-
-    
-    if( a <  - M_PI / 8 ) {
-        a += 2 * M_PI;
-        }
-    
-    int index = lrint( 8 * a / ( 2 * M_PI ) );
-    
-    return index;
-    }
-
 
 // base speed for animations that aren't speeded up or slowed down
 // when player moving at a different speed, anim speed is modified

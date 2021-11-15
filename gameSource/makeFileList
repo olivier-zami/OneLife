@@ -25,6 +25,7 @@ components/engines/GameSceneHandler.cpp \
 components/engines/screenRenderer.cpp \
 components/GamePage.cpp \
 components/keyboard.cpp \
+components/maps/outsideMap.cpp \
 components/pages/AutoUpdatePage.cpp \
 components/pages/ExistingAccountPage.cpp \
 components/pages/ExtendedMessagePage.cpp \
@@ -41,6 +42,7 @@ components/pages/TwinPage.cpp \
 components/socket.cpp \
 dataTypes/exception/exception.cpp \
 features/family.cpp \
+features/homeland.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
