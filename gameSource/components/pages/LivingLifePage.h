@@ -32,7 +32,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         LivingLifePage();
         ~LivingLifePage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
         
         void clearMap();
         

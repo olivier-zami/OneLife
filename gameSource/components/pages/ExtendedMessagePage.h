@@ -10,7 +10,7 @@ class ExtendedMessagePage : public GamePage, public ActionListener {
         ExtendedMessagePage();
         ~ExtendedMessagePage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
 
         void setMessageKey( const char *inMessageKey );
         

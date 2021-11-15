@@ -9,7 +9,7 @@
 
 namespace OneLife::game::graphic
 {
-	void drawLoadingScreen(OneLife::dataType::ui::Screen loadingScreen);
+	void drawLoadingScreen(void* screen = nullptr);
 }
 
 

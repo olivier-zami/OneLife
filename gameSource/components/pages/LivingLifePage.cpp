@@ -192,9 +192,10 @@ static double culvertFractalRoughness = 0.62;
 static double culvertFractalAmp = 98;
 
 
-void LivingLifePage::handle(OneLife::dataType::ui::Screen* screen)
+void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = this->screenName;
+	screen->draw = nullptr;
 }
 
 

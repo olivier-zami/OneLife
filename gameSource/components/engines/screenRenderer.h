@@ -25,7 +25,7 @@ namespace OneLife::game
 
 			void switchFullScreenMode();
 			void switchMinimizedMode();
-			void render();
+			void render(OneLife::dataType::UiComponent* screen = nullptr);
 
 		private:
 			double height;

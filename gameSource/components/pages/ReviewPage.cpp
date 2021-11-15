@@ -115,11 +115,10 @@ ReviewPage::~ReviewPage() {
         }
     }
 
-void ReviewPage::handle(OneLife::dataType::ui::Screen* screen)
+void ReviewPage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "ReviewPage");
+	screen->draw = nullptr;
 }
 
 void ReviewPage::saveReview() {

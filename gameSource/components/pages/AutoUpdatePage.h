@@ -10,7 +10,7 @@ class AutoUpdatePage : public GamePage {
 		AutoUpdatePage();
 		~AutoUpdatePage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
         
         virtual void draw( doublePair inViewCenter, 
                            double inViewSize );

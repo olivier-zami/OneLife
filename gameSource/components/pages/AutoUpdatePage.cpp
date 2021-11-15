@@ -10,11 +10,10 @@
 AutoUpdatePage::AutoUpdatePage() {}
 AutoUpdatePage::~AutoUpdatePage() {}
 
-void AutoUpdatePage::handle(OneLife::dataType::ui::Screen* screen)
+void AutoUpdatePage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "AutoUpdatePage");
+	screen->draw = nullptr;
 }
 
 void AutoUpdatePage::draw( doublePair inViewCenter, 

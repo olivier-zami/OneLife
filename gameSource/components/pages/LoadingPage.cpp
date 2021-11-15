@@ -2,57 +2,42 @@
 
 #include "OneLife/gameSource/message.h"
 #include "minorGems/game/drawUtils.h"
+#include "OneLife/gameSource/procedures/graphics/screens.h"
 
-void LoadingPage::handle(OneLife::dataType::ui::Screen* screen)
+LoadingPage::LoadingPage()
 {
-	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "LoadingPage");
+	this->screen.status.showProgressBar = true;
 }
 
-void LoadingPage::setCurrentPhase( const char *inPhaseName ) {
-    mPhaseName = inPhaseName;
-    }
+LoadingPage::~LoadingPage() {}
 
+void LoadingPage::handle(OneLife::dataType::UiComponent* screen)
+{
+	screen->label = nullptr;
+	screen->draw = OneLife::game::graphic::drawLoadingScreen;
+	screen->body = &(this->screen);
+}
 
-        
-void LoadingPage::setCurrentProgress( float inProgress ) {
-    mProgress = inProgress;
-    }
+void LoadingPage::showProgressBar(bool showProgressBar)
+{
+	this->screen.status.showProgressBar = showProgressBar;
+}
 
-        
+void LoadingPage::setCurrentPhase( const char *inPhaseName )
+{
+    this->screen.taskName = inPhaseName;
+}
 
-void LoadingPage::draw( doublePair inViewCenter, 
-                        double inViewSize ) {
-	//printf("\n===>draw(.., ..)");
-    doublePair labelPos = { 0, 0 };
+void LoadingPage::setCurrentProgress( float inProgress )
+{
+    this->screen.progressBar = inProgress;
+}
 
-    drawMessage( "LOADING", labelPos, false );
+void LoadingPage::draw( doublePair inViewCenter, double inViewSize ){}
 
-    labelPos.y = -100;
-    
-    drawMessage( mPhaseName, labelPos, false );
+/**********************************************************************************************************************/
 
-
-    if( mShowProgress ) {
-        
-        // border
-        setDrawColor( 1, 1, 1, 1 );
-        
-        drawRect( -100, -220, 
-                  100, -200 );
-        
-        // inner black
-        setDrawColor( 0, 0, 0, 1 );
-        
-        drawRect( -98, -218, 
-                  98, -202 );
-        
-        
-        // progress
-        setDrawColor( .8, .8, .8, 1 );
-        drawRect( -98, -218, 
-                  -98 + mProgress * ( 98 * 2 ), -202 );
-        }
-
-    }
+void LoadingPage::step()
+{
+	printf("\n=====>loadingPage execute step()");
+}

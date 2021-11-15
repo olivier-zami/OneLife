@@ -13,7 +13,7 @@ class TwinPage : public GamePage, public ActionListener {
         
         TwinPage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
 
         virtual ~TwinPage();
         

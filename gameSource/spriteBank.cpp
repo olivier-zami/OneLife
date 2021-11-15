@@ -77,9 +77,6 @@ void enableSpriteSearch( char inEnable ) {
     makeNewSpritesSearchable = inEnable;
     }
 
-
-
-
 int initSpriteBankStart( char *outRebuildingCache ) {
     maxID = 0;
     
@@ -101,9 +98,6 @@ int initSpriteBankStart( char *outRebuildingCache ) {
     
     return cache.numFiles + binCache.numFiles;
     }
-
-
-
 
 // expands true regions by making neighbor pixels true also
 void expandMap( char *inMap, int inW, int inH ) {
@@ -576,9 +570,6 @@ static void freeSpriteRecord( int inID ) {
         }
     }
 
-
-
-
 void freeSpriteBank() {
     
     if( loadingFailureFileName != NULL ) {
@@ -612,16 +603,9 @@ void freeSpriteBank() {
     spriteBankLoaded = false;
     }
 
-
-
-
-
-
 char *getSpriteBankLoadFailure() {
     return loadingFailureFileName;
     }
-
-
 
 void stepSpriteBank() {
     // no more dynamic loading or unloading
@@ -692,10 +676,6 @@ void stepSpriteBank() {
         }
     }
 
-
-
-
-
 SpriteRecord *getSpriteRecord( int inID ) {
     if( inID < mapSize ) {
         return idMap[inID];
@@ -704,8 +684,6 @@ SpriteRecord *getSpriteRecord( int inID ) {
         return NULL;
         }
     }
-
-
 
 char *getSpriteTag( int inID ) {
     SpriteRecord *r = getSpriteRecord( inID );
@@ -716,8 +694,6 @@ char *getSpriteTag( int inID ) {
     
     return r->tag;
     }
-
-
 
 char getUsesMultiplicativeBlending( int inID ) {
     if( inID < mapSize ) {
@@ -738,14 +714,10 @@ static double remapFraction = 0;
 static char remap = false;
 static int remapSeed = 100;
 
-
-
 void setRemapSeed( int inSeed ) {
     remapSeed = inSeed;
     }
 
-
-    
 void setRemapFraction( double inFraction ) {
     remapFraction = inFraction;
     if( inFraction > 0 ) {
@@ -755,8 +727,6 @@ void setRemapFraction( double inFraction ) {
         remap = false;
         }
     }
-
-
 
 SpriteHandle getSprite( int inID ) {
     if( inID >= mapSize || idMap[ inID ] == NULL ) {
@@ -813,8 +783,6 @@ SpriteHandle getSprite( int inID ) {
     return idMap[inID]->sprite;
     }
 
-
-    
 char markSpriteLive( int inID ) {
     SpriteRecord *r = getSpriteRecord( inID );
     
@@ -837,8 +805,6 @@ char markSpriteLive( int inID ) {
         return false;
         }
     }
-
-
 
 // return array destroyed by caller, NULL if none found
 SpriteRecord **searchSprites( const char *inSearch, 
@@ -914,8 +880,6 @@ SpriteRecord **searchSprites( const char *inSearch,
     return results;
     }
 
-
-
 static void clearCacheFiles() {
     File *cacheFile = spritesDir.getChildFile( "cache.fcz" );
     
@@ -925,9 +889,6 @@ static void clearCacheFiles() {
     
     clearAllBinCacheFiles( &spritesDir );
     }
-
-
-
 
 int addSprite( const char *inTag, SpriteHandle inSprite,
                Image *inSourceImage,
@@ -1159,9 +1120,6 @@ int addSprite( const char *inTag, SpriteHandle inSprite,
 
     return newID;
     }
-
-
-
 
 int bakeSprite( const char *inTag,
                 int inNumSprites,
@@ -1492,9 +1450,6 @@ int bakeSprite( const char *inTag,
     return returnID;
     }
 
-
-
-
 void deleteSpriteFromBank( int inID ) {
     File spritesDir( NULL, "sprites" );
 
@@ -1542,9 +1497,6 @@ void deleteSpriteFromBank( int inID ) {
     freeSpriteRecord( inID );
     }
 
-
-
-
 char getSpriteHit( int inID, int inXCenterOffset, int inYCenterOffset ) {
     if( inID < mapSize ) {
         if( idMap[inID] != NULL && idMap[inID]->sprite != NULL ) {
@@ -1567,8 +1519,6 @@ char getSpriteHit( int inID, int inXCenterOffset, int inYCenterOffset ) {
     
     return false;
     }
-
-
 
 void countLoadedSprites( int *outLoaded, int *outTotal ) {
     int loaded = 0;

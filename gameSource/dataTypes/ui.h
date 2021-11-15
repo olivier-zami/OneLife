@@ -7,25 +7,34 @@
 
 #include "minorGems/game/doublePair.h"
 
+namespace OneLife::dataType
+{
+	typedef struct _uiComponent{
+		const char* label;
+		void (*draw)(void* screen);
+		void *body;
+	}UiComponent;
+}
+
 namespace OneLife::dataType::ui
 {
 	typedef struct{
 		const char* label;
 		struct{
-			struct{
-				bool isDrawn;
-				float alpha;
-			}pausePanel;
-		}modal;
-		struct{
-			double pause;
+			double pause;//TODO: pause must be bool
 			bool fullScreen;
 		}status;
 		struct{
-		}_default;
+			struct{
+				bool enable;
+				float alpha;
+			}pausePanel;
+		}modal;
+		/*****/
 		struct{
 			bool grabInput;
 		}settings;
+		 /*****/
 	}Screen;
 }
 

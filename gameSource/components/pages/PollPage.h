@@ -11,7 +11,7 @@ class PollPage : public GamePage, public ActionListener
         PollPage( const char *inReviewServerURL );
         ~PollPage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
 
         virtual void actionPerformed( GUIComponent *inTarget );
 

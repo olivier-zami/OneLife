@@ -16,10 +16,9 @@ class SettingsPage : public GamePage, public ActionListener {
         SettingsPage();
         ~SettingsPage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
 
-        virtual void draw( doublePair inViewCenter, 
-                           double inViewSize );
+        virtual void draw( doublePair inViewCenter, double inViewSize );
 
         virtual void step();
 

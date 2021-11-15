@@ -13,7 +13,7 @@ class GamePage : public PageComponent {
     public:
         virtual ~GamePage();
 
-		virtual void handle(OneLife::dataType::ui::Screen* screen) = 0;
+		virtual void handle(OneLife::dataType::UiComponent* screen) = 0;
         
         void setStatus( const char *inStatusMessageKey, char inError );
 

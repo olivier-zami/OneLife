@@ -13,7 +13,7 @@ class ExistingAccountPage : public GamePage, public ActionListener {
         
         virtual ~ExistingAccountPage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
         
         void clearFields();
 

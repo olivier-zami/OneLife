@@ -65,11 +65,10 @@ RebirthChoicePage::RebirthChoicePage()
         }
     }
 
-void RebirthChoicePage::handle(OneLife::dataType::ui::Screen* screen)
+void RebirthChoicePage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "RebirthChoicePage");
+	screen->draw = nullptr;
 }
 
 void RebirthChoicePage::showReviewButton( char inShow ) {

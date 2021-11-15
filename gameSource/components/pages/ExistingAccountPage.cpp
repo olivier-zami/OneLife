@@ -173,11 +173,10 @@ ExistingAccountPage::ExistingAccountPage()
 ExistingAccountPage::~ExistingAccountPage() {
     }
 
-void ExistingAccountPage::handle(OneLife::dataType::ui::Screen* screen)
+void ExistingAccountPage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "ExistingAccountPage");
+	screen->draw = nullptr;
 }
 
 void ExistingAccountPage::clearFields() {

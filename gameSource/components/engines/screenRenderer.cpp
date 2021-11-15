@@ -54,12 +54,16 @@ void OneLife::game::ScreenRenderer::switchMinimizedMode()
 
 }
 
-void OneLife::game::ScreenRenderer::render()
+void OneLife::game::ScreenRenderer::render(OneLife::dataType::UiComponent* screen)
 {
 	if(currentGamePage!= nullptr)
 	{
 		//printf("\n===>draw Screen ...");
 		currentGamePage->base_draw( lastScreenViewCenter, viewWidth );
+		if(screen)
+		{
+			if(screen->draw) screen->draw(screen->body);
+		}
 	}
 }
 

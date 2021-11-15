@@ -9,7 +9,7 @@ class GeneticHistoryPage : public GamePage, public ActionListener {
         GeneticHistoryPage();
         ~GeneticHistoryPage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
         
 
         virtual void actionPerformed( GUIComponent *inTarget );

@@ -29,11 +29,10 @@ FinalMessagePage::~FinalMessagePage() {
     setSubMessage( NULL );
     }
 
-void FinalMessagePage::handle(OneLife::dataType::ui::Screen* screen)
+void FinalMessagePage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "FinalMessagePage");
+	screen->draw = nullptr;
 }
 
 

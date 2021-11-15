@@ -41,11 +41,10 @@ GeneticHistoryPage::GeneticHistoryPage()
 GeneticHistoryPage::~GeneticHistoryPage() {
     }
 
-void GeneticHistoryPage::handle(OneLife::dataType::ui::Screen* screen)
+void GeneticHistoryPage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "GeneticHistoryPage");
+	screen->draw = nullptr;
 }
 
 void GeneticHistoryPage::actionPerformed( GUIComponent *inTarget ) {

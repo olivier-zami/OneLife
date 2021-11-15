@@ -31,11 +31,10 @@ ExtendedMessagePage::~ExtendedMessagePage() {
         }
     }
 
-void ExtendedMessagePage::handle(OneLife::dataType::ui::Screen* screen)
+void ExtendedMessagePage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "ExtendedMessagePage");
+	screen->draw = nullptr;
 }
 
 

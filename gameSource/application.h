@@ -538,8 +538,8 @@ namespace OneLife::game
 			void _oldReadDevicesStatus();
 			void readServerMessage();
 			void selectScreen();
-			void update(OneLife::dataType::ui::Screen* dataScreen);
-			void render(OneLife::dataType::ui::Screen* dataScreen);
+			void update(OneLife::dataType::UiComponent* dataScreen);
+			void render(OneLife::dataType::UiComponent* dataScreen);
 			void sendClientMessage();
 
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...

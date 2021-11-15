@@ -322,7 +322,7 @@ void GamePage::base_step() {
         // while the user's view is obscured
         return;
         }
-    
+
     PageComponent::base_step();
 
 

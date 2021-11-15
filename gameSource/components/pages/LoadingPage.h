@@ -1,36 +1,25 @@
 #include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
+#include "OneLife/gameSource/dataTypes/uiComponent/loadingScreen.h"
 
 
-class LoadingPage : public GamePage {
-        
+class LoadingPage : public GamePage
+{
     public:
-        
+        LoadingPage();
+		~LoadingPage();
 
-        LoadingPage() 
-                : mShowProgress( true ) {
-            }
-
-		void handle(OneLife::dataType::ui::Screen* screen);
-
+		void handle(OneLife::dataType::UiComponent* screen);
+		void showProgressBar(bool showProgressBar);// on by default
         void setCurrentPhase( const char *inPhaseName );
-        
         void setCurrentProgress( float inProgress );
-        
-        // on by default
-        void showProgress( char inShow ) {
-            mShowProgress = inShow;
-            }
-        
 
-        virtual void draw( doublePair inViewCenter, 
-                           double inViewSize );
-        
+        virtual void draw( doublePair inViewCenter,double inViewSize );
+
+	protected:
+		void step();
 
     private:
-        const char *mPhaseName;
-        float mProgress;
-
-        char mShowProgress;
-    };
+		OneLife::dataType::uiComponent::LoadingScreen screen;
+};

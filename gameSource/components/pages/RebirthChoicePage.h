@@ -9,7 +9,7 @@ class RebirthChoicePage : public GamePage, public ActionListener {
     public:
         RebirthChoicePage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
 
         void showReviewButton( char inShow );
 

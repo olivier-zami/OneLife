@@ -133,11 +133,10 @@ TwinPage::~TwinPage()
     mWordList.deallocateStringElements();
     }
 
-void TwinPage::handle(OneLife::dataType::ui::Screen* screen)
+void TwinPage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
-	//memset(screen->label, 0, sizeof(screen->label));
-	//strcpy(screen->label, "TwinPage");
+	screen->draw = nullptr;
 }
 
 void TwinPage::actionPerformed( GUIComponent *inTarget ) {

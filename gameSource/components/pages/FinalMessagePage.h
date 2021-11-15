@@ -12,7 +12,7 @@ class FinalMessagePage : public GamePage, ActionListener {
         
         ~FinalMessagePage();
 
-		void handle(OneLife::dataType::ui::Screen* screen);
+		void handle(OneLife::dataType::UiComponent* screen);
 
         virtual void actionPerformed( GUIComponent *inTarget );
 
