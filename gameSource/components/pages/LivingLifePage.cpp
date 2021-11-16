@@ -45,6 +45,8 @@
 #include "OneLife/gameSource/features/homeland.h"
 #include "OneLife/gameSource/components/agent.h"
 #include "OneLife/gameSource/procedures/maths/gridPos.h"
+#include "OneLife/gameSource/procedures/maths/misc.h"
+#include "OneLife/gameSource/scenes1/intangibles/text.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -135,6 +137,12 @@ unsigned char charKey_TakeOffBackpack = 'b';
 unsigned char charKey_Pocket = 't';
 unsigned char charKey_Eat = 'e';
 unsigned char charKey_Baby = 'c';
+char savingSpeech = false;
+char savingSpeechColor = false;
+Image *speechMaskImage = NULL;
+Image *speechColorImage = NULL;
+char savingSpeechNumber = 1;
+char savingSpeechMask = false;
 
 static bool waitForDoorToOpen;
 static SpriteHandle guiPanelLeftSprite;
@@ -153,10 +161,6 @@ static char teaserVideo = false;// set to true to render for teaser video
 static int showBugMessage = 0;
 static const char *bugEmail = "jason" "rohrer" "@" "fastmail.fm";
 static char savingSpeechEnabled = false;// if true, pressing S key (capital S)// causes current speech and mask to be saved to the screenShots folder
-static char savingSpeech = false;
-static char savingSpeechColor = false;
-static char savingSpeechMask = false;
-static char savingSpeechNumber = 1;
 static char takingPhoto = false;
 static GridPos takingPhotoGlobalPos;
 static char takingPhotoFlip = false;
@@ -285,35 +289,6 @@ static void clearLocationSpeech() {
     locationSpeech.deleteAll();
     }
 
-//FOV
-static double recalcOffsetX( double x, bool force = false ) {
-    double res;
-    if( gui_hud_mode == 0 || force ) {
-        res = x + ( ( x > 0. ) ? gui_fov_offset_x : -gui_fov_offset_x );
-        res /= 640. * gui_fov_target_scale_hud;
-        res *= 640.;
-        }
-    else {
-        res = x / gui_fov_target_scale_hud;
-        }
-    return res;
-    }
-
-static double recalcOffsetY( double y ) {
-    double res;
-    res = y + ( ( y > 0. ) ? gui_fov_offset_y : -gui_fov_offset_y );
-    res /= 360. * gui_fov_target_scale_hud;
-    res *= 360.;
-    return res;
-    }
-
-static doublePair recalcOffset( doublePair ofs, bool force = false ) {
-    ofs.x = recalcOffsetX( ofs.x, force );
-    ofs.y = recalcOffsetY( ofs.y );
-    return ofs;
-    }
-
-
 static int lastPlayerID = -1;// used on reconnect to decide whether to delete old home positions
 
 extern bool isTrippingEffectOn;
@@ -388,31 +363,25 @@ SimpleVector<LiveObject> gameObjects;
 // (so we're not last in the list after receiving the first PU message)
 int recentInsertedGameObjectIndex = -1;
 
-
-
-static LiveObject *getGameObject( int inID ) {
-    for( int i=0; i<gameObjects.size(); i++ ) {
-        
+static LiveObject *getGameObject( int inID )
+{
+    for( int i=0; i<gameObjects.size(); i++ )
+	{
         LiveObject *o = gameObjects.getElement( i );
-        
-        if( o->id == inID ) {
+        if( o->id == inID )
+		{
             return o;
-            }
-        }
+		}
+	}
     return NULL;
-    }
-
-
+}
 
 extern char autoAdjustFramerate;
 extern int baseFramesPerSecond;
+static int pathFindingD = 32;// should match limit on server
 
-// should match limit on server
-static int pathFindingD = 32;
-
-
-void LivingLifePage::computePathToDest( LiveObject *inObject ) {
-    
+void LivingLifePage::computePathToDest( LiveObject *inObject )
+{
     GridPos start;
     start.x = lrint( inObject->currentPos.x );
     start.y = lrint( inObject->currentPos.y );
@@ -449,15 +418,11 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
             start = inObject->pathToDest[ closestI ];
             }
         }
-    
-                
-            
 
     if( inObject->pathToDest != NULL ) {
         delete [] inObject->pathToDest;
         inObject->pathToDest = NULL;
         }
-
 
     GridPos end = { inObject->xd, inObject->yd };
         
@@ -471,8 +436,8 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
     int pathOffsetX = pathFindingD/2 - start.x;
     int pathOffsetY = pathFindingD/2 - start.y;
 
-
-    for( int y=0; y<pathFindingD; y++ ) {
+    for( int y=0; y<pathFindingD; y++ )
+	{
         int mapY = ( y - pathOffsetY ) + mMapD / 2 - mMapOffsetY;
         
         for( int x=0; x<pathFindingD; x++ ) {
@@ -493,10 +458,11 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
                     }
                 }
             }
-        }
+	}
 
     // now add extra blocked spots for wide objects
-    for( int y=0; y<pathFindingD; y++ ) {
+    for( int y=0; y<pathFindingD; y++ )
+	{
         int mapY = ( y - pathOffsetY ) + mMapD / 2 - mMapOffsetY;
         
         for( int x=0; x<pathFindingD; x++ ) {
@@ -525,22 +491,19 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
                     }
                 }
             }
-        }
-    
-    
+	}
+
     start.x += pathOffsetX;
     start.y += pathOffsetY;
-    
     end.x += pathOffsetX;
     end.y += pathOffsetY;
     
     double startTime = game_getCurrentTime();
-
     GridPos closestFound;
-    
     char pathFound = false;
     
-    if( inObject->useWaypoint ) {
+    if( inObject->useWaypoint )
+	{
         GridPos waypoint = { inObject->waypointX, inObject->waypointY };
         waypoint.x += pathOffsetX;
         waypoint.y += pathOffsetY;
@@ -567,18 +530,20 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
             inObject->yd = inObject->waypointY;
             inObject->destTruncated = false;
             }
-        }
-    else {
+	}
+    else
+	{
         pathFound = pathFind( pathFindingD, pathFindingD,
                               blockedMap, 
                               start, end, 
                               &( inObject->pathLength ),
                               &( inObject->pathToDest ),
                               &closestFound );
-        }
+	}
         
 
-    if( pathFound && inObject->pathToDest != NULL ) {
+    if( pathFound && inObject->pathToDest != NULL )
+	{
         printf( "Path found in %f ms\n", 
                 1000 * ( game_getCurrentTime() - startTime ) );
 
@@ -625,35 +590,34 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
         
         inObject->currentMoveDirection =
             normalize( sub( bPos, aPos ) );
-        }
-    else {
+	}
+    else
+	{
         printf( "Path not found in %f ms\n", 
                 1000 * ( game_getCurrentTime() - startTime ) );
         
-        if( !pathFound ) {
-            
+        if( !pathFound )
+		{
             inObject->closestDestIfPathFailedX = 
                 closestFound.x - pathOffsetX;
             
             inObject->closestDestIfPathFailedY = 
                 closestFound.y - pathOffsetY;
-            }
-        else {
+		}
+        else
+		{
             // degen case where start == end?
             inObject->closestDestIfPathFailedX = inObject->xd;
             inObject->closestDestIfPathFailedY = inObject->yd;
-            }
-        
-        
-        }
+		}
+	}
     
     inObject->currentPathStep = 0;
     inObject->numFramesOnCurrentStep = 0;
     inObject->onFinalPathStep = false;
     
     delete [] blockedMap;
-    }
-
+}
 
 // if user clicks to initiate an action while still moving, we
 // queue it here
@@ -661,26 +625,21 @@ static char *nextActionMessageToSend = NULL;
 static char nextActionEating = false;
 static char nextActionDropping = false;
 
-
 // block move until next PLAYER_UPDATE received after action sent
 static char playerActionPending = false;
 static int playerActionTargetX, playerActionTargetY;
 static char playerActionTargetNotAdjacent = false;
 
-
 static char waitingForPong = false;
 static int lastPingSent = 0;
 static int lastPongReceived = 0;
-
 
 int ourID;
 
 static int valleySpacing = 40;
 static int valleyOffset = 0;
 
-
 char lastCharUsed = 'A';
-
 char mapPullMode = false;
 int mapPullStartX = -10;
 int mapPullEndX = 10;
@@ -696,7 +655,6 @@ char mapPullModeFinalImage = false;
 Image *mapPullTotalImage = NULL;
 int numScreensWritten = 0;
 
-
 static int apocalypseInProgress = false;
 static double apocalypseDisplayProgress = 0;
 static double apocalypseDisplaySeconds = 6;
@@ -706,7 +664,8 @@ static double remapDelaySeconds = 30;
 
 
 //EXTENDED FUNCTIONALITY
-void LivingLifePage::setNextActionMessage(const char* msg, int x, int y) {
+void LivingLifePage::setNextActionMessage(const char* msg, int x, int y)
+{
 	if( nextActionMessageToSend != NULL ) {
 		delete [] nextActionMessageToSend;
 		nextActionMessageToSend = NULL;
@@ -720,7 +679,8 @@ void LivingLifePage::setNextActionMessage(const char* msg, int x, int y) {
 	nextActionMessageToSend = autoSprintf( "%s", msg );
 }
 
-int LivingLifePage::getObjId( int tileX, int tileY ) {
+int LivingLifePage::getObjId( int tileX, int tileY )
+{
 	int mapX = tileX - mMapOffsetX + mMapD / 2;
 	int mapY = tileY - mMapOffsetY + mMapD / 2;
 	int i = mapY * mMapD + mapX;
@@ -728,13 +688,13 @@ int LivingLifePage::getObjId( int tileX, int tileY ) {
 	return mMap[i];
 }
 
-bool LivingLifePage::objIdReverseAction( int objId ) {
+bool LivingLifePage::objIdReverseAction( int objId )
+{
 	LiveObject *ourLiveObject = getOurLiveObject();
-	
 	if (objId <= 0) return false;
-
 	bool r = false;
-	if ( ourLiveObject->holdingID <= 0 ) {
+	if ( ourLiveObject->holdingID <= 0 )
+	{
 		switch (objId) {
 			case 253: // full berry clay bowl
 			case 225: // wheat bundle
@@ -751,7 +711,8 @@ bool LivingLifePage::objIdReverseAction( int objId ) {
 	return r;
 }
 
-void LivingLifePage::pickUpBabyInRange() {
+void LivingLifePage::pickUpBabyInRange()
+{
 	LiveObject *ourLiveObject = getOurLiveObject();
 	
 	if ( computeCurrentAge( ourLiveObject ) < 13 ) return;
@@ -797,7 +758,8 @@ void LivingLifePage::pickUpBaby( int x, int y ) {
 	setNextActionMessage( msg, x, y );
 }
 
-void LivingLifePage::useBackpack(bool replace) {
+void LivingLifePage::useBackpack(bool replace)
+{
 	LiveObject *ourLiveObject = getOurLiveObject();
 	
 	int clothingSlot = 5; // backpack clothing slot
@@ -820,7 +782,8 @@ void LivingLifePage::useBackpack(bool replace) {
 	}
 }
 
-void LivingLifePage::usePocket(int clothingID) {
+void LivingLifePage::usePocket(int clothingID)
+{
 	LiveObject *ourLiveObject = getOurLiveObject();
 	
 	int x, y;
@@ -837,7 +800,8 @@ void LivingLifePage::usePocket(int clothingID) {
 	}
 }
 
-void LivingLifePage::useOnSelf() {
+void LivingLifePage::useOnSelf()
+{
 	LiveObject *ourLiveObject = getOurLiveObject();
 	
 	int x, y;
@@ -853,7 +817,8 @@ void LivingLifePage::useOnSelf() {
 		nextActionEating = true;
 }
 
-void LivingLifePage::takeOffBackpack() {
+void LivingLifePage::takeOffBackpack()
+{
 	LiveObject *ourLiveObject = getOurLiveObject();
 	
 	char message[32];
@@ -861,7 +826,8 @@ void LivingLifePage::takeOffBackpack() {
 	sendToServerSocket( message );
 }
 
-void LivingLifePage::setOurSendPosXY(int &x, int &y) {
+void LivingLifePage::setOurSendPosXY(int &x, int &y)
+{
 	LiveObject *ourLiveObject = getOurLiveObject();
 	
 	x = round( ourLiveObject->xd );
@@ -876,9 +842,8 @@ bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
 }
 
 
-
-static Image *expandToPowersOfTwoWhite( Image *inImage ) {
-    
+static Image *expandToPowersOfTwoWhite( Image *inImage )
+{
     int w = 1;
     int h = 1;
                     
@@ -890,13 +855,12 @@ static Image *expandToPowersOfTwoWhite( Image *inImage ) {
         }
     
     return inImage->expandImage( w, h, true );
-    }
-
+}
 
 
 static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
-                                   SpriteHandle *inDestArray ) {
-    
+                                   SpriteHandle *inDestArray )
+{
     Image *full = readTGAFile( inTgaFileName );
     if( full != NULL ) {
         
@@ -920,12 +884,10 @@ static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
 
         delete full;
         }
+}
 
-    }
-
-
-
-void LivingLifePage::clearMap() {
+void LivingLifePage::clearMap()
+{
     for( int i=0; i<mMapD *mMapD; i++ ) {
         // -1 represents unknown
         // 0 represents known empty
@@ -960,9 +922,7 @@ void LivingLifePage::clearMap() {
         
         mMapPlayerPlacedFlags[i] = false;
         }
-    }
-
-
+}
 
 LivingLifePage::LivingLifePage() 
         : mServerSocket( -1 ), 
@@ -994,13 +954,12 @@ LivingLifePage::LivingLifePage()
           mShowHighlights( true ),
           mUsingSteam( false ),
           mZKeyDown( false ),
-          mObjectPicker( &objectPickable, +510, 90 ) {
-
+          mObjectPicker( &objectPickable, +510, 90 )
+{
 	this->socket = new OneLife::game::component::Socket(
 		&serverSocketBuffer,
 		&bytesInCount,
 		&mServerSocket);
-
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
         mUsingSteam = true;
@@ -1013,7 +972,6 @@ LivingLifePage::LivingLifePage()
     mYumSlipSprites[2] = loadSprite( "yumSlip3.tga", false );
     mYumSlipSprites[3] = loadSprite( "yumSlip4.tga", false );
 
-    
     mCurMouseOverCell.x = -1;
     mCurMouseOverCell.y = -1;
     mCurMouseOverCellFade = 0.0f;
@@ -1371,9 +1329,10 @@ LivingLifePage::LivingLifePage()
 	this->feature.debugMessageEnabled = false;
 }
 
-void LivingLifePage::runTutorial() {
+void LivingLifePage::runTutorial()
+{
     mForceRunTutorial = true;
-    }
+}
 
 void LivingLifePage::clearLiveObjects()
 {
@@ -1432,29 +1391,32 @@ LivingLifePage::~LivingLifePage()
 
     serverFrameMessages.deallocateStringElements();
     
-    if( pendingMapChunkMessage != NULL ) {
+    if( pendingMapChunkMessage != NULL )
+	{
         delete [] pendingMapChunkMessage;
         pendingMapChunkMessage = NULL;
-        }
-    
+	}
 
     clearLiveObjects();
 
     mOldDesStrings.deallocateStringElements();
-    if( mCurrentDes != NULL ) {
+    if( mCurrentDes != NULL )
+	{
         delete [] mCurrentDes;
-        }
+	}
 
     mOldLastAteStrings.deallocateStringElements();
-    if( mCurrentLastAteString != NULL ) {
+    if( mCurrentLastAteString != NULL )
+	{
         delete [] mCurrentLastAteString;
-        }
+	}
 
     mSentChatPhrases.deallocateStringElements();
     
-    if( mServerSocket != -1 ) {
+    if( mServerSocket != -1 )
+	{
         closeSocket( mServerSocket );
-        }
+	}
     
     mPreviousHomeDistStrings.deallocateStringElements();
     mPreviousHomeDistFades.deleteAll();
@@ -1578,8 +1540,6 @@ LivingLifePage::~LivingLifePage()
         freeSprite( mHomeArrowErasedSprites[i] );
         }
 
-
-
     for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
         freeSprite( mHintSheetSprites[i] );
         
@@ -1640,8 +1600,6 @@ char LivingLifePage::isMapBeingPulled()
 {
     return mapPullMode;
 }
-
-
 
 void LivingLifePage::adjustAllFrameCounts( double inOldFrameRateFactor,
                                            double inNewFrameRateFactor )
@@ -1800,65 +1758,6 @@ bool LivingLifePage::isTripping()
 		strcmp( ourLiveObject->currentEmot->triggerWord, 
 		getEmotion( trippingEmotionIndex )->triggerWord ) == 0;
 }
-
-
-SimpleVector<char*> *splitLines( const char *inString,
-                                 double inMaxWidth )
-{
-    // break into lines
-    SimpleVector<char *> *tokens = 
-        tokenizeString( inString );
-    
-    
-    // collect all lines before drawing them
-    SimpleVector<char *> *lines = new SimpleVector<char*>();
-    
-    
-    if( tokens->size() > 0 ) {
-        // start with firt token
-        char *firstToken = tokens->getElementDirect( 0 );
-        
-        lines->push_back( firstToken );
-        
-        tokens->deleteElement( 0 );
-        }
-    
-    
-    while( tokens->size() > 0 ) {
-        char *nextToken = tokens->getElementDirect( 0 );
-        
-        char *currentLine = lines->getElementDirect( lines->size() - 1 );
-         
-        char *expandedLine = autoSprintf( "%s %s", currentLine, nextToken );
-         
-        if( handwritingFont->measureString( expandedLine ) <= inMaxWidth ) {
-            // replace current line
-            delete [] currentLine;
-            lines->deleteElement(  lines->size() - 1 );
-             
-            lines->push_back( expandedLine );
-            }
-        else {
-            // expanded is too long
-            // put token at start of next line
-            delete [] expandedLine;
-             
-            lines->push_back( stringDuplicate( nextToken ) );
-            }
-         
-
-        delete [] nextToken;
-        tokens->deleteElement( 0 );
-        }
-    
-    delete tokens;
-    
-    return lines;
-}
-
-static Image *speechColorImage = NULL;
-static Image *speechMaskImage = NULL;
-
 
 // forces uppercase
 void LivingLifePage::drawChalkBackgroundString( doublePair inPos, 
@@ -2114,7 +2013,7 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         delete speechMaskImage;
         speechMaskImage = NULL;
         }
-    }
+}
 
 typedef struct OffScreenSound {
         doublePair pos;

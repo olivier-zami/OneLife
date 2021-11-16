@@ -50,8 +50,11 @@ procedures/graphics/drawGround.cpp \
 procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
+procedures/graphics/sprites/drawChalkBackgroundString.cpp \
 procedures/game.cpp \
 procedures/maths/gridPos.cpp \
+procedures/maths/misc.cpp \
+scenes1/intangibles/text.cpp \
 settings.cpp \
 spriteBank.cpp \
 objectBank.cpp \

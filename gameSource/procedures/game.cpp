@@ -81,7 +81,14 @@ extern CustomRandomSource randSource;
 extern double viewWidth;
 extern double viewHeight;
 extern int musicOff;
-
+extern int gui_hud_mode;
+extern float gui_fov_scale;
+extern float gui_fov_preferred_max_scale;
+extern float gui_fov_scale_hud;
+extern float gui_fov_target_scale_hud;
+extern int gui_fov_offset_x;
+extern int gui_fov_offset_y;
+extern float gui_fov_scale_hud;
 
 // should we pull the map
 char autoLogIn = 0;
@@ -117,18 +124,6 @@ SpriteHandle instructionsSprite;
 
 // position of view in world
 doublePair lastScreenViewCenter = {0, 0 };
-
-
-
-// world width of one view
-//FOV
-int gui_hud_mode = 0;
-float gui_fov_scale = 1.0f;
-float gui_fov_scale_hud = 1.0f;
-float gui_fov_target_scale_hud = 1.0f;
-float gui_fov_preferred_max_scale = 3.0f;
-int gui_fov_offset_x = (int)(((1280 * gui_fov_target_scale_hud) - 1280)/2);
-int gui_fov_offset_y = (int)(((720 * gui_fov_target_scale_hud) - 720)/2);
 
 // this is the desired visible width
 // if our screen is wider than this (wider than 16:9 aspect ratio)
