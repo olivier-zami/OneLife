@@ -26,7 +26,6 @@ components/engines/GameSceneHandler.cpp \
 components/engines/screenRenderer.cpp \
 components/GamePage.cpp \
 components/keyboard.cpp \
-components/maps/outsideMap.cpp \
 components/pages/AutoUpdatePage.cpp \
 components/pages/ExistingAccountPage.cpp \
 components/pages/ExtendedMessagePage.cpp \
@@ -56,6 +55,7 @@ procedures/game.cpp \
 procedures/maths/gridPos.cpp \
 procedures/maths/misc.cpp \
 scenes1/intangibles/text.cpp \
+scenes1/maps/outsideMap.cpp \
 settings.cpp \
 spriteBank.cpp \
 objectBank.cpp \
