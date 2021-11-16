@@ -379,4 +379,14 @@ typedef struct ExtraMapObject {
 	SimpleVector< SimpleVector<int> > subContainedStack;
 } ExtraMapObject;
 
+typedef struct OffScreenSound {
+	doublePair pos;
+
+	double fade;
+	// wall clock time when should start fading
+	double fadeETATime;
+
+	char red;
+} OffScreenSound;
+
 #endif //ONELIFE_DATATYPE_GAME_H

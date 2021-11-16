@@ -51,6 +51,7 @@ procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
 procedures/graphics/sprites/drawChalkBackgroundString.cpp \
+procedures/graphics/sprites/drawOffScreenSounds.cpp \
 procedures/game.cpp \
 procedures/maths/gridPos.cpp \
 procedures/maths/misc.cpp \

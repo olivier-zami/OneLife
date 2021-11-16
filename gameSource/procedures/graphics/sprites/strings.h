@@ -6,8 +6,8 @@
 #define ONELIFE_GAME_GRAPHIC_STRING_H
 
 #include "minorGems/game/doublePair.h"
-#include "OneLife/gameSource/dataTypes/game.h"
 #include "minorGems/game/gameGraphics.h"
+#include "OneLife/gameSource/dataTypes/game.h"
 
 namespace OneLife::graphic
 {
@@ -21,6 +21,8 @@ namespace OneLife::graphic
 			FloatColor *inForceBlotColor,
 			FloatColor *inForceTextColor,
 			SpriteHandle mChalkBlotSprite);
+
+	void drawOffScreenSounds(SpriteHandle mChalkBlotSprite);
 }
 
 #endif //ONELIFE_GAME_GRAPHIC_STRING_H
