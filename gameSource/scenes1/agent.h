@@ -23,5 +23,6 @@ void addNewHeldAnimDirect( LiveObject *inObject, AnimType inNewAnim );
 void addNewAnimPlayerOnly( LiveObject *inObject, AnimType inNewAnim );
 void addNewAnim( LiveObject *inObject, AnimType inNewAnim );
 char nearEndOfMovement( LiveObject *inPlayer );
+LiveObject *getGameObject( int inID );//TODO: put this in livingLifePage->getObject();
 
 #endif //ONELIFE_GAME_AGENT_H

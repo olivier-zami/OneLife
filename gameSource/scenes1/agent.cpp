@@ -12,6 +12,7 @@
 
 extern int baseFramesPerSecond;
 extern double frameRateFactor;
+extern SimpleVector<LiveObject> gameObjects;
 
 void printPath( GridPos *inPath, int inLength )
 {
@@ -371,4 +372,17 @@ char nearEndOfMovement( LiveObject *inPlayer )
 		return true;
 	}
 	return false;
+}
+
+LiveObject *getGameObject( int inID )
+{
+	for( int i=0; i<gameObjects.size(); i++ )
+	{
+		LiveObject *o = gameObjects.getElement( i );
+		if( o->id == inID )
+		{
+			return o;
+		}
+	}
+	return NULL;
 }

@@ -2,8 +2,8 @@
 // Created by olivier on 16/11/2021.
 //
 
-#ifndef ONELIFE_GRAPHIC_MAP_H
-#define ONELIFE_GRAPHIC_MAP_H
+#ifndef ONELIFE_GRAPHIC_GROUND_H
+#define ONELIFE_GRAPHIC_GROUND_H
 
 #include "minorGems/game/doublePair.h"
 #include "minorGems/util/SimpleVector.h"
@@ -50,4 +50,4 @@ namespace OneLife::graphic
 			int mMapOffsetY);
 }
 
-#endif //ONELIFE_GRAPHIC_MAP_H
+#endif //ONELIFE_GRAPHIC_GROUND_H

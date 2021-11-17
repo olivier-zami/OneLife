@@ -17,7 +17,6 @@ LAYER_SOURCE = \
 minitech.cpp \
 game.cpp \
 application.cpp \
-components/agent.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
 components/camera.cpp \
@@ -51,11 +50,13 @@ procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
 procedures/graphics/sprites/drawChalkBackgroundString.cpp \
+procedures/graphics/sprites/drawLiveObject.cpp \
 procedures/graphics/sprites/drawMapCell.cpp \
 procedures/graphics/sprites/drawOffScreenSounds.cpp \
 procedures/game.cpp \
 procedures/maths/gridPos.cpp \
 procedures/maths/misc.cpp \
+scenes1/agent.cpp \
 scenes1/intangibles/text.cpp \
 scenes1/maps/outsideMap.cpp \
 settings.cpp \

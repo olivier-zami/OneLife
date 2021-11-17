@@ -2,7 +2,7 @@
 // Created by olivier on 16/11/2021.
 //
 
-#include "map.h"
+#include "grounds.h"
 
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/drawUtils.h"
@@ -289,12 +289,6 @@ void OneLife::graphic::drawMapCell(
 
 		if( !mapPullMode && !inHighlightOnly && !inNoTimeEffects ) //play agent sound !!!
 		{
-			/********************************************************************************************************* TODO: uncomment
-			handleAnimSound( oID, 0, mMapCurAnimType[ inMapI ], oldFrameCount,
-					mMapAnimationFrameCount[ inMapI ],
-					pos.x / CELL_D,
-					pos.y / CELL_D );
-			****/
 			OneLife::game::handleAnimSound(
 					oID, //int inObjectID,
 					0, //double inAge,
