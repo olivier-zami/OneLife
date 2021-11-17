@@ -50,6 +50,7 @@ procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
 procedures/graphics/sprites/drawChalkBackgroundString.cpp \
+procedures/graphics/sprites/drawHungerMaxFillLine.cpp \
 procedures/graphics/sprites/drawLiveObject.cpp \
 procedures/graphics/sprites/drawMapCell.cpp \
 procedures/graphics/sprites/drawOffScreenSounds.cpp \

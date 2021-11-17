@@ -17,13 +17,7 @@
 #include "OneLife/gameSource/TextField.h"
 #include "OneLife/gameSource/dataTypes/misc.h"
 #include "OneLife/gameSource/dataTypes/game.h"
-
-#define NUM_HUNGER_BOX_SPRITES 20
-#define NUM_TEMP_ARROWS 6
-#define NUM_HUNGER_DASHES 6
-#define NUM_HINT_SHEETS 4
-#define NUM_HOME_ARROWS 8
-#define NUM_YUM_SLIPS 4
+#include "OneLife/gameSource/components/pages/menu/playerStatus.h"
 
 class LivingLifePage : public GamePage, public ActionListener {
         
