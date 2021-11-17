@@ -7,6 +7,7 @@
 
 #include <cctype>
 #include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/animationBank.h"
 
 namespace OneLife::game
 {
@@ -16,6 +17,19 @@ namespace OneLife::game
 			AudioRenderer();
 			~AudioRenderer();
 	};
+
+	void handleAnimSound(
+			int inObjectID,
+			double inAge,
+			AnimType inType,
+			int inOldFrameCount,
+			int inNewFrameCount,
+			double inPosX,
+			double inPosY,
+			int *mMapFloors,
+			int mMapD,
+			int mMapOffsetX,
+			int mMapOffsetY);
 }
 
 void audioCallback( void *inUserData, Uint8 *inStream, int inLengthToFill );

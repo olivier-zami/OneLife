@@ -15,6 +15,9 @@
 #include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
+#include "OneLife/gameSource/soundBank.h"
+#include "OneLife/gameSource/components/camera.h"
+#include "OneLife/gameSource/scenes1/maps/outsideMap.h"
 
 extern CustomRandomSource randSource;
 extern GameSceneHandler *sceneHandler;
@@ -24,6 +27,8 @@ extern int soundSampleRate;
 extern char soundRunning;
 extern int samplesLeftToRecord;
 extern FILE *aiffOutFile;
+extern double frameRateFactor;
+
 static double soundSpriteRateMax = 1.0;
 static double soundSpriteRateMin = 1.0;
 static double soundSpriteVolumeMax = 1.0;
@@ -788,4 +793,93 @@ int16_t *load16BitMonoSound( int *outNumSamples, int *outSampleRate ) {
 	fclose( file );
 
 	return returnSamples;
+}
+
+void OneLife::game::handleAnimSound(
+		int inObjectID,
+		double inAge,
+		AnimType inType,
+		int inOldFrameCount,
+		int inNewFrameCount,
+		double inPosX,
+		double inPosY,
+		int *mMapFloors,
+		int mMapD,
+		int mMapOffsetX,
+		int mMapOffsetY)
+{
+	double oldTimeVal = frameRateFactor * inOldFrameCount / 60.0;
+	double newTimeVal = frameRateFactor * inNewFrameCount / 60.0;
+	if( inType == ground2 )
+	{
+		inType = ground;
+	}
+
+	AnimationRecord *anim = getAnimation( inObjectID, inType );
+	if( anim != NULL )
+	{
+		for( int s=0; s<anim->numSounds; s++ )
+		{
+			if( anim->soundAnim[s].sound.numSubSounds == 0 )
+			{
+				continue;
+			}
+
+			if( ( anim->soundAnim[s].ageStart != -1 &&
+				  inAge < anim->soundAnim[s].ageStart )
+				||
+				( anim->soundAnim[s].ageEnd != -1 &&
+				  inAge >= anim->soundAnim[s].ageEnd ) ) {
+
+				continue;
+			}
+
+
+			double hz = anim->soundAnim[s].repeatPerSec;
+
+			double phase = anim->soundAnim[s].repeatPhase;
+
+			if( hz != 0 ) {
+				double period = 1 / hz;
+
+				double startOffsetSec = phase * period;
+
+				int oldPeriods =
+						lrint(
+								floor( ( oldTimeVal - startOffsetSec ) /
+									   period ) );
+
+				int newPeriods =
+						lrint(
+								floor( ( newTimeVal - startOffsetSec ) /
+									   period ) );
+
+				if( newPeriods > oldPeriods ) {
+					SoundUsage u = anim->soundAnim[s].sound;
+
+
+					if( anim->soundAnim[s].footstep ) {
+
+						// check if we're on a floor
+
+						int x = lrint( inPosX );
+						int y = lrint( inPosY );
+
+						//int i = getMapIndex( x, y );//TODO: remove all (this->)getMapIndex() reference map should be manager by OutsideMap Object
+						int i = OneLife::game::getMapIndex( x, y, mMapD, mMapOffsetX, mMapOffsetY);//int inWorldX, int inWorldY, int mMapD, int mMapOffsetX, int mMapOffsetY
+
+						if( i != -1 && mMapFloors[i] > 0 ) {
+
+							ObjectRecord *f = getObject( mMapFloors[i] );
+
+							if( f->usingSound.numSubSounds > 0 ) {
+								u = f->usingSound;
+							}
+						}
+					}
+					playSound( u, getVectorFromCamera( inPosX, inPosY ) );
+				}
+			}
+		}
+	}
 }

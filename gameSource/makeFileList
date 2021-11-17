@@ -20,6 +20,7 @@ application.cpp \
 components/agent.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
+components/camera.cpp \
 components/engines/audioRenderer.cpp \
 components/engines/deviceListener.cpp \
 components/engines/GameSceneHandler.cpp \
@@ -50,6 +51,7 @@ procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawSting.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
 procedures/graphics/sprites/drawChalkBackgroundString.cpp \
+procedures/graphics/sprites/drawMapCell.cpp \
 procedures/graphics/sprites/drawOffScreenSounds.cpp \
 procedures/game.cpp \
 procedures/maths/gridPos.cpp \
