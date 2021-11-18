@@ -11,6 +11,7 @@
 #include "minorGems/util/SettingsManager.h"
 #include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/application.h"
+#include "OneLife/gameSource/procedures/graphics/modalObjects/drawPausePanel.h"
 
 extern GamePage *currentGamePage;
 extern double viewWidth;
@@ -65,6 +66,7 @@ void OneLife::game::ScreenRenderer::render(OneLife::dataType::UiComponent* scree
 			if(screen->draw) screen->draw(screen->body);
 		}
 	}
+	drawPauseScreen();
 }
 
 /**********************************************************************************************************************/

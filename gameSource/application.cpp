@@ -531,6 +531,12 @@ void OneLife::game::Application::start()
 	unsigned long frameStartMSec;
 	unsigned long oldFrameStart;
 
+	initFrameDrawer( pixelZoomFactor * 320,
+			pixelZoomFactor * 200,
+			targetFrameRate,
+			this->getCustomRecordedGameData(),
+			this->isPlayingBack() );//!currentGamePage initialized inside
+
 	Time::getCurrentTime( &frameStartSec, &frameStartMSec );
 
 	OneLife::dataType::UiComponent dataScreen;
@@ -1274,11 +1280,7 @@ void OneLife::game::Application::selectScreen()
 		if(this->idScreen !=6){printf("\n===>!writeFailed && !loadingFailedFlag && !frameDrawerInited");this->idScreen = 6;}
 		drawString( translate( "loading" ), true );
 
-		initFrameDrawer( pixelZoomFactor * 320,
-				pixelZoomFactor * 200,
-				targetFrameRate,
-				this->getCustomRecordedGameData(),
-				this->isPlayingBack() );//!currentGamePage initialized inside
+
 
 		int readCursorMode = SettingsManager::getIntSetting( "cursorMode", -1 );
 
@@ -4840,7 +4842,7 @@ void drawFrame( char inUpdate )
 
 		drawFrameNoUpdate( true );//seem to be useless
 
-		drawPauseScreen();
+		//drawPauseScreen();
 
 // handle delete key repeat
 		if( holdDeleteKeySteps > -1 )
