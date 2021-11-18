@@ -52,6 +52,7 @@
 #include "OneLife/gameSource/procedures/graphics/sprites/agents.h"
 #include "OneLife/gameSource/procedures/graphics/sprites/misc.h"
 #include "OneLife/gameSource/components/camera.h"
+#include "OneLife/gameSource/procedures/graphics/base.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -1977,40 +1978,6 @@ void LivingLifePage::drawHungerMaxFillLine( doublePair inAteWordsPos,
 		inSkipDashes);
 }
 
-
-
-
-static void drawLine( SpriteHandle inSegmentSprite,
-                      doublePair inStart, doublePair inEnd,
-                      FloatColor inColor ) {
-    
-    doublePair dir = normalize( sub( inEnd, inStart ) );
-    
-    doublePair perpDir = { -dir.y, dir.x };
-    
-    perpDir = mult( perpDir, 2 );
-    
-
-    doublePair spriteVerts[4] = 
-        { { inStart.x - perpDir.x,
-            inStart.y - perpDir.y },
-          { inEnd.x - perpDir.x,
-            inEnd.y - perpDir.y },
-          { inEnd.x + perpDir.x,
-            inEnd.y + perpDir.y },
-          { inStart.x + perpDir.x,
-            inStart.y + perpDir.y } };
-    
-    FloatColor spriteColors[4] = 
-        { inColor, inColor, inColor, inColor };
-    
-                                
-    drawSprite( inSegmentSprite,
-                spriteVerts, spriteColors );
-    }
-
-
-
 static double getBoundedRandom( int inX, int inY,
                                 double inUpper, double inLower ) {
     double val = getXYRandom( inX, inY );
@@ -2121,6 +2088,7 @@ void LivingLifePage::draw(
 	double inViewSize )
 {
 	#include "OneLife/gameSource/procedures/graphics/drawTutorialSheet.cpp"
+	//TODO: replace with OneLife::game::graphic::drawGameScreen();
 	/******************************************************************************************************************/
 }
 
