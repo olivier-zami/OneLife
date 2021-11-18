@@ -9,7 +9,12 @@
 
 namespace OneLife::game
 {
-	class OutsideMap{};
+	class OutsideMap
+	{
+		public:
+			OutsideMap();
+			~OutsideMap();
+	};
 
 	int getMapIndex( int inWorldX, int inWorldY, int mMapD, int mMapOffsetX, int mMapOffsetY );
 	GridPos getMapPos( int inWorldX, int inWorldY, int mMapD, int mMapOffsetX, int mMapOffsetY );

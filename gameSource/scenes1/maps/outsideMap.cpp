@@ -4,6 +4,10 @@
 
 #include "outsideMap.h"
 
+OneLife::game::OutsideMap::OutsideMap() {}
+OneLife::game::OutsideMap::~OutsideMap() {}
+
+/**********************************************************************************************************************/
 int OneLife::game::getMapIndex( int inWorldX, int inWorldY, int mMapD, int mMapOffsetX, int mMapOffsetY)
 {
 	//GridPos mapTarget = getMapPos( inWorldX, inWorldY );//TODO remove livingLifePage::getMapPos() references
