@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 
-#include "GridPos.h"
+#include "../../GridPos.h"
 
 
 

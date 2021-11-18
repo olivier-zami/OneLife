@@ -119,6 +119,10 @@ extern float gui_fov_target_scale_hud;
 extern int gui_fov_offset_x;
 extern int gui_fov_offset_y;
 
+extern int pathFindingD;// should match limit on server
+
+/**********************************************************************************************************************/
+
 //KB
 bool blockMouseScaling = false;
 bool firstMovementStep = true;
@@ -366,245 +370,16 @@ int recentInsertedGameObjectIndex = -1;
 
 extern char autoAdjustFramerate;
 extern int baseFramesPerSecond;
-static int pathFindingD = 32;// should match limit on server
+
 
 void LivingLifePage::computePathToDest( LiveObject *inObject )
 {
-    GridPos start;
-    start.x = lrint( inObject->currentPos.x );
-    start.y = lrint( inObject->currentPos.y );
-
-    // make sure start is on our last path, if we have one
-    if( inObject->pathToDest != NULL ) {
-        char startOnPath = false;
-
-        for( int i=0; i<inObject->pathLength; i++ ) {
-            if( inObject->pathToDest[i].x == start.x &&
-                inObject->pathToDest[i].y == start.y ) {
-                startOnPath = true;
-                break;
-                }
-            }
-        
-        if( ! startOnPath ) {
-            // find closest spot on old path
-            int closestI = -1;
-            int closestD2 = 9999999;
-            
-            for( int i=0; i<inObject->pathLength; i++ ) {
-                int dx = inObject->pathToDest[i].x - start.x;
-                int dy = inObject->pathToDest[i].y - start.y;
-                
-                int d2 = dx * dx + dy * dy;
-                
-                if( d2 < closestD2 ) {
-                    closestD2 = d2;
-                    closestI = i;
-                    }
-                }
-
-            start = inObject->pathToDest[ closestI ];
-            }
-        }
-
-    if( inObject->pathToDest != NULL ) {
-        delete [] inObject->pathToDest;
-        inObject->pathToDest = NULL;
-        }
-
-    GridPos end = { inObject->xd, inObject->yd };
-        
-    // window around player's start position
-    int numPathMapCells = pathFindingD * pathFindingD;
-    char *blockedMap = new char[ numPathMapCells ];
-
-    // assume all blocked
-    memset( blockedMap, true, numPathMapCells );
-
-    int pathOffsetX = pathFindingD/2 - start.x;
-    int pathOffsetY = pathFindingD/2 - start.y;
-
-    for( int y=0; y<pathFindingD; y++ )
-	{
-        int mapY = ( y - pathOffsetY ) + mMapD / 2 - mMapOffsetY;
-        
-        for( int x=0; x<pathFindingD; x++ ) {
-            int mapX = ( x - pathOffsetX ) + mMapD / 2 - mMapOffsetX;
-            
-            if( mapY >= 0 && mapY < mMapD &&
-                mapX >= 0 && mapX < mMapD ) { 
-
-                int mapI = mapY * mMapD + mapX;
-            
-                // note that unknowns (-1) count as blocked too
-                if( mMap[ mapI ] == 0
-                    ||
-                    ( mMap[ mapI ] != -1 && 
-                      ! getObject( mMap[ mapI ] )->blocksWalking ) ) {
-                    
-                    blockedMap[ y * pathFindingD + x ] = false;
-                    }
-                }
-            }
-	}
-
-    // now add extra blocked spots for wide objects
-    for( int y=0; y<pathFindingD; y++ )
-	{
-        int mapY = ( y - pathOffsetY ) + mMapD / 2 - mMapOffsetY;
-        
-        for( int x=0; x<pathFindingD; x++ ) {
-            int mapX = ( x - pathOffsetX ) + mMapD / 2 - mMapOffsetX;
-            
-            if( mapY >= 0 && mapY < mMapD &&
-                mapX >= 0 && mapX < mMapD ) { 
-
-                int mapI = mapY * mMapD + mapX;
-                
-                if( mMap[ mapI ] > 0 ) {
-                    ObjectRecord *o = getObject( mMap[ mapI ] );
-                    
-                    if( o->wide ) {
-                        
-                        for( int dx = - o->leftBlockingRadius;
-                             dx <= o->rightBlockingRadius; dx++ ) {
-                            
-                            int newX = x + dx;
-                            
-                            if( newX >=0 && newX < pathFindingD ) {
-                                blockedMap[ y * pathFindingD + newX ] = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-	}
-
-    start.x += pathOffsetX;
-    start.y += pathOffsetY;
-    end.x += pathOffsetX;
-    end.y += pathOffsetY;
-    
-    double startTime = game_getCurrentTime();
-    GridPos closestFound;
-    char pathFound = false;
-    
-    if( inObject->useWaypoint )
-	{
-        GridPos waypoint = { inObject->waypointX, inObject->waypointY };
-        waypoint.x += pathOffsetX;
-        waypoint.y += pathOffsetY;
-        
-        pathFound = pathFind( pathFindingD, pathFindingD,
-                              blockedMap, 
-                              start, waypoint, end, 
-                              &( inObject->pathLength ),
-                              &( inObject->pathToDest ),
-                              &closestFound );
-        if( pathFound && inObject->pathToDest != NULL &&
-            inObject->pathLength > inObject->maxWaypointPathLength ) {
-            
-            // path through waypoint too long, use waypoint as dest
-            // instead
-            delete [] inObject->pathToDest;
-            pathFound = pathFind( pathFindingD, pathFindingD,
-                                  blockedMap, 
-                                  start, waypoint, 
-                                  &( inObject->pathLength ),
-                                  &( inObject->pathToDest ),
-                                  &closestFound );
-            inObject->xd = inObject->waypointX;
-            inObject->yd = inObject->waypointY;
-            inObject->destTruncated = false;
-            }
-	}
-    else
-	{
-        pathFound = pathFind( pathFindingD, pathFindingD,
-                              blockedMap, 
-                              start, end, 
-                              &( inObject->pathLength ),
-                              &( inObject->pathToDest ),
-                              &closestFound );
-	}
-        
-
-    if( pathFound && inObject->pathToDest != NULL )
-	{
-        printf( "Path found in %f ms\n", 
-                1000 * ( game_getCurrentTime() - startTime ) );
-
-        // move into world coordinates
-        for( int i=0; i<inObject->pathLength; i++ ) {
-            inObject->pathToDest[i].x -= pathOffsetX;
-            inObject->pathToDest[i].y -= pathOffsetY;
-            }
-
-        inObject->shouldDrawPathMarks = false;
-        
-        // up, down, left, right
-        int dirsInPath[4] = { 0, 0, 0, 0 };
-        
-        for( int i=1; i<inObject->pathLength; i++ ) {
-            if( inObject->pathToDest[i].x > inObject->pathToDest[i-1].x ) {
-                dirsInPath[3]++;
-                }
-            if( inObject->pathToDest[i].x < inObject->pathToDest[i-1].x ) {
-                dirsInPath[2]++;
-                }
-            if( inObject->pathToDest[i].y > inObject->pathToDest[i-1].y ) {
-                dirsInPath[1]++;
-                }
-            if( inObject->pathToDest[i].y < inObject->pathToDest[i-1].y ) {
-                dirsInPath[0]++;
-                }
-            }
-        
-        if( ( dirsInPath[0] > 1 && dirsInPath[1] > 1 )
-            ||
-            ( dirsInPath[2] > 1 && dirsInPath[3] > 1 ) ) {
-
-            // path contains switchbacks, making in confusing without
-            // path marks
-            inObject->shouldDrawPathMarks = true;
-            }
-        
-        GridPos aGridPos = inObject->pathToDest[0];
-        GridPos bGridPos = inObject->pathToDest[1];
-        
-        doublePair aPos = { (double)aGridPos.x, (double)aGridPos.y };
-        doublePair bPos = { (double)bGridPos.x, (double)bGridPos.y };
-        
-        inObject->currentMoveDirection =
-            normalize( sub( bPos, aPos ) );
-	}
-    else
-	{
-        printf( "Path not found in %f ms\n", 
-                1000 * ( game_getCurrentTime() - startTime ) );
-        
-        if( !pathFound )
-		{
-            inObject->closestDestIfPathFailedX = 
-                closestFound.x - pathOffsetX;
-            
-            inObject->closestDestIfPathFailedY = 
-                closestFound.y - pathOffsetY;
-		}
-        else
-		{
-            // degen case where start == end?
-            inObject->closestDestIfPathFailedX = inObject->xd;
-            inObject->closestDestIfPathFailedY = inObject->yd;
-		}
-	}
-    
-    inObject->currentPathStep = 0;
-    inObject->numFramesOnCurrentStep = 0;
-    inObject->onFinalPathStep = false;
-    
-    delete [] blockedMap;
+	OneLife::game::computePathToDest(
+		inObject,
+		mMapD,
+		mMapOffsetX,
+		mMapOffsetY,
+		mMap);
 }
 
 // if user clicks to initiate an action while still moving, we

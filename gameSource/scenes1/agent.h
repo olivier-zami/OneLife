@@ -9,7 +9,17 @@
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/animationBank.h"
 
-class Agent {};
+namespace OneLife::game
+{
+	class Agent {};
+
+	void computePathToDest(
+			LiveObject *inObject,
+			int mMapD,
+			int mMapOffsetX,
+			int mMapOffsetY,
+			int *mMap);
+}
 
 void printPath( GridPos *inPath, int inLength );
 void removeDoubleBacksFromPath( GridPos **inPath, int *inLength );
@@ -24,5 +34,6 @@ void addNewAnimPlayerOnly( LiveObject *inObject, AnimType inNewAnim );
 void addNewAnim( LiveObject *inObject, AnimType inNewAnim );
 char nearEndOfMovement( LiveObject *inPlayer );
 LiveObject *getGameObject( int inID );//TODO: put this in livingLifePage->getObject();
+
 
 #endif //ONELIFE_GAME_AGENT_H

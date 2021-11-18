@@ -11,7 +11,7 @@
 #include "OneLife/gameSource/transitionBank.h"
 #include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/Picker.h"
-#include "OneLife/gameSource/pathFind.h"
+#include "OneLife/gameSource/procedures/ai/pathFind.h"
 #include "OneLife/gameSource/animationBank.h"
 #include "OneLife/gameSource/emotion.h"
 #include "OneLife/gameSource/TextField.h"

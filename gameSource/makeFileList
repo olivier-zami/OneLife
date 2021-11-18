@@ -43,6 +43,7 @@ components/socket.cpp \
 dataTypes/exception/exception.cpp \
 features/family.cpp \
 features/homeland.cpp \
+procedures/ai/pathFind.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
@@ -71,7 +72,6 @@ message.cpp \
 serialWebRequests.cpp \
 accountHmac.cpp \
 PageComponent.cpp \
-pathFind.cpp \
 ageControl.cpp \
 buttonStyle.cpp \
 Button.cpp \
