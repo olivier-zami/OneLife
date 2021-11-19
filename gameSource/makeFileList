@@ -64,6 +64,7 @@ procedures/graphics/sprites/drawOffScreenSounds.cpp \
 procedures/game.cpp \
 procedures/maths/gridPos.cpp \
 procedures/maths/misc.cpp \
+procedures/misc.cpp \
 scenes1/agent.cpp \
 scenes1/intangibles/text.cpp \
 scenes1/maps/outsideMap.cpp \

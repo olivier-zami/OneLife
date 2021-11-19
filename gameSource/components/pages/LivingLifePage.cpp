@@ -54,6 +54,7 @@
 #include "OneLife/gameSource/components/camera.h"
 #include "OneLife/gameSource/procedures/graphics/base.h"
 #include "OneLife/gameSource/minitech.h"
+#include "OneLife/gameSource/procedures/misc.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -695,13 +696,7 @@ void LivingLifePage::sendToServerSocket( char *inMessage )
 
 doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
 
-static void clearLocationSpeech()
-{
-    for( int i=0; i<locationSpeech.size(); i++ ) {
-        delete [] locationSpeech.getElementDirect( i ).speech;
-        }
-    locationSpeech.deleteAll();
-}
+
 
 static void stripDescriptionComment( char *inString )
 {
