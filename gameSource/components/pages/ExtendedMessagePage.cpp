@@ -4,7 +4,7 @@
 #include "OneLife/gameSource/game.h"
 #include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/buttonStyle.h"
-#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 
 extern Font *mainFont;
 extern char *userEmail;

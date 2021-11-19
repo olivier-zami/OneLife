@@ -8,8 +8,8 @@
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/drawUtils.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
-#include "OneLife/gameSource/message.h"//TODO: put in procedure/graphic directory
-#include "OneLife/gameSource/dataTypes/uiComponent/loadingScreen.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"//TODO: put in procedure/graphic directory
+#include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 
 void OneLife::game::graphic::drawLoadingScreen(void* screen)
 {

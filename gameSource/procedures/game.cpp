@@ -71,7 +71,7 @@ extern CustomRandomSource randSource;
 #include "OneLife/gameSource/ageControl.h"
 #include "OneLife/gameSource/musicPlayer.h"
 #include "OneLife/gameSource/whiteSprites.h"
-#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/settings.h"

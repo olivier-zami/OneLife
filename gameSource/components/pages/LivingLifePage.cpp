@@ -6,7 +6,7 @@
 #include "OneLife/gameSource/categoryBank.h"
 #include "OneLife/gameSource/soundBank.h"
 #include "OneLife/gameSource/whiteSprites.h"
-#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 #include "OneLife/gameSource/groundSprites.h"
 #include "OneLife/gameSource/accountHmac.h"
 #include "OneLife/gameSource/liveObjectSet.h"

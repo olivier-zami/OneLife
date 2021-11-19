@@ -1,6 +1,6 @@
 #include "fitnessScore.h"
 #include "accountHmac.h"
-#include "message.h"
+#include "procedures/graphics/sprites/drawMessage.h"
 
 #include "objectBank.h"
 #include "ageControl.h"

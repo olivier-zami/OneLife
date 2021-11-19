@@ -7,21 +7,16 @@
 #include "minorGems/game/gameGraphics.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 
-class GamePage : public PageComponent {
-        
-
+class GamePage :
+		public PageComponent
+{
     public:
         virtual ~GamePage();
-
-		virtual void handle(OneLife::dataType::UiComponent* screen) = 0;
-        
+		virtual void handle(OneLife::dataType::UiComponent* screen);
         void setStatus( const char *inStatusMessageKey, char inError );
-
         // inStatusMessage destroyed by caller
         void setStatusDirect( const char *inStatusMessage, char inError );
-
         char isStatusShowing();
-        
 
         // overrides default tip position
         // tip defaults to bottom of screen

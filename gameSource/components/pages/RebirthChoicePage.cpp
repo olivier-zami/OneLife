@@ -1,7 +1,7 @@
 #include "RebirthChoicePage.h"
 
 #include "OneLife/gameSource/buttonStyle.h"
-#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 #include "OneLife/gameSource/lifeTokens.h"
 #include "OneLife/gameSource/fitnessScore.h"
 #include "minorGems/game/Font.h"

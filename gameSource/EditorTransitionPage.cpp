@@ -13,7 +13,7 @@
 
 
 
-#include "message.h"
+#include "procedures/graphics/sprites/drawMessage.h"
 
 
 // label distance from checkboxes

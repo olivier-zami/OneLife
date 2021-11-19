@@ -1,4 +1,4 @@
-#include "message.h"
+#include "drawMessage.h"
 
 #include "minorGems/game/Font.h"
 #include "OneLife/gameSource/game.h"
@@ -22,7 +22,14 @@ TextAlignment getMessageAlign() {
     }
 
 
-
+/**
+ *
+ * @param inTranslationKey
+ * @param inCenter
+ * @param inRed
+ * @param inFade
+ * @note: draws multi-line message (lines separated by ##) using a translation key top line centered on inCenter
+ */
 void drawMessage( const char *inTranslationKey, doublePair inCenter,
                   char inRed, double inFade ) {
 

@@ -9,7 +9,7 @@
 #include "minorGems/game/doublePair.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/util/stringUtils.h"
-#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 
 
 #include "OneLife/gameSource/components/GamePage.h"

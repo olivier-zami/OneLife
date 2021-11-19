@@ -1,10 +1,12 @@
 #include "GamePage.h"
 
-#include "OneLife/gameSource/message.h"
+#include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/serialWebRequests.h"
 #include "OneLife/gameSource/whiteSprites.h"
-#include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
+#include "OneLife/gameSource/procedures/graphics/screens.h"
+#include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 
 
 
@@ -85,6 +87,13 @@ GamePage::~GamePage() {
         }
     }
 
+void GamePage::handle(OneLife::dataType::UiComponent* screen)
+{
+	screen->label = nullptr;
+	screen->draw = OneLife::game::graphic::drawUnimplementedScreen;
+	OneLife::dataType::uiComponent::UnimplementedScreen* dataScreen = {0};
+	screen->body = dataScreen;
+}
 
 void GamePage::skipDrawingSubComponents( char inSkip ) {
     mSkipDrawingSubComponents = inSkip;

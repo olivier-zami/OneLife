@@ -32,6 +32,7 @@ components/pages/ExistingAccountPage.cpp \
 components/pages/ExtendedMessagePage.cpp \
 components/pages/FinalMessagePage.cpp \
 components/pages/GeneticHistoryPage.cpp \
+components/pages/initializationScreen.cpp \
 components/pages/LivingLifePage.cpp \
 components/pages/LoadingPage.cpp \
 components/pages/PollPage.cpp \
@@ -48,14 +49,17 @@ procedures/ai/pathFind.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
+procedures/graphics/drawInitializingScreen.cpp \
 procedures/graphics/drawLoadingScreen.cpp \
-procedures/graphics/drawSting.cpp \
+procedures/graphics/drawUnimplementedScreen.cpp \
+procedures/graphics/drawString.cpp \
 procedures/graphics/base/drawLine.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
 procedures/graphics/sprites/drawChalkBackgroundString.cpp \
 procedures/graphics/sprites/drawHungerMaxFillLine.cpp \
 procedures/graphics/sprites/drawLiveObject.cpp \
 procedures/graphics/sprites/drawMapCell.cpp \
+procedures/graphics/sprites/drawMessage.cpp \
 procedures/graphics/sprites/drawOffScreenSounds.cpp \
 procedures/game.cpp \
 procedures/maths/gridPos.cpp \
@@ -68,7 +72,6 @@ objectBank.cpp \
 transitionBank.cpp \
 animationBank.cpp \
 whiteSprites.cpp \
-message.cpp \
 serialWebRequests.cpp \
 accountHmac.cpp \
 PageComponent.cpp \

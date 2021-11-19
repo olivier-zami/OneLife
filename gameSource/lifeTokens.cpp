@@ -4,7 +4,7 @@
 
 #include "OneLife/gameSource/game.h"
 #include "minorGems/game/Font.h"
-#include "message.h"
+#include "procedures/graphics/sprites/drawMessage.h"
 
 extern Font *mainFont;
 extern Font *numbersFontFixed;

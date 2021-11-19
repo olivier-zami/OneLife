@@ -7,7 +7,7 @@
 #include "minorGems/crypto/hashes/sha1.h"
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 #include "minorGems/util/random/JenkinsRandomSource.h"
-#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 #include "OneLife/gameSource/buttonStyle.h"
 #include "OneLife/gameSource/accountHmac.h"
 #include "OneLife/gameSource/lifeTokens.h"

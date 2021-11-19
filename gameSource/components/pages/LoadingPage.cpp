@@ -1,6 +1,6 @@
 #include "LoadingPage.h"
 
-#include "OneLife/gameSource/message.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 #include "minorGems/game/drawUtils.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 

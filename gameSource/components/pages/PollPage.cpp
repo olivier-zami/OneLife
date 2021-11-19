@@ -1,7 +1,7 @@
 #include "PollPage.h"
 
 #include "../../buttonStyle.h"
-#include "../../message.h"
+#include "../../procedures/graphics/sprites/drawMessage.h"
 #include "../../accountHmac.h"
 #include "minorGems/game/Font.h"
 #include "OneLife/gameSource/game.h"

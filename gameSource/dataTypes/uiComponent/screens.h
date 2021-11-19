@@ -14,6 +14,10 @@ namespace OneLife::dataType::uiComponent
 		const char* taskName;
 		float progressBar;
 	}LoadingScreen;
+
+	typedef struct{
+		int errCode;
+	}UnimplementedScreen;
 }
 
 #endif //ONELIFE_DATATYPE_UICOMPONENT_LOADINGSCREEN_H

@@ -9,7 +9,9 @@
 
 namespace OneLife::game::graphic
 {
+	void drawInitializingScreen(void* screen = nullptr);
 	void drawLoadingScreen(void* screen = nullptr);
+	void drawUnimplementedScreen(void* screen = nullptr);
 }
 
 

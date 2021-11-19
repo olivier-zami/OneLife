@@ -5,7 +5,7 @@
 #include "screens.h"
 
 #include <cstdio>
-#include "OneLife/gameSource/message.h" //TODO put drawMessage in procedure/graphic
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h" //TODO put drawMessage in procedure/graphic
 
 struct {
 	bool intro;

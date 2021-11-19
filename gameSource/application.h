@@ -22,6 +22,7 @@
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/settings.h"
+#include "OneLife/gameSource/components/pages/initializationScreen.h"
 
 namespace OneLife::game
 {
@@ -544,6 +545,7 @@ namespace OneLife::game
 
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			unsigned int idScreen;
+			OneLife::game::InitializationScreen* initializationScreen;
 
 			OneLife::dataType::ui::Screen currentScreen;
 			OneLife::game::component::Socket* connection;

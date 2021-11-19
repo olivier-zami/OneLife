@@ -190,6 +190,9 @@ OneLife::game::Application::Application(
 	this->idScreen = 0;
 	this->isNewSystemEnable = false;
 
+	//!gameScreens declaration
+	this->initializationScreen = nullptr;
+
 	//!init SDL context ...
 	Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
 	if(currentGame.useSound) flags |= SDL_INIT_AUDIO;
@@ -538,6 +541,9 @@ void OneLife::game::Application::start()
 			this->isPlayingBack() );//!currentGamePage initialized inside
 
 	Time::getCurrentTime( &frameStartSec, &frameStartMSec );
+
+	if(!this->initializationScreen) this->initializationScreen = new OneLife::game::InitializationScreen();
+	currentGamePage = this->initializationScreen;
 
 	OneLife::dataType::UiComponent dataScreen;
 
@@ -1100,10 +1106,15 @@ void OneLife::game::Application::readServerMessage()
 
 void OneLife::game::Application::selectScreen()
 {
-	//printf("\n==========>select screen");
-
+	if(currentGamePage == this->initializationScreen)
+	{
+		if(((OneLife::game::InitializationScreen*)currentGamePage)->isTaskComplete())
+		{
+			currentGamePage = loadingPage;
+		}
+	}
 	//!SEARCH LEG000001 for legacy place
-	if(demoMode)
+	else if(demoMode)
 	{
 		if(this->idScreen !=1){printf("\n===>demoMode");this->idScreen = 1;}
 		if( ! isDemoCodePanelShowing() )

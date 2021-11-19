@@ -4,7 +4,7 @@
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/util/stringUtils.h"
-#include "message.h"
+#include "procedures/graphics/sprites/drawMessage.h"
 
 extern Font *mainFont;
 extern Font *smallFont;

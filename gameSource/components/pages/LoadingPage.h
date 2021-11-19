@@ -1,7 +1,7 @@
 #include "../GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
-#include "OneLife/gameSource/dataTypes/uiComponent/loadingScreen.h"
+#include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 
 
 class LoadingPage : public GamePage
