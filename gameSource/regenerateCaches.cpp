@@ -1,5 +1,5 @@
 
-#include "spriteBank.h"
+#include "components/banks/spriteBank.h"
 #include "objectBank.h"
 #include "animationBank.h"
 #include "transitionBank.h"

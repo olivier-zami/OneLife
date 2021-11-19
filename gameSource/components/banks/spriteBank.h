@@ -1,12 +1,35 @@
 #ifndef SPRITE_BANK_INCLUDED
 #define SPRITE_BANK_INCLUDED
 
-
-#include "FloatRGB.h"
-
-
+#include "../../FloatRGB.h"
 #include "minorGems/game/gameGraphics.h"
 
+#define NUM_HUNGER_BOX_SPRITES 20
+
+namespace OneLife::game
+{
+	class SpriteBank
+	{
+		public:
+			SpriteBank();
+			~SpriteBank();
+
+			void loadImage(int id, const char* filename, unsigned int number = 1);
+			SpriteHandle* getSprite();
+
+		private:
+			unsigned int idxSprite;
+			SpriteHandle mHungerBoxSprites[ NUM_HUNGER_BOX_SPRITES ];
+			SpriteHandle sprite[NUM_HUNGER_BOX_SPRITES];//TODO read sprite next number aka 101838
+	};
+}
+
+void splitAndExpandSprites(
+		const char *inTgaFileName,
+		int inNumSprites,
+		SpriteHandle *inDestArray );
+
+Image *expandToPowersOfTwoWhite( Image *inImage );
 
 typedef struct SpriteRecord {
         int id;

@@ -150,8 +150,10 @@ SimpleVector<WebRequestRecord> webRequestRecords;
 extern SimpleVector<SocketConnectionRecord> socketConnectionRecords;
 extern double *soundSpriteMixingBufferL;
 extern double *soundSpriteMixingBufferR;
+
 SDL_Cursor *ourCursor = NULL;
 OneLife::game::Application *screen;
+
 static float soundLoudnessIncrementPerSample = 0.0f;
 static double maxTotalSoundSpriteVolume = 1.0;
 static double soundSpriteCompressionFraction = 0.0;
@@ -746,12 +748,15 @@ int mainFunction( int inNumArgs, char **inArgs )
 				NULL, NULL, NULL );
 
 		screen->setConnection();
+
 	//}
 	if(false)//catch() //TODO catch fail on OneLife::game::Application instantiation
 	{
 		AppLog::getLog()->logPrintf(Log::CRITICAL_ERROR_LEVEL, "Couldn't initialize SDL: %s\n", SDL_GetError() );
 		return 0;
 	}
+
+	/******************************************************************************************************************/
 
 	delete [] customData;
 	delete [] hashSalt;

@@ -1,7 +1,7 @@
 #include "LivingLifePage.h"
 
 #include "OneLife/gameSource/objectBank.h"
-#include "OneLife/gameSource/spriteBank.h"
+#include "OneLife/gameSource/components/banks/spriteBank.h"
 #include "OneLife/gameSource/transitionBank.h"
 #include "OneLife/gameSource/categoryBank.h"
 #include "OneLife/gameSource/soundBank.h"
@@ -53,16 +53,21 @@
 #include "OneLife/gameSource/procedures/graphics/sprites/misc.h"
 #include "OneLife/gameSource/components/camera.h"
 #include "OneLife/gameSource/procedures/graphics/base.h"
+#include "OneLife/gameSource/minitech.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
 
-static ObjectPickable objectPickable;
-
-#include "OneLife/gameSource/minitech.h"
+/**********************************************************************************************************************/
 
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096
+
+// base speed for animations that aren't speeded up or slowed down
+// when player moving at a different speed, anim speed is modified
+#define BASE_SPEED 3.75
+
+/**********************************************************************************************************************/
 
 extern OneLife::game::Application *screen;
 extern int versionNumber;
@@ -75,19 +80,7 @@ extern Font *handwritingFont;
 extern Font *pencilFont;
 extern Font *pencilErasedFont;
 extern Font *titleFont;
-
-// to make all erased pencil fonts lighter
-static float pencilErasedFontExtraFade = 0.75;
-static char shouldMoveCamera = true;
-static char vogMode = false;
-static doublePair vogPos = { 0, 0 };
-static char vogPickerOn = false;
-
 extern doublePair lastScreenViewCenter;
-doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
-
-int overheadServerBytesRead = 0;
-int overheadServerBytesSent = 0;
 extern double viewWidth;
 extern double viewHeight;
 extern int screenW, screenH;
@@ -98,7 +91,6 @@ extern char *userEmail;
 extern char *userTwinCode;
 extern int userTwinCount;
 extern char userReconnect;
-
 extern float musicLoudness;
 extern int messagesInCount;
 extern char pendingCMData;
@@ -110,6 +102,12 @@ extern SimpleVector<char*> serverFrameMessages;
 extern char *lastMessageSentToServer;
 extern SimpleVector<HomePos> homePosStack;
 extern SimpleVector<HomePos> oldHomePosStack;
+extern int pathFindingD;// should match limit on server
+extern bool isTrippingEffectOn;
+extern SimpleVector<unsigned char> serverSocketBuffer;
+extern char *pendingMapChunkMessage;
+extern char autoAdjustFramerate;
+extern int baseFramesPerSecond;
 
 //FOV
 extern int gui_hud_mode;
@@ -118,8 +116,6 @@ extern float gui_fov_scale_hud;
 extern float gui_fov_target_scale_hud;
 extern int gui_fov_offset_x;
 extern int gui_fov_offset_y;
-
-extern int pathFindingD;// should match limit on server
 
 /**********************************************************************************************************************/
 
@@ -160,6 +156,28 @@ int playerActionTargetY;
 int ourID;
 SimpleVector<LiveObject> gameObjects;// youngest last
 FloatColor trailColor = { 0, 0.5, 0, 0.25 };
+int overheadServerBytesRead = 0;
+int overheadServerBytesSent = 0;
+SimpleVector<LocationSpeech> locationSpeech;
+int numServerBytesSent = 0;
+// for determining our ID when we're not youngest on the server
+// (so we're not last in the list after receiving the first PU message)
+int recentInsertedGameObjectIndex = -1;
+char lastCharUsed = 'A';
+char mapPullMode = false;
+int mapPullStartX = -10;
+int mapPullEndX = 10;
+int mapPullStartY = -10;
+int mapPullEndY = 10;
+int mapPullCurrentX;
+int mapPullCurrentY;
+char mapPullCurrentSaved = false;
+char mapPullCurrentSent = false;
+char mapPullModeFinalImage = false;
+Image *mapPullTotalImage = NULL;
+int numScreensWritten = 0;
+
+/**********************************************************************************************************************/
 
 static bool waitForDoorToOpen;
 static SpriteHandle guiPanelLeftSprite;
@@ -217,7 +235,430 @@ static double pingDisplayStartTime = -1;
 static double culvertFractalScale = 20;
 static double culvertFractalRoughness = 0.62;
 static double culvertFractalAmp = 98;
+static ObjectPickable objectPickable;
+static float pencilErasedFontExtraFade = 0.75;// to make all erased pencil fonts lighter
+static char shouldMoveCamera = true;
+static char vogMode = false;
+static doublePair vogPos = { 0, 0 };
+static char vogPickerOn = false;
+static int lastPlayerID = -1;// used on reconnect to decide whether to delete old home positions
+static char hideGuiPanel = false;
+static float connectionMessageFade = 1.0f;
+// if user clicks to initiate an action while still moving, we
+// queue it here
+static char *nextActionMessageToSend = NULL;
+static char nextActionEating = false;
+static char nextActionDropping = false;
+// block move until next PLAYER_UPDATE received after action sent
+static char playerActionPending = false;
+static char playerActionTargetNotAdjacent = false;
+static char waitingForPong = false;
+static int lastPingSent = 0;
+static int lastPongReceived = 0;
+static int valleySpacing = 40;
+static int valleyOffset = 0;
+static int apocalypseInProgress = false;
+static double apocalypseDisplayProgress = 0;
+static double apocalypseDisplaySeconds = 6;
+static double remapPeakSeconds = 60;
+static double remapDelaySeconds = 30;
 
+/**********************************************************************************************************************/
+
+extern void setTrippingColor( double x, double y );
+
+/**********************************************************************************************************************/
+
+
+
+/**********************************************************************************************************************/
+
+LivingLifePage::LivingLifePage()
+        : mServerSocket( -1 ),
+          mForceRunTutorial( false ),
+          mTutorialNumber( 0 ),
+          mGlobalMessageShowing( false ),
+          mGlobalMessageStartTime( 0 ),
+          mFirstServerMessagesReceived( 0 ),
+          mMapGlobalOffsetSet( false ),
+          mMapD( MAP_D ),
+          mMapOffsetX( 0 ),
+          mMapOffsetY( 0 ),
+          mEKeyEnabled( false ),
+          mEKeyDown( false ),
+          mGuiPanelSprite( loadSprite( "guiPanel.tga", false ) ),
+          mGuiBloodSprite( loadSprite( "guiBlood.tga", false ) ),
+          mNotePaperSprite( loadSprite( "notePaper.tga", false ) ),
+          mFloorSplitSprite( loadSprite( "floorSplit.tga", false ) ),
+          mCellBorderSprite( loadWhiteSprite( "cellBorder.tga" ) ),
+          mCellFillSprite( loadWhiteSprite( "cellFill.tga" ) ),
+          mHomeSlipSprite( loadSprite( "homeSlip.tga", false ) ),
+          mLastMouseOverID( 0 ),
+          mCurMouseOverID( 0 ),
+          mChalkBlotSprite( loadWhiteSprite( "chalkBlot.tga" ) ),
+          mPathMarkSprite( loadWhiteSprite( "pathMark.tga" ) ),
+          mSayField( handwritingFont, 0, 1000, 10, true, NULL,
+                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ " ),
+          mDeathReason( NULL ),
+          mShowHighlights( true ),
+          mUsingSteam( false ),
+          mZKeyDown( false ),
+          mObjectPicker( &objectPickable, +510, 90 )
+{
+	this->socket = new OneLife::game::component::Socket(
+		&serverSocketBuffer,
+		&bytesInCount,
+		&mServerSocket);
+
+    if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
+        mUsingSteam = true;
+        }
+
+    mForceGroundClick = false;
+
+    mYumSlipSprites[0] = loadSprite( "yumSlip1.tga", false );
+    mYumSlipSprites[1] = loadSprite( "yumSlip2.tga", false );
+    mYumSlipSprites[2] = loadSprite( "yumSlip3.tga", false );
+    mYumSlipSprites[3] = loadSprite( "yumSlip4.tga", false );
+
+    mCurMouseOverCell.x = -1;
+    mCurMouseOverCell.y = -1;
+    mCurMouseOverCellFade = 0.0f;
+    mCurMouseOverCellFadeRate = 0.04;
+    mLastClickCell.x = -1;
+    mLastClickCell.y = -1;
+
+    // we're not showing a cursor on note paper, so arrow key behavior
+    // is confusing.
+    mSayField.setIgnoreArrowKeys( true );
+    // drawn under world at (0,1000), don't allow click to focus
+    mSayField.setIgnoreMouse( true );
+
+    initLiveTriggers();
+
+    for( int i=0; i<4; i++ ) {
+        char *name = autoSprintf( "ground_t%d.tga", i );
+        mGroundOverlaySprite[i] = loadSprite( name, false );
+        delete [] name;
+        }
+
+
+    mMapGlobalOffset.x = 0;
+    mMapGlobalOffset.y = 0;
+
+    emotDuration = SettingsManager::getFloatSetting( "emotDuration", 10 );
+
+    drunkEmotionIndex =
+        SettingsManager::getIntSetting( "drunkEmotionIndex", 2 );
+
+    trippingEmotionIndex =
+        SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
+
+    hideGuiPanel = SettingsManager::getIntSetting( "hideGameUI", 0 );
+
+    mHungerSound = loadSoundSprite( "otherSounds", "hunger.aiff" );
+    mPulseHungerSound = false;
+
+
+    if( mHungerSound != NULL ) {
+        toggleVariance( mHungerSound, true );
+        }
+
+
+    mTutorialSound = loadSoundSprite( "otherSounds", "tutorialChime.aiff" );
+
+    if( mTutorialSound != NULL ) {
+        toggleVariance( mTutorialSound, true );
+        }
+
+    mCurseSound = loadSoundSprite( "otherSounds", "curseChime.aiff" );
+
+    if( mCurseSound != NULL ) {
+        toggleVariance( mCurseSound, true );
+        }
+
+
+    mHungerSlipSprites[0] = loadSprite( "fullSlip.tga", false );
+    mHungerSlipSprites[1] = loadSprite( "hungrySlip.tga", false );
+    mHungerSlipSprites[2] = loadSprite( "starvingSlip.tga", false );
+
+
+    // not visible, drawn under world at 0, 0, and doesn't move with camera
+    // still, we can use it to receive/process/filter typing events
+    addComponent( &mSayField );
+
+    mSayField.unfocus();
+
+
+    mNotePaperHideOffset.x = -242;
+    mNotePaperHideOffset.y = -420;
+
+
+    mHomeSlipHideOffset.x = 0;
+    mHomeSlipHideOffset.y = -360;
+
+
+    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
+        mYumSlipHideOffset[i].x = -140;
+        mYumSlipHideOffset[i].y = -330;
+        }
+
+    mYumSlipHideOffset[2].x += 60;
+    mYumSlipHideOffset[3].x += 70;
+
+    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
+        mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
+        mYumSlipPosTargetOffset[i] = mYumSlipHideOffset[i];
+        }
+
+
+    for( int i=0; i<3; i++ ) {
+        mHungerSlipShowOffsets[i].x = -540;
+        mHungerSlipShowOffsets[i].y = -250;
+
+        mHungerSlipHideOffsets[i].x = -540;
+        mHungerSlipHideOffsets[i].y = -370;
+
+        mHungerSlipWiggleTime[i] = 0;
+        mHungerSlipWiggleAmp[i] = 0;
+        mHungerSlipWiggleSpeed[i] = 0.05;
+        }
+    mHungerSlipShowOffsets[2].y += 20;
+    mHungerSlipHideOffsets[2].y -= 20;
+
+    mHungerSlipShowOffsets[2].y -= 50;
+    mHungerSlipShowOffsets[1].y -= 30;
+    mHungerSlipShowOffsets[0].y += 18;
+
+
+    mHungerSlipWiggleAmp[1] = 0.5;
+    mHungerSlipWiggleAmp[2] = 0.5;
+
+    mHungerSlipWiggleSpeed[2] = 0.075;
+
+    mStarvingSlipLastPos[0] = 0;
+    mStarvingSlipLastPos[1] = 0;
+
+
+    for( int i=0; i<3; i++ ) {
+        mHungerSlipPosOffset[i] = mHungerSlipHideOffsets[i];
+        mHungerSlipPosTargetOffset[i] = mHungerSlipPosOffset[i];
+        }
+
+    mHungerSlipVisible = -1;
+
+
+
+    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+        char *name = autoSprintf( "hintSheet%d.tga", i + 1 );
+        mHintSheetSprites[i] = loadSprite( name, false );
+        delete [] name;
+
+        mHintHideOffset[i].x = 900;
+        mHintHideOffset[i].y = -370;
+
+        mHintTargetOffset[i] = mHintHideOffset[i];
+        mHintPosOffset[i] = mHintHideOffset[i];
+
+        mHintExtraOffset[i].x = 0;
+        mHintExtraOffset[i].y = 0;
+
+        mHintMessage[i] = NULL;
+        mHintMessageIndex[i] = 0;
+
+        mNumTotalHints[i] = 0;
+        }
+
+    mLiveHintSheetIndex = -1;
+
+    mForceHintRefresh = false;
+    mCurrentHintObjectID = 0;
+    mCurrentHintIndex = 0;
+
+    mNextHintObjectID = 0;
+    mNextHintIndex = 0;
+
+    mLastHintSortedSourceID = 0;
+
+    int maxObjectID = getMaxObjectID();
+
+    mHintBookmarks = new int[ maxObjectID + 1 ];
+
+    for( int i=0; i<=maxObjectID; i++ ) {
+        mHintBookmarks[i] = 0;
+        }
+
+    mHintFilterString = NULL;
+    mLastHintFilterString = NULL;
+    mPendingFilterString = NULL;
+
+
+
+    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+
+        mTutorialHideOffset[i].x = -914;
+        mTutorialFlips[i] = false;
+
+        if( i % 2 == 1 ) {
+            // odd on right side of screen
+            mTutorialHideOffset[i].x = 914;
+            mTutorialFlips[i] = true;
+            }
+
+        mTutorialHideOffset[i].y = 430;
+
+        mTutorialTargetOffset[i] = mTutorialHideOffset[i];
+        mTutorialPosOffset[i] = mTutorialHideOffset[i];
+
+        mTutorialExtraOffset[i].x = 0;
+        mTutorialExtraOffset[i].y = 0;
+
+        mTutorialMessage[i] = "";
+
+
+        mCravingHideOffset[i].x = -932;
+
+        mCravingHideOffset[i].y = -370;
+
+        mCravingTargetOffset[i] = mCravingHideOffset[i];
+        mCravingPosOffset[i] = mCravingHideOffset[i];
+
+        mCravingExtraOffset[i].x = 0;
+        mCravingExtraOffset[i].y = 0;
+
+        mCravingMessage[i] = NULL;
+        }
+
+    mLiveTutorialSheetIndex = -1;
+    mLiveTutorialTriggerNumber = -1;
+
+    mLiveCravingSheetIndex = -1;
+
+    //FOV
+	calcOffsetHUD();
+
+	Image *tempImage = readTGAFile( "guiPanel.tga" );
+	Image *tempImage2;
+
+	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 640, 0, 512, tempImage->getHeight() );
+	guiPanelLeftSprite = fillSprite( tempImage2 );
+	delete tempImage2;
+
+	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 128, 0, 256, tempImage->getHeight() );
+	guiPanelTileSprite = fillSprite( tempImage2 );
+	setSpriteWrapping( guiPanelTileSprite, true, false );
+	delete tempImage2;
+
+	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 + 640 - 512, 0, 512, tempImage->getHeight() );
+	guiPanelRightSprite = fillSprite( tempImage2 );
+	delete tempImage2;
+
+	delete tempImage;
+	//
+
+    mMap = new int[ mMapD * mMapD ];
+    mMapBiomes = new int[ mMapD * mMapD ];
+    mMapFloors = new int[ mMapD * mMapD ];
+
+    mMapCellDrawnFlags = new char[ mMapD * mMapD ];
+
+    mMapContainedStacks = new SimpleVector<int>[ mMapD * mMapD ];
+    mMapSubContainedStacks =
+        new SimpleVector< SimpleVector<int> >[ mMapD * mMapD ];
+
+    mMapAnimationFrameCount =  new double[ mMapD * mMapD ];
+    mMapAnimationLastFrameCount =  new double[ mMapD * mMapD ];
+    mMapAnimationFrozenRotFrameCount =  new double[ mMapD * mMapD ];
+
+    mMapAnimationFrozenRotFrameCountUsed =  new char[ mMapD * mMapD ];
+
+    mMapFloorAnimationFrameCount =  new int[ mMapD * mMapD ];
+
+    mMapCurAnimType =  new AnimType[ mMapD * mMapD ];
+    mMapLastAnimType =  new AnimType[ mMapD * mMapD ];
+    mMapLastAnimFade =  new double[ mMapD * mMapD ];
+
+    mMapDropOffsets = new doublePair[ mMapD * mMapD ];
+    mMapDropRot = new double[ mMapD * mMapD ];
+    mMapDropSounds = new SoundUsage[ mMapD * mMapD ];
+
+    mMapMoveOffsets = new doublePair[ mMapD * mMapD ];
+    mMapMoveSpeeds = new double[ mMapD * mMapD ];
+
+    mMapTileFlips = new char[ mMapD * mMapD ];
+
+    mMapPlayerPlacedFlags = new char[ mMapD * mMapD ];
+
+
+    clearMap();
+
+
+    splitAndExpandSprites( "hungerBoxes.tga", NUM_HUNGER_BOX_SPRITES, mHungerBoxSprites );
+    splitAndExpandSprites( "hungerBoxFills.tga", NUM_HUNGER_BOX_SPRITES, mHungerBoxFillSprites );
+    splitAndExpandSprites( "hungerBoxesErased.tga", NUM_HUNGER_BOX_SPRITES, mHungerBoxErasedSprites );
+    splitAndExpandSprites( "hungerBoxFillsErased.tga", NUM_HUNGER_BOX_SPRITES, mHungerBoxFillErasedSprites );
+    splitAndExpandSprites( "tempArrows.tga", NUM_TEMP_ARROWS, mTempArrowSprites );
+    splitAndExpandSprites( "tempArrowsErased.tga", NUM_TEMP_ARROWS, mTempArrowErasedSprites );
+    splitAndExpandSprites( "hungerDashes.tga", NUM_HUNGER_DASHES, mHungerDashSprites );
+    splitAndExpandSprites( "hungerDashesErased.tga", NUM_HUNGER_DASHES, mHungerDashErasedSprites );
+    splitAndExpandSprites( "hungerBars.tga", NUM_HUNGER_DASHES, mHungerBarSprites );
+    splitAndExpandSprites( "hungerBarsErased.tga", NUM_HUNGER_DASHES, mHungerBarErasedSprites );
+    splitAndExpandSprites( "homeArrows.tga", NUM_HOME_ARROWS, mHomeArrowSprites );
+    splitAndExpandSprites( "homeArrowsErased.tga", NUM_HOME_ARROWS, mHomeArrowErasedSprites );
+
+
+    SimpleVector<int> *culvertStoneIDs =
+        SettingsManager::getIntSettingMulti( "culvertStoneSprites" );
+
+    for( int i=0; i<culvertStoneIDs->size(); i++ ) {
+        int id = culvertStoneIDs->getElementDirect( i );
+
+        if( getSprite( id ) != NULL ) {
+            mCulvertStoneSpriteIDs.push_back( id );
+            }
+        }
+    delete culvertStoneIDs;
+
+
+    mCurrentArrowI = 0;
+    mCurrentArrowHeat = -1;
+    mCurrentDes = NULL;
+    mCurrentLastAteString = NULL;
+
+    mShowHighlights =
+        SettingsManager::getIntSetting( "showMouseOverHighlights", 1 );
+
+    mEKeyEnabled =
+        SettingsManager::getIntSetting( "eKeyForRightClick", 0 );
+
+
+    if( teaserVideo ) {
+        mTeaserArrowLongSprite = loadWhiteSprite( "teaserArrowLong.tga" );
+        mTeaserArrowMedSprite = loadWhiteSprite( "teaserArrowMed.tga" );
+        mTeaserArrowShortSprite = loadWhiteSprite( "teaserArrowShort.tga" );
+        mTeaserArrowVeryShortSprite =
+            loadWhiteSprite( "teaserArrowVeryShort.tga" );
+
+        mLineSegmentSprite = loadWhiteSprite( "lineSegment.tga" );
+        }
+
+
+    int tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 );
+
+    if( ! tutorialDone ) {
+        mTutorialNumber = 1;
+        }
+
+	minitech::setLivingLifePage(
+		this,
+		&gameObjects,
+		mMapD,
+		pathFindingD,
+		mMapContainedStacks,
+		mMapSubContainedStacks);
+
+	this->feature.debugMessageEnabled = false;
+}
 
 void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 {
@@ -250,6 +691,70 @@ void LivingLifePage::sendToServerSocket( char *inMessage )
 			setSignal( "loginFailed" );
 		}
 	}
+}
+
+doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
+
+static void clearLocationSpeech()
+{
+    for( int i=0; i<locationSpeech.size(); i++ ) {
+        delete [] locationSpeech.getElementDirect( i ).speech;
+        }
+    locationSpeech.deleteAll();
+}
+
+static void stripDescriptionComment( char *inString )
+{
+    // pound sign is used for trailing developer comments
+    // that aren't show to end user, cut them off if they exist
+    char *firstPound = strstr( inString, "#" );
+
+    if( firstPound != NULL ) {
+        firstPound[0] = '\0';
+        }
+}
+
+static char *getDisplayObjectDescription( int inID )
+{
+    ObjectRecord *o = getObject( inID );
+    if( o == NULL ) {
+        return NULL;
+        }
+    char *upper = stringToUpperCase( o->description );
+    stripDescriptionComment( upper );
+    return upper;
+}
+
+char *LivingLifePage::minitechGetDisplayObjectDescription( int objId )
+{
+    ObjectRecord *o = getObject( objId );
+    if( o == NULL )
+	{
+		return NULL;
+    }
+	return getDisplayObjectDescription(objId);
+}
+
+static char isGridAdjacent( int inXA, int inYA, int inXB, int inYB )
+{
+    if( ( abs( inXA - inXB ) == 1 && inYA == inYB )
+        ||
+        ( abs( inYA - inYB ) == 1 && inXA == inXB ) ) {
+
+        return true;
+        }
+
+    return false;
+}
+
+void LivingLifePage::computePathToDest( LiveObject *inObject )
+{
+	OneLife::game::computePathToDest(
+		inObject,
+		mMapD,
+		mMapOffsetX,
+		mMapOffsetY,
+		mMap);
 }
 
 double LivingLifePage::computePathSpeedMod( LiveObject *inObject,
@@ -295,131 +800,6 @@ double LivingLifePage::computePathSpeedMod( LiveObject *inObject,
     return speedMult;
     }
 
-/**********************************************************************************************************************/
-
-SimpleVector<LocationSpeech> locationSpeech;
-
-static void clearLocationSpeech() {
-    for( int i=0; i<locationSpeech.size(); i++ ) {
-        delete [] locationSpeech.getElementDirect( i ).speech;
-        }
-    locationSpeech.deleteAll();
-    }
-
-static int lastPlayerID = -1;// used on reconnect to decide whether to delete old home positions
-
-extern bool isTrippingEffectOn;
-extern void setTrippingColor( double x, double y );
-
-// base speed for animations that aren't speeded up or slowed down
-// when player moving at a different speed, anim speed is modified
-#define BASE_SPEED 3.75
-
-int numServerBytesSent = 0;
-static char hideGuiPanel = false;
-
-extern SimpleVector<unsigned char> serverSocketBuffer;
-static float connectionMessageFade = 1.0f;
-
-static void stripDescriptionComment( char *inString ) {
-    // pound sign is used for trailing developer comments
-    // that aren't show to end user, cut them off if they exist
-    char *firstPound = strstr( inString, "#" );
-            
-    if( firstPound != NULL ) {
-        firstPound[0] = '\0';
-        }
-    }
-
-static char *getDisplayObjectDescription( int inID ) {
-    ObjectRecord *o = getObject( inID );
-    if( o == NULL ) {
-        return NULL;
-        }
-    char *upper = stringToUpperCase( o->description );
-    stripDescriptionComment( upper );
-    return upper;
-    }
-
-char *LivingLifePage::minitechGetDisplayObjectDescription( int objId )
-{
-    ObjectRecord *o = getObject( objId );
-    if( o == NULL ) {
-		return NULL;
-    }
-	return getDisplayObjectDescription(objId);
-}
-
-extern char *pendingMapChunkMessage;
-
-static char isGridAdjacent( int inXA, int inYA, int inXB, int inYB )
-{
-    if( ( abs( inXA - inXB ) == 1 && inYA == inYB ) 
-        ||
-        ( abs( inYA - inYB ) == 1 && inXA == inXB ) ) {
-        
-        return true;
-        }
-
-    return false;
-}
-
-// for determining our ID when we're not youngest on the server
-// (so we're not last in the list after receiving the first PU message)
-int recentInsertedGameObjectIndex = -1;
-
-extern char autoAdjustFramerate;
-extern int baseFramesPerSecond;
-
-
-void LivingLifePage::computePathToDest( LiveObject *inObject )
-{
-	OneLife::game::computePathToDest(
-		inObject,
-		mMapD,
-		mMapOffsetX,
-		mMapOffsetY,
-		mMap);
-}
-
-// if user clicks to initiate an action while still moving, we
-// queue it here
-static char *nextActionMessageToSend = NULL;
-static char nextActionEating = false;
-static char nextActionDropping = false;
-
-// block move until next PLAYER_UPDATE received after action sent
-static char playerActionPending = false;
-static char playerActionTargetNotAdjacent = false;
-
-static char waitingForPong = false;
-static int lastPingSent = 0;
-static int lastPongReceived = 0;
-static int valleySpacing = 40;
-static int valleyOffset = 0;
-
-char lastCharUsed = 'A';
-char mapPullMode = false;
-int mapPullStartX = -10;
-int mapPullEndX = 10;
-int mapPullStartY = -10;
-int mapPullEndY = 10;
-
-int mapPullCurrentX;
-int mapPullCurrentY;
-char mapPullCurrentSaved = false;
-char mapPullCurrentSent = false;
-char mapPullModeFinalImage = false;
-
-Image *mapPullTotalImage = NULL;
-int numScreensWritten = 0;
-
-static int apocalypseInProgress = false;
-static double apocalypseDisplayProgress = 0;
-static double apocalypseDisplaySeconds = 6;
-
-static double remapPeakSeconds = 60;
-static double remapDelaySeconds = 30;
 
 
 //EXTENDED FUNCTIONALITY
@@ -600,51 +980,6 @@ bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
 	return (c == key || c == toupper(tKey));
 }
 
-
-static Image *expandToPowersOfTwoWhite( Image *inImage )
-{
-    int w = 1;
-    int h = 1;
-                    
-    while( w < inImage->getWidth() ) {
-        w *= 2;
-        }
-    while( h < inImage->getHeight() ) {
-        h *= 2;
-        }
-    
-    return inImage->expandImage( w, h, true );
-}
-
-
-static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
-                                   SpriteHandle *inDestArray )
-{
-    Image *full = readTGAFile( inTgaFileName );
-    if( full != NULL ) {
-        
-        int spriteW = full->getWidth() / inNumSprites;
-        
-        int spriteH = full->getHeight();
-        
-        for( int i=0; i<inNumSprites; i++ ) {
-            
-            Image *part = full->getSubImage( i * spriteW, 0, 
-                                          spriteW, spriteH );
-            Image *partExpanded = expandToPowersOfTwoWhite( part );
-            
-            
-            delete part;
-
-            inDestArray[i] = fillSprite( partExpanded, false );
-            
-            delete partExpanded;
-            }
-
-        delete full;
-        }
-}
-
 void LivingLifePage::clearMap()
 {
     for( int i=0; i<mMapD *mMapD; i++ ) {
@@ -681,411 +1016,6 @@ void LivingLifePage::clearMap()
         
         mMapPlayerPlacedFlags[i] = false;
         }
-}
-
-LivingLifePage::LivingLifePage() 
-        : mServerSocket( -1 ), 
-          mForceRunTutorial( false ),
-          mTutorialNumber( 0 ),
-          mGlobalMessageShowing( false ),
-          mGlobalMessageStartTime( 0 ),
-          mFirstServerMessagesReceived( 0 ),
-          mMapGlobalOffsetSet( false ),
-          mMapD( MAP_D ),
-          mMapOffsetX( 0 ),
-          mMapOffsetY( 0 ),
-          mEKeyEnabled( false ),
-          mEKeyDown( false ),
-          mGuiPanelSprite( loadSprite( "guiPanel.tga", false ) ),
-          mGuiBloodSprite( loadSprite( "guiBlood.tga", false ) ),
-          mNotePaperSprite( loadSprite( "notePaper.tga", false ) ),
-          mFloorSplitSprite( loadSprite( "floorSplit.tga", false ) ),
-          mCellBorderSprite( loadWhiteSprite( "cellBorder.tga" ) ),
-          mCellFillSprite( loadWhiteSprite( "cellFill.tga" ) ),
-          mHomeSlipSprite( loadSprite( "homeSlip.tga", false ) ),
-          mLastMouseOverID( 0 ),
-          mCurMouseOverID( 0 ),
-          mChalkBlotSprite( loadWhiteSprite( "chalkBlot.tga" ) ),
-          mPathMarkSprite( loadWhiteSprite( "pathMark.tga" ) ),
-          mSayField( handwritingFont, 0, 1000, 10, true, NULL,
-                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ " ),
-          mDeathReason( NULL ),
-          mShowHighlights( true ),
-          mUsingSteam( false ),
-          mZKeyDown( false ),
-          mObjectPicker( &objectPickable, +510, 90 )
-{
-	this->socket = new OneLife::game::component::Socket(
-		&serverSocketBuffer,
-		&bytesInCount,
-		&mServerSocket);
-
-    if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
-        mUsingSteam = true;
-        }
-
-    mForceGroundClick = false;
-    
-    mYumSlipSprites[0] = loadSprite( "yumSlip1.tga", false );
-    mYumSlipSprites[1] = loadSprite( "yumSlip2.tga", false );
-    mYumSlipSprites[2] = loadSprite( "yumSlip3.tga", false );
-    mYumSlipSprites[3] = loadSprite( "yumSlip4.tga", false );
-
-    mCurMouseOverCell.x = -1;
-    mCurMouseOverCell.y = -1;
-    mCurMouseOverCellFade = 0.0f;
-    mCurMouseOverCellFadeRate = 0.04;
-    mLastClickCell.x = -1;
-    mLastClickCell.y = -1;
-
-    // we're not showing a cursor on note paper, so arrow key behavior
-    // is confusing.
-    mSayField.setIgnoreArrowKeys( true );
-    // drawn under world at (0,1000), don't allow click to focus
-    mSayField.setIgnoreMouse( true );
-    
-    initLiveTriggers();
-
-    for( int i=0; i<4; i++ ) {
-        char *name = autoSprintf( "ground_t%d.tga", i );    
-        mGroundOverlaySprite[i] = loadSprite( name, false );
-        delete [] name;
-        }
-    
-
-    mMapGlobalOffset.x = 0;
-    mMapGlobalOffset.y = 0;
-
-    emotDuration = SettingsManager::getFloatSetting( "emotDuration", 10 );
-	
-    drunkEmotionIndex =
-        SettingsManager::getIntSetting( "drunkEmotionIndex", 2 );
-	
-    trippingEmotionIndex =
-        SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
-          
-    hideGuiPanel = SettingsManager::getIntSetting( "hideGameUI", 0 );
-
-    mHungerSound = loadSoundSprite( "otherSounds", "hunger.aiff" );
-    mPulseHungerSound = false;
-    
-
-    if( mHungerSound != NULL ) {
-        toggleVariance( mHungerSound, true );
-        }
-
-
-    mTutorialSound = loadSoundSprite( "otherSounds", "tutorialChime.aiff" );
-
-    if( mTutorialSound != NULL ) {
-        toggleVariance( mTutorialSound, true );
-        }
-
-    mCurseSound = loadSoundSprite( "otherSounds", "curseChime.aiff" );
-
-    if( mCurseSound != NULL ) {
-        toggleVariance( mCurseSound, true );
-        }
-    
-
-    mHungerSlipSprites[0] = loadSprite( "fullSlip.tga", false );
-    mHungerSlipSprites[1] = loadSprite( "hungrySlip.tga", false );
-    mHungerSlipSprites[2] = loadSprite( "starvingSlip.tga", false );
-    
-
-    // not visible, drawn under world at 0, 0, and doesn't move with camera
-    // still, we can use it to receive/process/filter typing events
-    addComponent( &mSayField );
-    
-    mSayField.unfocus();
-    
-    
-    mNotePaperHideOffset.x = -242;
-    mNotePaperHideOffset.y = -420;
-
-
-    mHomeSlipHideOffset.x = 0;
-    mHomeSlipHideOffset.y = -360;
-
-
-    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {    
-        mYumSlipHideOffset[i].x = -140;
-        mYumSlipHideOffset[i].y = -330;
-        }
-    
-    mYumSlipHideOffset[2].x += 60;
-    mYumSlipHideOffset[3].x += 70;
-
-    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {    
-        mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
-        mYumSlipPosTargetOffset[i] = mYumSlipHideOffset[i];
-        }
-    
-
-    for( int i=0; i<3; i++ ) {    
-        mHungerSlipShowOffsets[i].x = -540;
-        mHungerSlipShowOffsets[i].y = -250;
-    
-        mHungerSlipHideOffsets[i].x = -540;
-        mHungerSlipHideOffsets[i].y = -370;
-        
-        mHungerSlipWiggleTime[i] = 0;
-        mHungerSlipWiggleAmp[i] = 0;
-        mHungerSlipWiggleSpeed[i] = 0.05;
-        }
-    mHungerSlipShowOffsets[2].y += 20;
-    mHungerSlipHideOffsets[2].y -= 20;
-
-    mHungerSlipShowOffsets[2].y -= 50;
-    mHungerSlipShowOffsets[1].y -= 30;
-    mHungerSlipShowOffsets[0].y += 18;
-
-
-    mHungerSlipWiggleAmp[1] = 0.5;
-    mHungerSlipWiggleAmp[2] = 0.5;
-
-    mHungerSlipWiggleSpeed[2] = 0.075;
-
-    mStarvingSlipLastPos[0] = 0;
-    mStarvingSlipLastPos[1] = 0;
-    
-
-    for( int i=0; i<3; i++ ) {    
-        mHungerSlipPosOffset[i] = mHungerSlipHideOffsets[i];
-        mHungerSlipPosTargetOffset[i] = mHungerSlipPosOffset[i];
-        }
-    
-    mHungerSlipVisible = -1;
-
-    
-    
-    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
-        char *name = autoSprintf( "hintSheet%d.tga", i + 1 );    
-        mHintSheetSprites[i] = loadSprite( name, false );
-        delete [] name;
-        
-        mHintHideOffset[i].x = 900;
-        mHintHideOffset[i].y = -370;
-        
-        mHintTargetOffset[i] = mHintHideOffset[i];
-        mHintPosOffset[i] = mHintHideOffset[i];
-        
-        mHintExtraOffset[i].x = 0;
-        mHintExtraOffset[i].y = 0;
-
-        mHintMessage[i] = NULL;
-        mHintMessageIndex[i] = 0;
-        
-        mNumTotalHints[i] = 0;
-        }
-    
-    mLiveHintSheetIndex = -1;
-
-    mForceHintRefresh = false;
-    mCurrentHintObjectID = 0;
-    mCurrentHintIndex = 0;
-    
-    mNextHintObjectID = 0;
-    mNextHintIndex = 0;
-    
-    mLastHintSortedSourceID = 0;
-    
-    int maxObjectID = getMaxObjectID();
-    
-    mHintBookmarks = new int[ maxObjectID + 1 ];
-
-    for( int i=0; i<=maxObjectID; i++ ) {
-        mHintBookmarks[i] = 0;
-        }
-    
-    mHintFilterString = NULL;
-    mLastHintFilterString = NULL;
-    mPendingFilterString = NULL;
-    
-    
-
-    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
-        
-        mTutorialHideOffset[i].x = -914;
-        mTutorialFlips[i] = false;
-        
-        if( i % 2 == 1 ) {
-            // odd on right side of screen
-            mTutorialHideOffset[i].x = 914;
-            mTutorialFlips[i] = true;
-            }
-        
-        mTutorialHideOffset[i].y = 430;
-        
-        mTutorialTargetOffset[i] = mTutorialHideOffset[i];
-        mTutorialPosOffset[i] = mTutorialHideOffset[i];
-
-        mTutorialExtraOffset[i].x = 0;
-        mTutorialExtraOffset[i].y = 0;
-        
-        mTutorialMessage[i] = "";
-
-
-        mCravingHideOffset[i].x = -932;
-        
-        mCravingHideOffset[i].y = -370;
-        
-        mCravingTargetOffset[i] = mCravingHideOffset[i];
-        mCravingPosOffset[i] = mCravingHideOffset[i];
-
-        mCravingExtraOffset[i].x = 0;
-        mCravingExtraOffset[i].y = 0;
-        
-        mCravingMessage[i] = NULL;        
-        }
-    
-    mLiveTutorialSheetIndex = -1;
-    mLiveTutorialTriggerNumber = -1;
-    
-    mLiveCravingSheetIndex = -1;
-
-    //FOV
-	calcOffsetHUD();
-
-	Image *tempImage = readTGAFile( "guiPanel.tga" );
-	Image *tempImage2;
-
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 640, 0, 512, tempImage->getHeight() );
-	guiPanelLeftSprite = fillSprite( tempImage2 );
-	delete tempImage2;
-
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 128, 0, 256, tempImage->getHeight() );
-	guiPanelTileSprite = fillSprite( tempImage2 );
-	setSpriteWrapping( guiPanelTileSprite, true, false );
-	delete tempImage2;
-
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 + 640 - 512, 0, 512, tempImage->getHeight() );
-	guiPanelRightSprite = fillSprite( tempImage2 );
-	delete tempImage2;
-
-	delete tempImage;
-	//
-
-    mMap = new int[ mMapD * mMapD ];
-    mMapBiomes = new int[ mMapD * mMapD ];
-    mMapFloors = new int[ mMapD * mMapD ];
-    
-    mMapCellDrawnFlags = new char[ mMapD * mMapD ];
-
-    mMapContainedStacks = new SimpleVector<int>[ mMapD * mMapD ];
-    mMapSubContainedStacks = 
-        new SimpleVector< SimpleVector<int> >[ mMapD * mMapD ];
-    
-    mMapAnimationFrameCount =  new double[ mMapD * mMapD ];
-    mMapAnimationLastFrameCount =  new double[ mMapD * mMapD ];
-    mMapAnimationFrozenRotFrameCount =  new double[ mMapD * mMapD ];
-
-    mMapAnimationFrozenRotFrameCountUsed =  new char[ mMapD * mMapD ];
-    
-    mMapFloorAnimationFrameCount =  new int[ mMapD * mMapD ];
-
-    mMapCurAnimType =  new AnimType[ mMapD * mMapD ];
-    mMapLastAnimType =  new AnimType[ mMapD * mMapD ];
-    mMapLastAnimFade =  new double[ mMapD * mMapD ];
-    
-    mMapDropOffsets = new doublePair[ mMapD * mMapD ];
-    mMapDropRot = new double[ mMapD * mMapD ];
-    mMapDropSounds = new SoundUsage[ mMapD * mMapD ];
-
-    mMapMoveOffsets = new doublePair[ mMapD * mMapD ];
-    mMapMoveSpeeds = new double[ mMapD * mMapD ];
-
-    mMapTileFlips = new char[ mMapD * mMapD ];
-    
-    mMapPlayerPlacedFlags = new char[ mMapD * mMapD ];
-    
-
-    clearMap();
-
-
-    splitAndExpandSprites( "hungerBoxes.tga", NUM_HUNGER_BOX_SPRITES, 
-                           mHungerBoxSprites );
-    splitAndExpandSprites( "hungerBoxFills.tga", NUM_HUNGER_BOX_SPRITES, 
-                           mHungerBoxFillSprites );
-
-    splitAndExpandSprites( "hungerBoxesErased.tga", NUM_HUNGER_BOX_SPRITES, 
-                           mHungerBoxErasedSprites );
-    splitAndExpandSprites( "hungerBoxFillsErased.tga", NUM_HUNGER_BOX_SPRITES, 
-                           mHungerBoxFillErasedSprites );
-
-    splitAndExpandSprites( "tempArrows.tga", NUM_TEMP_ARROWS, 
-                           mTempArrowSprites );
-    splitAndExpandSprites( "tempArrowsErased.tga", NUM_TEMP_ARROWS, 
-                           mTempArrowErasedSprites );
-
-    splitAndExpandSprites( "hungerDashes.tga", NUM_HUNGER_DASHES, 
-                           mHungerDashSprites );
-    splitAndExpandSprites( "hungerDashesErased.tga", NUM_HUNGER_DASHES, 
-                           mHungerDashErasedSprites );
-
-    splitAndExpandSprites( "hungerBars.tga", NUM_HUNGER_DASHES, 
-                           mHungerBarSprites );
-    splitAndExpandSprites( "hungerBarsErased.tga", NUM_HUNGER_DASHES, 
-                           mHungerBarErasedSprites );
-
-    
-    splitAndExpandSprites( "homeArrows.tga", NUM_HOME_ARROWS, 
-                           mHomeArrowSprites );
-    splitAndExpandSprites( "homeArrowsErased.tga", NUM_HOME_ARROWS, 
-                           mHomeArrowErasedSprites );
-
-    
-    SimpleVector<int> *culvertStoneIDs = 
-        SettingsManager::getIntSettingMulti( "culvertStoneSprites" );
-    
-    for( int i=0; i<culvertStoneIDs->size(); i++ ) {
-        int id = culvertStoneIDs->getElementDirect( i );
-        
-        if( getSprite( id ) != NULL ) {
-            mCulvertStoneSpriteIDs.push_back( id );
-            }
-        }
-    delete culvertStoneIDs;
-
-
-    mCurrentArrowI = 0;
-    mCurrentArrowHeat = -1;
-    mCurrentDes = NULL;
-    mCurrentLastAteString = NULL;
-
-    mShowHighlights = 
-        SettingsManager::getIntSetting( "showMouseOverHighlights", 1 );
-
-    mEKeyEnabled = 
-        SettingsManager::getIntSetting( "eKeyForRightClick", 0 );
-
-
-    if( teaserVideo ) {
-        mTeaserArrowLongSprite = loadWhiteSprite( "teaserArrowLong.tga" );
-        mTeaserArrowMedSprite = loadWhiteSprite( "teaserArrowMed.tga" );
-        mTeaserArrowShortSprite = loadWhiteSprite( "teaserArrowShort.tga" );
-        mTeaserArrowVeryShortSprite = 
-            loadWhiteSprite( "teaserArrowVeryShort.tga" );
-        
-        mLineSegmentSprite = loadWhiteSprite( "lineSegment.tga" );
-        }
-          
-    
-    int tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 );
-    
-    if( ! tutorialDone ) {
-        mTutorialNumber = 1;
-        }
-		
-	minitech::setLivingLifePage(
-		this, 
-		&gameObjects, 
-		mMapD, 
-		pathFindingD, 
-		mMapContainedStacks, 
-		mMapSubContainedStacks);
-
-	this->feature.debugMessageEnabled = false;
 }
 
 void LivingLifePage::runTutorial()

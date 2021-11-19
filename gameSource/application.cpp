@@ -112,7 +112,7 @@ char rightKey = 'd';
 #include "OneLife/gameSource/components/pages/TwinPage.h"
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/musicPlayer.h"
-#include "OneLife/gameSource/spriteBank.h"
+#include "OneLife/gameSource/components/banks/spriteBank.h"
 #include "OneLife/gameSource/soundBank.h"
 #include "OneLife/gameSource/photos.h"
 #include "OneLife/gameSource/categoryBank.h"

@@ -10,7 +10,7 @@
 #include "OneLife/commonSource/fractalNoise.h"
 #include "OneLife/gameSource/procedures/animations/special.h"
 #include "minorGems/util/random/JenkinsRandomSource.h"
-#include "OneLife/gameSource/spriteBank.h"
+#include "OneLife/gameSource/components/banks/spriteBank.h"
 
 #define isInBounds(X, Y, Z)   !(X<0 || Y<0 || X>Z-1 || Y>Z-1 )
 

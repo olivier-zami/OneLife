@@ -43,7 +43,7 @@ extern CustomRandomSource randSource;
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
-#include "OneLife/gameSource/spriteBank.h"
+#include "OneLife/gameSource/components/banks/spriteBank.h"
 #include "OneLife/gameSource/objectBank.h"
 #include "OneLife/gameSource/categoryBank.h"
 #include "OneLife/gameSource/transitionBank.h"

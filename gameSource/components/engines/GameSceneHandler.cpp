@@ -31,7 +31,7 @@
 #include "OneLife/gameSource/objectBank.h"
 #include "OneLife/gameSource/soundBank.h"
 #include "OneLife/gameSource/categoryBank.h"
-#include "OneLife/gameSource/spriteBank.h"
+#include "OneLife/gameSource/components/banks/spriteBank.h"
 #include "OneLife/gameSource/objectBank.h"
 #include "OneLife/gameSource/animationBank.h"
 #include "OneLife/gameSource/groundSprites.h"

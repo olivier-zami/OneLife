@@ -16,7 +16,7 @@
 #include "minorGems/graphics/converters/TGAImageConverter.h"
 
 
-#include "spriteBank.h"
+#include "components/banks/spriteBank.h"
 
 #include "ageControl.h"
 

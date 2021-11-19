@@ -1,4 +1,4 @@
-#include "spriteBank.h"
+#include "components/banks/spriteBank.h"
 
 #include "objectBank.h"
 

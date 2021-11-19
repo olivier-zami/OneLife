@@ -19,6 +19,7 @@ game.cpp \
 application.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
+components/banks/spriteBank.cpp \
 components/camera.cpp \
 components/engines/audioRenderer.cpp \
 components/engines/deviceListener.cpp \
@@ -63,7 +64,6 @@ scenes1/agent.cpp \
 scenes1/intangibles/text.cpp \
 scenes1/maps/outsideMap.cpp \
 settings.cpp \
-spriteBank.cpp \
 objectBank.cpp \
 transitionBank.cpp \
 animationBank.cpp \

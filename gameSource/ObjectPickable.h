@@ -6,7 +6,7 @@
 
 
 #include "objectBank.h"
-#include "spriteBank.h"
+#include "components/banks/spriteBank.h"
 #include "transitionBank.h"
 #include "categoryBank.h"
 

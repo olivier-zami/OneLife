@@ -2,48 +2,27 @@
 #include "spriteBank.h"
 
 #include <stdlib.h>
-
 #include "minorGems/util/StringTree.h"
-
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/stringUtils.h"
-
 #include "minorGems/io/file/File.h"
-
 #include "minorGems/graphics/converters/TGAImageConverter.h"
-
 #include "OneLife/gameSource/game.h"
-
-
-#include "folderCache.h"
-#include "binFolderCache.h"
-
-
+#include "../../folderCache.h"
+#include "../../binFolderCache.h"
 
 static int mapSize;
 // maps IDs to records
 // sparse, so some entries are NULL
 static SpriteRecord **idMap;
-
-
 static StringTree tree;
-
-
 static FolderCache cache;
-
 static BinFolderCache binCache;
-
 static int currentFile;
 static int currentBinFile;
-
-
 static SimpleVector<SpriteRecord*> records;
 static int maxID;
-
-
 static File spritesDir( NULL, "sprites" );
-
-
 static SpriteHandle blankSprite = NULL;
 
 
@@ -62,7 +41,69 @@ static SimpleVector<int> loadedSprites;
 
 static char *loadingFailureFileName = NULL;
 
+OneLife::game::SpriteBank::SpriteBank()
+{
+	this->idxSprite = 0;
+}
 
+OneLife::game::SpriteBank::~SpriteBank() {}
+
+void OneLife::game::SpriteBank::loadImage(int id, const char* filename, unsigned int number)
+{
+	printf("\n=====>save image \"%s\"", filename);
+	//splitAndExpandSprites( filename, number, &(this->sprite[this->idxSprite]));
+	splitAndExpandSprites( filename, number, this->sprite);
+	//splitAndExpandSprites( "hungerBoxes.tga", NUM_HUNGER_BOX_SPRITES, this->sprite );
+	//splitAndExpandSprites( "hungerBoxFills.tga", NUM_HUNGER_BOX_SPRITES, this->sprite );
+}
+
+SpriteHandle* OneLife::game::SpriteBank::getSprite()
+{
+	return this->sprite;//TODO return this->sprite[this->mapIdx[id]+offset];
+}
+
+/**********************************************************************************************************************/
+
+void splitAndExpandSprites(
+		const char *inTgaFileName,
+		int inNumSprites,
+		SpriteHandle *inDestArray )
+{
+	Image *full = readTGAFile( inTgaFileName );
+	if( full != NULL ) {
+		printf("\n=====>readTGAFile");
+
+		int spriteW = full->getWidth() / inNumSprites;
+
+		int spriteH = full->getHeight();
+
+		for( int i=0; i<inNumSprites; i++ )
+		{
+			Image *part = full->getSubImage( i * spriteW, 0, spriteW, spriteH );
+			Image *partExpanded = expandToPowersOfTwoWhite( part );
+			delete part;
+			inDestArray[i] = fillSprite( partExpanded, false );
+			printf("\n====>store idx %s[%i]", inTgaFileName, i);
+			delete partExpanded;
+		}
+		delete full;
+	}
+}
+
+Image *expandToPowersOfTwoWhite( Image *inImage )
+{
+	int w = 1;
+	int h = 1;
+
+	while( w < inImage->getWidth() ) {
+		w *= 2;
+	}
+	while( h < inImage->getHeight() ) {
+		h *= 2;
+	}
+
+	return inImage->expandImage( w, h, true );
+}
 
 
 int getMaxSpriteID() {

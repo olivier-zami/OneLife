@@ -39,5 +39,5 @@ void LoadingPage::draw( doublePair inViewCenter, double inViewSize ){}
 
 void LoadingPage::step()
 {
-	printf("\n=====>loadingPage execute step()");
+	//printf("\n=====>loadingPage execute step()");
 }
