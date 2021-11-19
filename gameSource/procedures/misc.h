@@ -6,5 +6,6 @@
 #define ONELIFE_GAME_PROCEDURE_MISC_H
 
 void clearLocationSpeech();
+void stripDescriptionComment( char *inString );
 
 #endif //ONELIFE_GAME_PROCEDURE_MISC_H
