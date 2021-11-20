@@ -59,6 +59,7 @@ procedures/graphics/components/drawFixedShadowString.cpp \
 procedures/graphics/components/drawGraph.cpp \
 procedures/graphics/components/drawHUDBarPart.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
+procedures/graphics/screens/drawGameScreen.cpp \
 procedures/graphics/sprites/drawChalkBackgroundString.cpp \
 procedures/graphics/sprites/drawHungerMaxFillLine.cpp \
 procedures/graphics/sprites/drawLiveObject.cpp \
