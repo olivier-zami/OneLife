@@ -10,5 +10,6 @@
 double recalcOffsetX( double x, bool force = false );
 double recalcOffsetY( double y );
 doublePair recalcOffset( doublePair ofs, bool force = false );
+double getBoundedRandom( int inX, int inY, double inUpper, double inLower );
 
 #endif //ONELIFE_MATH_MISC_H

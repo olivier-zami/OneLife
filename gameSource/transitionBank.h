@@ -238,7 +238,8 @@ char isHumanMade( int inObjectID );
 // Intended to be called at server startup or when epoch time changes
 void setTransitionEpoch( int inEpocSeconds );
 
-
+int getTransMostImportantResult( TransRecord *inTrans );
+char getTransHintable( TransRecord *inTrans );
 
 
 #endif

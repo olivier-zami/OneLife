@@ -6015,3 +6015,23 @@ void clearTapoutCounts() {
         r->buildCount = 0;
         }
     }
+
+int findMainObjectID( int inObjectID )
+{
+	if( inObjectID <= 0 ) {
+		return inObjectID;
+	}
+
+	ObjectRecord *o = getObject( inObjectID );
+
+	if( o == NULL ) {
+		return inObjectID;
+	}
+
+	if( o->isUseDummy ) {
+		return o->useDummyParent;
+	}
+	else {
+		return inObjectID;
+	}
+}

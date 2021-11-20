@@ -821,5 +821,97 @@ void startConnecting()
 		currentGamePage = getServerAddressPage;
 		currentGamePage->base_makeActive( true );
 	}
+}
 
+void playPendingReceivedMessages( LiveObject *inPlayer )
+{
+	printf( "Playing %d pending received messages for %d\n",
+			inPlayer->pendingReceivedMessages.size(), inPlayer->id );
+
+	for( int i=0; i<inPlayer->pendingReceivedMessages.size(); i++ ) {
+		readyPendingReceivedMessages.push_back(
+				inPlayer->pendingReceivedMessages.getElementDirect( i ) );
+	}
+	inPlayer->pendingReceivedMessages.deleteAll();
+}
+
+void playPendingReceivedMessagesRegardingOthers( LiveObject *inPlayer ) {
+	printf( "Playing %d pending received messages for %d "
+			"    (skipping those that don't affect other players or map)\n",
+			inPlayer->pendingReceivedMessages.size(), inPlayer->id );
+
+	for( int i=0; i<inPlayer->pendingReceivedMessages.size(); i++ ) {
+		char *message = inPlayer->pendingReceivedMessages.getElementDirect( i );
+
+		if( strstr( message, "PU" ) == message ) {
+			// only keep PU's not about this player
+
+			int messageID = -1;
+
+			sscanf( message, "PU\n%d", &messageID );
+
+			if( messageID != inPlayer->id ) {
+				readyPendingReceivedMessages.push_back( message );
+			}
+			else {
+				delete [] message;
+			}
+		}
+		else if( strstr( message, "PM" ) == message ) {
+			// only keep PM's not about this player
+
+			int messageID = -1;
+
+			sscanf( message, "PM\n%d", &messageID );
+
+			if( messageID != inPlayer->id ) {
+				readyPendingReceivedMessages.push_back( message );
+			}
+			else {
+				delete [] message;
+			}
+		}
+		else {
+			// not a PU, keep it no matter what (map change, etc.
+			readyPendingReceivedMessages.push_back( message );
+		}
+	}
+	inPlayer->pendingReceivedMessages.deleteAll();
+}
+
+void dropPendingReceivedMessagesRegardingID( LiveObject *inPlayer, int inIDToDrop )
+{
+	for( int i=0; i<inPlayer->pendingReceivedMessages.size(); i++ ) {
+		char *message = inPlayer->pendingReceivedMessages.getElementDirect( i );
+		char match = false;
+
+		if( strstr( message, "PU" ) == message ) {
+			// only keep PU's not about this player
+
+			int messageID = -1;
+
+			sscanf( message, "PU\n%d", &messageID );
+
+			if( messageID == inIDToDrop ) {
+				match = true;
+			}
+		}
+		else if( strstr( message, "PM" ) == message ) {
+			// only keep PM's not about this player
+
+			int messageID = -1;
+
+			sscanf( message, "PM\n%d", &messageID );
+
+			if( messageID == inIDToDrop ) {
+				match = true;
+			}
+		}
+
+		if( match ) {
+			delete [] message;
+			inPlayer->pendingReceivedMessages.deleteElement( i );
+			i--;
+		}
+	}
 }

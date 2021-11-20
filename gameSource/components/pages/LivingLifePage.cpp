@@ -55,6 +55,9 @@
 #include "OneLife/gameSource/procedures/graphics/base.h"
 #include "OneLife/gameSource/minitech.h"
 #include "OneLife/gameSource/procedures/misc.h"
+#include "OneLife/gameSource/scenes1/maps/outsideMap.h"
+#include "OneLife/gameSource/components/soundPlayer.h"
+#include "OneLife/gameSource/procedures/graphics/components.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -109,6 +112,7 @@ extern SimpleVector<unsigned char> serverSocketBuffer;
 extern char *pendingMapChunkMessage;
 extern char autoAdjustFramerate;
 extern int baseFramesPerSecond;
+extern SimpleVector<OffScreenSound> offScreenSounds;
 
 //FOV
 extern int gui_hud_mode;
@@ -177,12 +181,19 @@ char mapPullCurrentSent = false;
 char mapPullModeFinalImage = false;
 Image *mapPullTotalImage = NULL;
 int numScreensWritten = 0;
+SpriteHandle guiPanelTileSprite;
+int historyGraphLength = 100;
+char drawAdd = true;
+char drawMult = true;
+double multAmount = 0.15;
+double addAmount = 0.25;
+char blackBorder = false;
+char whiteBorder = true;
 
 /**********************************************************************************************************************/
 
 static bool waitForDoorToOpen;
 static SpriteHandle guiPanelLeftSprite;
-static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
 /*static */JenkinsRandomSource randSource2( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
@@ -206,7 +217,6 @@ static char *photoSig = NULL;
 static double emotDuration = 10;
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
-static int historyGraphLength = 100;
 static char showFPS = false;
 static double frameBatchMeasureStartTime = -1;
 static int framesInBatch = 0;
@@ -692,18 +702,6 @@ void LivingLifePage::sendToServerSocket( char *inMessage )
 
 doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
 
-
-static char *getDisplayObjectDescription( int inID )
-{
-    ObjectRecord *o = getObject( inID );
-    if( o == NULL ) {
-        return NULL;
-        }
-    char *upper = stringToUpperCase( o->description );
-    stripDescriptionComment( upper );
-    return upper;
-}
-
 char *LivingLifePage::minitechGetDisplayObjectDescription( int objId )
 {
     ObjectRecord *o = getObject( objId );
@@ -712,18 +710,6 @@ char *LivingLifePage::minitechGetDisplayObjectDescription( int objId )
 		return NULL;
     }
 	return getDisplayObjectDescription(objId);
-}
-
-static char isGridAdjacent( int inXA, int inYA, int inXB, int inYB )
-{
-    if( ( abs( inXA - inXB ) == 1 && inYA == inYB )
-        ||
-        ( abs( inYA - inYB ) == 1 && inXA == inXB ) ) {
-
-        return true;
-        }
-
-    return false;
 }
 
 void LivingLifePage::computePathToDest( LiveObject *inObject )
@@ -778,8 +764,6 @@ double LivingLifePage::computePathSpeedMod( LiveObject *inObject,
         }
     return speedMult;
     }
-
-
 
 //EXTENDED FUNCTIONALITY
 void LivingLifePage::setNextActionMessage(const char* msg, int x, int y)
@@ -1449,34 +1433,6 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
 		mChalkBlotSprite);
 }
 
-SimpleVector<OffScreenSound> offScreenSounds;
-
-static void addOffScreenSound( double inPosX, double inPosY, char *inDescription )
-{
-
-    char red = false;
-    
-    char *stringPos = strstr( inDescription, "offScreenSound" );
-    
-    if( stringPos != NULL ) {
-        stringPos = &( stringPos[ strlen( "offScreenSound" ) ] );
-        
-        if( strstr( stringPos, "_red" ) == stringPos ) {
-            // _red flag next
-            red = true;
-            }
-        }
-    
-    double fadeETATime = game_getCurrentTime() + 4;
-    
-    doublePair pos = { inPosX, inPosY };
-    
-    OffScreenSound s = { pos, 1.0, fadeETATime, red };
-    
-    offScreenSounds.push_back( s );
-    }
-
-
 void LivingLifePage::drawOffScreenSounds()
 {
     OneLife::graphic::drawOffScreenSounds(mChalkBlotSprite);
@@ -1662,111 +1618,6 @@ void LivingLifePage::drawHungerMaxFillLine( doublePair inAteWordsPos,
 		inSkipDashes);
 }
 
-static double getBoundedRandom( int inX, int inY,
-                                double inUpper, double inLower ) {
-    double val = getXYRandom( inX, inY );
-    
-    return val * ( inUpper - inLower ) + inLower;
-    }
-
-
-
-
-static char isInBounds( int inX, int inY, int inMapD ) {
-    if( inX < 0 || inY < 0 || inX > inMapD - 1 || inY > inMapD - 1 ) {
-        return false;
-        }
-    return true;
-    }
-
-
-
-static void drawFixedShadowString( const char *inString, doublePair inPos ) {
-    
-    setDrawColor( 0, 0, 0, 1 );
-    numbersFontFixed->drawString( inString, inPos, alignLeft );
-            
-    setDrawColor( 1, 1, 1, 1 );
-            
-    inPos.x += 2;
-    inPos.y -= 2;
-    numbersFontFixed->drawString( inString, inPos, alignLeft );
-    }
-
-
-static void addToGraph( SimpleVector<double> *inHistory, double inValue ) {
-    inHistory->push_back( inValue );
-                
-    while( inHistory->size() > historyGraphLength ) {
-        inHistory->deleteElement( 0 );
-        }
-    }
-
-
-
-static void drawGraph( SimpleVector<double> *inHistory, doublePair inPos,
-                       FloatColor inColor ) {
-    double max = 0;
-    for( int i=0; i<inHistory->size(); i++ ) {
-        double val = inHistory->getElementDirect( i );
-        if( val > max ) {
-            max = val;
-            }
-        }
-
-    setDrawColor( 0, 0, 0, 0.5 );
-
-    double graphHeight = 40;
-
-    drawRect( inPos.x - 2, 
-              inPos.y - 2,
-              inPos.x + historyGraphLength + 2,
-              inPos.y + graphHeight + 2 );
-        
-    
-
-    setDrawColor( inColor.r, inColor.g, inColor.b, 0.75 );
-    for( int i=0; i<inHistory->size(); i++ ) {
-        double val = inHistory->getElementDirect( i );
-
-        double scaledVal = val / max;
-        
-        drawRect( inPos.x + i, 
-                  inPos.y,
-                  inPos.x + i + 1,
-                  inPos.y + scaledVal * graphHeight );
-        }
-    }
-
-char drawAdd = true;
-char drawMult = true;
-
-double multAmount = 0.15;
-double addAmount = 0.25;
-
-
-char blackBorder = false;
-                                
-char whiteBorder = true;
-
-//FOV
-static void drawHUDBarPart( double x, double y, double width, double height ) {
-    doublePair barPos[4] = {
-        { x, y + height },
-        { x + width, y + height },
-        { x + width, y },
-        { x, y }
-        };
-    double gapLength = abs( barPos[0].x - barPos[1].x ) / ( 256. * gui_fov_scale_hud );
-    doublePair barTexCoords[4] = {
-        { 0.f, 0.f },
-        { gapLength, 0.f },
-        { gapLength, 1.f },
-        { 0.f , 1.f },
-        };
-    drawSprite( guiPanelTileSprite, barPos, barTexCoords );
-    }
-
 void LivingLifePage::draw(
 	doublePair inViewCenter,
 	double inViewSize )
@@ -1776,114 +1627,12 @@ void LivingLifePage::draw(
 	/******************************************************************************************************************/
 }
 
-
-void playPendingReceivedMessages( LiveObject *inPlayer ) {
-    printf( "Playing %d pending received messages for %d\n", 
-            inPlayer->pendingReceivedMessages.size(), inPlayer->id );
-    
-    for( int i=0; i<inPlayer->pendingReceivedMessages.size(); i++ ) {
-        readyPendingReceivedMessages.push_back( 
-            inPlayer->pendingReceivedMessages.getElementDirect( i ) );
-        }
-    inPlayer->pendingReceivedMessages.deleteAll();
-    }
-
-
-
-void playPendingReceivedMessagesRegardingOthers( LiveObject *inPlayer ) {
-    printf( "Playing %d pending received messages for %d "
-            "    (skipping those that don't affect other players or map)\n", 
-            inPlayer->pendingReceivedMessages.size(), inPlayer->id );
-
-    for( int i=0; i<inPlayer->pendingReceivedMessages.size(); i++ ) {
-        char *message = inPlayer->pendingReceivedMessages.getElementDirect( i );
-        
-        if( strstr( message, "PU" ) == message ) {
-            // only keep PU's not about this player
-            
-            int messageID = -1;
-            
-            sscanf( message, "PU\n%d", &messageID );
-            
-            if( messageID != inPlayer->id ) {
-                readyPendingReceivedMessages.push_back( message );
-                }
-            else {
-                delete [] message;
-                }
-            }
-        else if( strstr( message, "PM" ) == message ) {
-            // only keep PM's not about this player
-            
-            int messageID = -1;
-            
-            sscanf( message, "PM\n%d", &messageID );
-            
-            if( messageID != inPlayer->id ) {
-                readyPendingReceivedMessages.push_back( message );
-                }
-            else {
-                delete [] message;
-                }
-            }
-        else {
-            // not a PU, keep it no matter what (map change, etc.
-            readyPendingReceivedMessages.push_back( message );
-            }
-        }
-    inPlayer->pendingReceivedMessages.deleteAll();
-    }
-
-
-
-void dropPendingReceivedMessagesRegardingID( LiveObject *inPlayer,
-                                             int inIDToDrop ) {
-    for( int i=0; i<inPlayer->pendingReceivedMessages.size(); i++ ) {
-        char *message = inPlayer->pendingReceivedMessages.getElementDirect( i );
-        char match = false;
-        
-        if( strstr( message, "PU" ) == message ) {
-            // only keep PU's not about this player
-            
-            int messageID = -1;
-            
-            sscanf( message, "PU\n%d", &messageID );
-            
-            if( messageID == inIDToDrop ) {
-                match = true;
-                }
-            }
-        else if( strstr( message, "PM" ) == message ) {
-            // only keep PM's not about this player
-            
-            int messageID = -1;
-            
-            sscanf( message, "PM\n%d", &messageID );
-            
-            if( messageID == inIDToDrop ) {
-                match = true;
-                }
-            }
-        
-        if( match ) {
-            delete [] message;
-            inPlayer->pendingReceivedMessages.deleteElement( i );
-            i--;
-            }
-        }
-    }
-
-
-
-
 void LivingLifePage::applyReceiveOffset( int *inX, int *inY ) {
     if( mMapGlobalOffsetSet ) {
         *inX -= mMapGlobalOffset.x;
         *inY -= mMapGlobalOffset.y;
         }
     }
-
-
 
 int LivingLifePage::sendX( int inX ) {
     if( mMapGlobalOffsetSet ) {
@@ -1892,16 +1641,12 @@ int LivingLifePage::sendX( int inX ) {
     return inX;
     }
 
-
-
 int LivingLifePage::sendY( int inY ) {
     if( mMapGlobalOffsetSet ) {
         return inY + mMapGlobalOffset.y;
         }
     return inY;
     }
-
-
 
 char *LivingLifePage::getDeathReason() {
     if( mDeathReason != NULL ) {
@@ -1911,8 +1656,6 @@ char *LivingLifePage::getDeathReason() {
         return NULL;
         }
     }
-
-
 
 void LivingLifePage::handleOurDeath( char inDisconnect ) {
     
@@ -1957,165 +1700,6 @@ void LivingLifePage::handleOurDeath( char inDisconnect ) {
     fadeSoundSprites( 0.1 );
     setSoundLoudness( 0 );
     }
-
-
-
-static char isCategory( int inID ) {
-    if( inID <= 0 ) {
-        return false;
-        }
-    
-    CategoryRecord *c = getCategory( inID );
-    
-    if( c == NULL ) {
-        return false;
-        }
-    if( ! c->isPattern && c->objectIDSet.size() > 0 ) {
-        return true;
-        }
-    return false;
-    }
-
-
-static char isFood( int inID ) {
-    if( inID <= 0 ) {
-        return false;
-        }
-    
-    ObjectRecord *o = getObject( inID );
-    
-    if( o->foodValue > 0 ) {
-        return true;
-        }
-    else {
-        return false;
-        }
-    }
-
-
-
-
-static char getTransHintable( TransRecord *inTrans ) {
-
-    if( inTrans->lastUseActor ) {
-        return false;
-        }
-    if( inTrans->lastUseTarget ) {
-        return false;
-        }
-    
-    if( inTrans->actor >= 0 && 
-        ( inTrans->target > 0 || inTrans->target == -1 ) &&
-        ( inTrans->newActor > 0 || inTrans->newTarget > 0 ) ) {
-
-
-        if( isCategory( inTrans->actor ) ) {
-            return false;
-            }
-        if( isCategory( inTrans->target ) ) {
-            return false;
-            }
-        
-        if( inTrans->target == -1 && inTrans->newTarget == 0 &&
-            ! isFood( inTrans->actor ) ) {
-            // generic one-time-use transition
-            return false;
-            }
-
-        return true;
-        }
-    else {
-        return false;
-        }
-    }
-
-
-
-
-static int findMainObjectID( int inObjectID ) {
-    if( inObjectID <= 0 ) {
-        return inObjectID;
-        }
-    
-    ObjectRecord *o = getObject( inObjectID );
-    
-    if( o == NULL ) {
-        return inObjectID;
-        }
-    
-    if( o->isUseDummy ) {
-        return o->useDummyParent;
-        }
-    else {
-        return inObjectID;
-        }
-    }
-
-
-
-static int getTransMostImportantResult( TransRecord *inTrans ) {
-    int actor = findMainObjectID( inTrans->actor );
-    int target = findMainObjectID( inTrans->target );
-    int newActor = findMainObjectID( inTrans->newActor );
-    int newTarget = findMainObjectID( inTrans->newTarget );
-
-    int result = 0;
-        
-
-    if( target != newTarget &&
-        newTarget > 0 &&
-        actor != newActor &&
-        newActor > 0 ) {
-        // both actor and target change
-        // we need to decide which is the most important result
-        // to hint
-            
-        if( actor == 0 && newActor > 0 ) {
-            // something new ends in your hand, that's more important
-            result = newActor;
-            }
-        else {
-            // if the trans takes one of the elements to a deeper
-            // state, that's more important, starting with actor
-            if( actor > 0 && 
-                getObjectDepth( newActor ) > getObjectDepth( actor ) ) {
-                result = newActor;
-                }
-            else if( target > 0 && 
-                     getObjectDepth( newTarget ) > 
-                     getObjectDepth( target ) ) {
-                result = newTarget;
-                }
-            // else neither actor or target becomes deeper
-            // which result is deeper?
-            else if( getObjectDepth( newActor ) > 
-                     getObjectDepth( newTarget ) ) {
-                result = newActor;
-                }
-            else {
-                result = newTarget;
-                }
-            }
-        }
-    else if( target != newTarget && 
-             newTarget > 0 ) {
-            
-        result = newTarget;
-        }
-    else if( actor != newActor && 
-             newActor > 0 ) {
-            
-        result = newActor;
-        }
-    else if( newTarget > 0 ) {
-        // don't show NOTHING as a result
-        result = newTarget;
-        }
-
-    return result;
-    }
-
-
 
 int LivingLifePage::getNumHints( int inObjectID ) {
     
@@ -2670,32 +2254,6 @@ int LivingLifePage::getNumHints( int inObjectID ) {
     return mLastHintSortedList.size();
     }
 
-
-
-static double getLongestLine( char *inMessage ) {
-    
-    double longestLine = 0;
-    
-    int numLines;
-    char **lines = split( inMessage, 
-                          "#", &numLines );
-    
-    for( int l=0; l<numLines; l++ ) {
-        double len = handwritingFont->measureString( lines[l] ) / gui_fov_scale_hud;
-        
-        if( len > longestLine ) {
-            longestLine = len;
-                    }
-        delete [] lines[l];
-        }
-    delete [] lines;
-    
-    return longestLine;
-    }
-
-
-
-
 char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
 
     if( inObjectID != mLastHintSortedSourceID ) {
@@ -2707,17 +2265,14 @@ char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
     if( inIndex < mLastHintSortedList.size() ) {    
         found = mLastHintSortedList.getElementDirect( inIndex );
         }
-    
 
-    
     if( found != NULL ) {
         int actor = findMainObjectID( found->actor );
         int target = findMainObjectID( found->target );
         int newActor = findMainObjectID( found->newActor );
 
         int result = getTransMostImportantResult( found );
-        
-        
+
         char *actorString;
         
         if( actor > 0 ) {
@@ -2730,11 +2285,9 @@ char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
         else {
             actorString = stringDuplicate( "" );
             }
-
         
         char eventually = false;
-        
-        
+
         char *targetString;
         
         if( target > 0 ) {
@@ -2779,7 +2332,6 @@ char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
         else {
             targetString = stringDuplicate( "" );
             }
-        
 
         char *resultString;
         
@@ -2800,7 +2352,6 @@ char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
             delete [] old;
             }
 
-        
         char *fullString =
             autoSprintf( "%s#%s#%s", actorString,
                          targetString, 
@@ -2816,103 +2367,6 @@ char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
         return stringDuplicate( translate( "noHint" ) );
         }
     }
-
-
-
-// inNewID > 0
-static char shouldCreationSoundPlay( int inOldID, int inNewID ) {
-    if( inOldID == inNewID ) {
-        // no change
-        return false;
-        }
-    
-
-    // make sure this is really a fresh creation
-    // of newID, and not a cycling back around
-    // for a reusable object
-    
-    // also not useDummies that have the same
-    // parent
-    char sameParent = false;
-    
-    ObjectRecord *obj = getObject( inNewID );
-
-    if( obj->creationSound.numSubSounds == 0 ) {
-        return false;
-        }
-
-    if( inOldID > 0 && inNewID > 0 ) {
-        ObjectRecord *oldObj = getObject( inOldID );
-        
-        if( obj->isUseDummy &&
-            oldObj->isUseDummy &&
-            obj->useDummyParent ==
-            oldObj->useDummyParent ) {
-            sameParent = true;
-            }
-        else if( obj->numUses > 1 
-                 &&
-                 oldObj->isUseDummy 
-                 &&
-                 oldObj->useDummyParent
-                 == inNewID ) {
-            sameParent = true;
-            }
-        else if( oldObj->numUses > 1 
-                 &&
-                 obj->isUseDummy 
-                 &&
-                 obj->useDummyParent
-                 == inOldID ) {
-            sameParent = true;
-            }
-        }
-    
-    if( ! sameParent 
-        &&
-        ( ! obj->creationSoundInitialOnly
-          ||
-          inOldID <= 0
-          ||
-          ( ! isSpriteSubset( inOldID, inNewID ) ) ) ) {
-        return true;
-        }
-
-    return false;
-    }
-
-
-static char checkIfHeldContChanged( LiveObject *inOld, LiveObject *inNew ) {    
-                    
-    if( inOld->numContained != inNew->numContained ) {
-        return true;
-        }
-    else {
-        for( int c=0; c<inOld->numContained; c++ ) {
-            if( inOld->containedIDs[c] != 
-                inNew->containedIDs[c] ) {
-                return true;
-                }
-            if( inOld->subContainedIDs[c].size() != 
-                inNew->subContainedIDs[c].size() ) {
-                return true;
-                }
-            for( int s=0; s<inOld->subContainedIDs[c].size();
-                 s++ ) {
-                if( inOld->subContainedIDs[c].
-                    getElementDirect( s ) !=
-                    inNew->subContainedIDs[c].
-                    getElementDirect( s ) ) {
-                    return true;
-                    }
-                }
-            }
-        }
-    return false;
-    }
-
-
-
 
 void LivingLifePage::sendBugReport( int inBugNumber ) {
     char *bugString = stringDuplicate( "" );
@@ -11357,22 +10811,7 @@ void LivingLifePage::step() {
             mStartedLoadingFirstObjectSetStartTime = game_getCurrentTime();
             }
         }
-    
-    }
-
-
-
-
-// previous function (step) is so long that it's slowin down Emacs
-// on the following function
-// put a dummy function here to help emacs.
-static void dummyFunctionA() {
-    // call self to avoid compiler warning for unused function
-    if( false ) {
-        dummyFunctionA();
-        }
-    }
-
+}
 
 
 char LivingLifePage::isSameFloor( int inFloor, GridPos inFloorPos, 

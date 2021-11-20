@@ -4,6 +4,8 @@
 
 #include "outsideMap.h"
 
+#include <cmath>
+
 OneLife::game::OutsideMap::OutsideMap() {}
 OneLife::game::OutsideMap::~OutsideMap() {}
 
@@ -27,4 +29,26 @@ GridPos OneLife::game::getMapPos( int inWorldX, int inWorldY, int mMapD, int mMa
 			  inWorldY - mMapOffsetY + mMapD / 2 };
 
 	return p;
+}
+
+/**********************************************************************************************************************/
+
+char isGridAdjacent( int inXA, int inYA, int inXB, int inYB )
+{
+	if( ( abs( inXA - inXB ) == 1 && inYA == inYB )
+		||
+		( abs( inYA - inYB ) == 1 && inXA == inXB ) ) {
+
+		return true;
+	}
+
+	return false;
+}
+
+char isInBounds( int inX, int inY, int inMapD )
+{
+	if( inX < 0 || inY < 0 || inX > inMapD - 1 || inY > inMapD - 1 ) {
+		return false;
+	}
+	return true;
 }

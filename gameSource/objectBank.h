@@ -911,6 +911,8 @@ TapoutRecord *getTapoutRecord( int inObjectID );
 
 void clearTapoutCounts();
 
+int findMainObjectID( int inObjectID );
+
 
 
 #endif

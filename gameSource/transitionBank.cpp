@@ -1,16 +1,12 @@
 #include "transitionBank.h"
 
-
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/stringUtils.h"
-
 #include "minorGems/io/file/File.h"
-
-
-
 #include "folderCache.h"
 #include "objectBank.h"
 #include "categoryBank.h"
+#include "OneLife/gameSource/procedures/misc.h"
 
 
 
@@ -3019,3 +3015,100 @@ void setTransitionEpoch( int inEpocSeconds ) {
             }
         }
     }
+
+int getTransMostImportantResult( TransRecord *inTrans )
+{
+	int actor = findMainObjectID( inTrans->actor );
+	int target = findMainObjectID( inTrans->target );
+	int newActor = findMainObjectID( inTrans->newActor );
+	int newTarget = findMainObjectID( inTrans->newTarget );
+
+	int result = 0;
+
+
+	if( target != newTarget &&
+		newTarget > 0 &&
+		actor != newActor &&
+		newActor > 0 ) {
+		// both actor and target change
+		// we need to decide which is the most important result
+		// to hint
+
+		if( actor == 0 && newActor > 0 ) {
+			// something new ends in your hand, that's more important
+			result = newActor;
+		}
+		else {
+			// if the trans takes one of the elements to a deeper
+			// state, that's more important, starting with actor
+			if( actor > 0 &&
+				getObjectDepth( newActor ) > getObjectDepth( actor ) ) {
+				result = newActor;
+			}
+			else if( target > 0 &&
+					 getObjectDepth( newTarget ) >
+					 getObjectDepth( target ) ) {
+				result = newTarget;
+			}
+				// else neither actor or target becomes deeper
+				// which result is deeper?
+			else if( getObjectDepth( newActor ) >
+					 getObjectDepth( newTarget ) ) {
+				result = newActor;
+			}
+			else {
+				result = newTarget;
+			}
+		}
+	}
+	else if( target != newTarget &&
+			 newTarget > 0 ) {
+
+		result = newTarget;
+	}
+	else if( actor != newActor &&
+			 newActor > 0 ) {
+
+		result = newActor;
+	}
+	else if( newTarget > 0 ) {
+		// don't show NOTHING as a result
+		result = newTarget;
+	}
+
+	return result;
+}
+
+char getTransHintable( TransRecord *inTrans )
+{
+	if( inTrans->lastUseActor ) {
+		return false;
+	}
+	if( inTrans->lastUseTarget ) {
+		return false;
+	}
+
+	if( inTrans->actor >= 0 &&
+		( inTrans->target > 0 || inTrans->target == -1 ) &&
+		( inTrans->newActor > 0 || inTrans->newTarget > 0 ) ) {
+
+
+		if( isCategory( inTrans->actor ) ) {
+			return false;
+		}
+		if( isCategory( inTrans->target ) ) {
+			return false;
+		}
+
+		if( inTrans->target == -1 && inTrans->newTarget == 0 &&
+			! isFood( inTrans->actor ) ) {
+			// generic one-time-use transition
+			return false;
+		}
+
+		return true;
+	}
+	else {
+		return false;
+	}
+}

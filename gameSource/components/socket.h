@@ -8,6 +8,7 @@
 #include "../../../minorGems/util/SimpleVector.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "minorGems/network/SocketClient.h"
+#include "OneLife/gameSource/dataTypes/game.h"
 
 namespace OneLife::game::component
 {
@@ -109,6 +110,9 @@ char *getNextServerMessage();
 messageType getMessageType( char *inMessage );
 void replaceLastMessageSent( char *inNewMessage );
 void startConnecting();
+void playPendingReceivedMessages( LiveObject *inPlayer );
+void playPendingReceivedMessagesRegardingOthers( LiveObject *inPlayer );
+void dropPendingReceivedMessagesRegardingID( LiveObject *inPlayer, int inIDToDrop );
 
 
 #endif //ONELIFE_SOCKET_H

@@ -34,6 +34,8 @@ void addNewAnimPlayerOnly( LiveObject *inObject, AnimType inNewAnim );
 void addNewAnim( LiveObject *inObject, AnimType inNewAnim );
 char nearEndOfMovement( LiveObject *inPlayer );
 LiveObject *getGameObject( int inID );//TODO: put this in livingLifePage->getObject();
+char *getDisplayObjectDescription( int inID );//TODO: put this in inquirer, AgentBank or something
+char checkIfHeldContChanged( LiveObject *inOld, LiveObject *inNew );
 
 
 #endif //ONELIFE_GAME_AGENT_H

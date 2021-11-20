@@ -10,6 +10,7 @@
 #include "OneLife/gameSource/procedures/maths/gridPos.h"
 #include "OneLife/gameSource/ageControl.h"
 #include "OneLife/gameSource/procedures/ai/pathFind.h"
+#include "OneLife/gameSource/procedures/misc.h"
 
 extern int baseFramesPerSecond;
 extern double frameRateFactor;
@@ -632,4 +633,45 @@ void OneLife::game::computePathToDest(
 	inObject->onFinalPathStep = false;
 
 	delete [] blockedMap;
+}
+
+char *getDisplayObjectDescription( int inID )
+{
+	ObjectRecord *o = getObject( inID );
+	if( o == NULL ) {
+		return NULL;
+	}
+	char *upper = stringToUpperCase( o->description );
+	stripDescriptionComment( upper );
+	return upper;
+}
+
+char checkIfHeldContChanged( LiveObject *inOld, LiveObject *inNew )
+{
+
+	if( inOld->numContained != inNew->numContained ) {
+		return true;
+	}
+	else {
+		for( int c=0; c<inOld->numContained; c++ ) {
+			if( inOld->containedIDs[c] !=
+				inNew->containedIDs[c] ) {
+				return true;
+			}
+			if( inOld->subContainedIDs[c].size() !=
+				inNew->subContainedIDs[c].size() ) {
+				return true;
+			}
+			for( int s=0; s<inOld->subContainedIDs[c].size();
+				 s++ ) {
+				if( inOld->subContainedIDs[c].
+						getElementDirect( s ) !=
+					inNew->subContainedIDs[c].
+							getElementDirect( s ) ) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }

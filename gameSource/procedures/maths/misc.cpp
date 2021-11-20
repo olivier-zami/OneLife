@@ -5,6 +5,7 @@
 #include "misc.h"
 
 #include "minorGems/game/drawUtils.h"
+#include "OneLife/commonSource/fractalNoise.h"
 
 // world width of one view
 //FOV
@@ -47,4 +48,10 @@ doublePair recalcOffset( doublePair ofs, bool force)
 	ofs.x = recalcOffsetX( ofs.x, force );
 	ofs.y = recalcOffsetY( ofs.y );
 	return ofs;
+}
+
+double getBoundedRandom( int inX, int inY, double inUpper, double inLower )
+{
+	double val = getXYRandom( inX, inY );
+	return val * ( inUpper - inLower ) + inLower;
 }
