@@ -4,9 +4,18 @@
 
 #include "exception.h"
 
-#include <cstdio>
+#include <cstring>
 
-OneLife::game::dataType::Exception::Exception(const char* message)
+OneLife::game::Exception::Exception(const char* message)
 {
-	printf("\n%s", message);
+	memset(this->message, 0, sizeof(this->message));
+	strcpy(this->message, message);
+	this->message[254] = 0;
+}
+
+OneLife::game::Exception::~Exception() {}
+
+const char* OneLife::game::Exception::getMessage()
+{
+	return this->message;
 }

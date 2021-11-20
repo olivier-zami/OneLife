@@ -61,6 +61,7 @@ int main( int inArgCount, char **inArgs )
 #include "OneLife/gameSource/dataTypes/sound.h"
 #include "OneLife/gameSource/application.h"
 #include "settings.h"//#include "OneLife/gameSource/settings.h"
+#include "OneLife/gameSource/dataTypes/exception/exception.h"
 
 #ifdef RASPBIAN
 
@@ -333,10 +334,6 @@ int mainFunction( int inNumArgs, char **inArgs )
             }
         }
 #endif
-
-
-
-
 
 	// do this mac check after initing SDL,
 	// since it causes various Mac frameworks to be loaded (which can
@@ -732,8 +729,8 @@ int mainFunction( int inNumArgs, char **inArgs )
 	char *hashSalt = getHashSalt();
 
 	/******************************************************************************************************************/
-	//try //TODO catch error after Exception implementation
-	//{
+	try //TODO catch error after Exception implementation
+	{
 		screen = new OneLife::game::Application(
 				gameSettings,
 				screenWidth,
@@ -749,8 +746,8 @@ int mainFunction( int inNumArgs, char **inArgs )
 
 		screen->setConnection();
 
-	//}
-	if(false)//catch() //TODO catch fail on OneLife::game::Application instantiation
+	}
+	catch(OneLife::game::Exception* e)
 	{
 		AppLog::getLog()->logPrintf(Log::CRITICAL_ERROR_LEVEL, "Couldn't initialize SDL: %s\n", SDL_GetError() );
 		return 0;
