@@ -496,13 +496,14 @@ void OneLife::game::Application::init(OneLife::game::Settings settings)
 
 }
 
-void OneLife::game::Application::setConnection()
+void OneLife::game::Application::setConnection(const char* ip, int port)
 {
-	/*TODO: uncomment when modification is finished
-	this->connection = new OneLife::game::component::Socket(
-			&serverSocketBuffer,
-			&bytesInCount);
-	*/
+	OneLife::game::dataType::socket::Address serverAddress;
+	memset(serverAddress.ip, 0, sizeof(serverAddress.ip));
+	strcpy(serverAddress.ip, ip);
+	serverAddress.port = port;
+	this->connection = new OneLife::game::component::Socket();
+	this->connection->setAddress(serverAddress);
 }
 
 OneLife::game::component::Socket* OneLife::game::Application::getConnection()
@@ -644,8 +645,6 @@ void OneLife::game::Application::start()
 				oversleepMSec = 0;
 			}
 		}
-
-
 	}
 }
 
@@ -1108,252 +1107,846 @@ void OneLife::game::Application::selectScreen()
 {
 	if(currentGamePage == this->initializationScreen)
 	{
-		if(((OneLife::game::InitializationScreen*)currentGamePage)->isTaskComplete())
+
+
+		if(demoMode)
+		{
+			if(this->idScreen !=1){printf("\n===>demoMode");this->idScreen = 1;}
+			if( ! isDemoCodePanelShowing() )
+			{
+				demoMode = false;// stop demo mode when panel done
+				//mScreen->addMouseHandler( this );
+				//mScreen->addKeyboardHandler( this );
+				//screen->startRecordingOrPlayback();
+			}
+		}
+		else if( writeFailed )
+		{
+			if(this->idScreen !=2){printf("\n===>write failed");this->idScreen = 2;}
+			drawString( translate( "writeFailed" ), true );
+		}
+		else if( !this->isPlayingBack() && measureFrameRate ) {
+			if(this->idScreen !=3){printf("\n===>!isPlayingBack && measureFrameRate");this->idScreen = 3;}
+			if( !measureRecorded )
+			{
+				this->useFrameSleep( false );
+			}
+
+			if( numFramesSkippedBeforeMeasure < numFramesToSkipBeforeMeasure ) {
+				numFramesSkippedBeforeMeasure++;
+
+				drawString( translate( "measuringFPS" ), true );
+			}
+			else if( ! startMeasureTimeRecorded ) {
+				startMeasureTime = Time::getCurrentTime();
+				startMeasureTimeRecorded = true;
+
+				drawString( translate( "measuringFPS" ), true );
+			}
+			else {
+
+				numFramesMeasured++;
+
+				double totalTime = Time::getCurrentTime() - startMeasureTime;
+
+				double timePerFrame = totalTime / ( numFramesMeasured );
+
+				double frameRate = 1 / timePerFrame;
+
+
+				int closestTargetFrameRate = 0;
+				double closestFPSDiff = 9999999;
+
+				for( int i=0; i<possibleFrameRates.size(); i++ ) {
+
+					int v = possibleFrameRates.getElementDirect( i );
+
+					double diff = fabs( frameRate - v );
+
+					if( diff < closestFPSDiff ) {
+						closestTargetFrameRate = v;
+						closestFPSDiff = diff;
+					}
+				}
+
+				double overAllowFactor = 1.05;
+
+
+
+				if( numFramesMeasured > 10 &&
+					frameRate > overAllowFactor * closestTargetFrameRate ) {
+
+					secondsToMeasure = warningSecondsToMeasure;
+				}
+				else {
+					secondsToMeasure = noWarningSecondsToMeasure;
+				}
+
+				if( totalTime <= secondsToMeasure ) {
+					char *message = autoSprintf( "%s\n%0.2f\nFPS",
+							translate( "measuringFPS" ),
+							frameRate );
+
+
+					drawString( message, true );
+
+					delete [] message;
+				}
+
+				if( totalTime > secondsToMeasure ) {
+
+					if( ! measureRecorded ) {
+
+						if( targetFrameRate == idealTargetFrameRate ) {
+							// not invoking halfFrameRate
+
+							AppLog::infoF( "Measured frame rate = %f fps\n",
+									frameRate );
+							AppLog::infoF(
+									"Closest possible frame rate = %d fps\n",
+									closestTargetFrameRate );
+
+							if( frameRate >
+								overAllowFactor * closestTargetFrameRate ) {
+
+								AppLog::infoF(
+										"Vsync to enforce closested frame rate of "
+										"%d fps doesn't seem to be in effect.\n",
+										closestTargetFrameRate );
+
+								AppLog::infoF(
+										"Will sleep each frame to enforce desired "
+										"frame rate of %d fps\n",
+										idealTargetFrameRate );
+
+								targetFrameRate = idealTargetFrameRate;
+
+								this->useFrameSleep( true );
+								countingOnVsync = false;
+							}
+							else {
+								AppLog::infoF(
+										"Vsync seems to be enforcing an allowed frame "
+										"rate of %d fps.\n", closestTargetFrameRate );
+
+								targetFrameRate = closestTargetFrameRate;
+
+								this->useFrameSleep( false );
+								countingOnVsync = true;
+							}
+						}
+						else {
+							// half frame rate must be set
+
+							AppLog::infoF(
+									"User has halfFrameRate set, so we're going "
+									"to manually sleep to enforce a target "
+									"frame rate of %d fps.\n", targetFrameRate );
+							this->useFrameSleep( true );
+							countingOnVsync = false;
+						}
+
+
+						this->setFullFrameRate( targetFrameRate );
+						measureRecorded = true;
+					}
+
+					if( !countingOnVsync ) {
+						// show warning message
+						char *message =
+								autoSprintf( "%s\n%s\n\n%s\n\n\n%s",
+										translate( "vsyncWarning" ),
+										translate( "vsyncWarning2" ),
+										translate( "vsyncWarning3" ),
+										translate( "vsyncContinueMessage" ) );
+						drawString( message, true );
+
+						delete [] message;
+					}
+					else {
+						// auto-save it now
+						saveFrameRateSettings();
+						this->startRecordingOrPlayback();
+						measureFrameRate = false;
+					}
+				}
+			}
+			//return;
+		}
+		else if( !loadingMessageShown ){
+			if(this->idScreen !=4){printf("\n===>!loadingMessageShown");this->idScreen = 4;}
+			drawString( translate( "loading" ), true );
+			loadingMessageShown = true;
+		}//step1
+		else if( loadingFailedFlag ) {
+			if(this->idScreen !=5){printf("\n===>loadingFailedFlag");this->idScreen = 5;}
+			drawString( loadingFailedMessage, true );
+		}
+		else if( !writeFailed && !loadingFailedFlag && !frameDrawerInited ) {
+			if(this->idScreen !=6){printf("\n===>!writeFailed && !loadingFailedFlag && !frameDrawerInited");this->idScreen = 6;}
+			drawString( translate( "loading" ), true );
+			int readCursorMode = SettingsManager::getIntSetting( "cursorMode", -1 );
+			if( readCursorMode < 0 ) {
+				// never set before
+
+				// check if we are ultrawidescreen
+				char ultraWide = false;
+
+				const SDL_VideoInfo* currentScreenInfo = SDL_GetVideoInfo();
+
+				int currentW = currentScreenInfo->current_w;
+				int currentH = currentScreenInfo->current_h;
+
+				double aspectRatio = (double)currentW / (double)currentH;
+
+				// give a little wiggle room above 16:9
+				// ultrawide starts at 21:9
+				if( aspectRatio > 18.0 / 9.0 ) {
+					ultraWide = true;
+				}
+
+				if( ultraWide ) {
+					// drawn cursor, because system native cursor
+					// is off-target on ultrawide displays
+
+					setCursorMode( 1 );
+
+					double startingScale = 1.0;
+
+					int forceBigPointer =
+							SettingsManager::getIntSetting( "forceBigPointer", 0 );
+					if( forceBigPointer ||
+						screenWidth > 1920 || screenHeight > 1080 ) {
+
+						startingScale *= 2;
+					}
+					setEmulatedCursorScale( startingScale );
+				}
+			}
+			else {
+				setCursorMode( readCursorMode );
+
+				double readCursorScale =
+						SettingsManager::
+						getDoubleSetting( "emulatedCursorScale", -1.0 );
+
+				if( readCursorScale >= 1 ) {
+					setEmulatedCursorScale( readCursorScale );
+				}
+			}
+
+
+
+			frameDrawerInited = true;
+
+			// this is a good time, a while after launch, to do the post
+			// update step
+			postUpdate();
+
+		}//step2
+		else if(((OneLife::game::InitializationScreen*)currentGamePage)->isTaskComplete())
 		{
 			currentGamePage = loadingPage;
 		}
 	}
 	//!SEARCH LEG000001 for legacy place
-	else if(demoMode)
+	else if(currentGamePage == loadingPage)
 	{
-		if(this->idScreen !=1){printf("\n===>demoMode");this->idScreen = 1;}
-		if( ! isDemoCodePanelShowing() )
-		{
-			demoMode = false;// stop demo mode when panel done
-			//mScreen->addMouseHandler( this );
-			//mScreen->addKeyboardHandler( this );
-			//screen->startRecordingOrPlayback();
-		}
-	}
-	else if( writeFailed )
-	{
-		if(this->idScreen !=2){printf("\n===>write failed");this->idScreen = 2;}
-		drawString( translate( "writeFailed" ), true );
-	}
-	else if( !this->isPlayingBack() && measureFrameRate ) {
-		if(this->idScreen !=3){printf("\n===>!isPlayingBack && measureFrameRate");this->idScreen = 3;}
-		if( !measureRecorded )
-		{
-			this->useFrameSleep( false );
-		}
-
-		if( numFramesSkippedBeforeMeasure < numFramesToSkipBeforeMeasure ) {
-			numFramesSkippedBeforeMeasure++;
-
-			drawString( translate( "measuringFPS" ), true );
-		}
-		else if( ! startMeasureTimeRecorded ) {
-			startMeasureTime = Time::getCurrentTime();
-			startMeasureTimeRecorded = true;
-
-			drawString( translate( "measuringFPS" ), true );
-		}
-		else {
-
-			numFramesMeasured++;
-
-			double totalTime = Time::getCurrentTime() - startMeasureTime;
-
-			double timePerFrame = totalTime / ( numFramesMeasured );
-
-			double frameRate = 1 / timePerFrame;
-
-
-			int closestTargetFrameRate = 0;
-			double closestFPSDiff = 9999999;
-
-			for( int i=0; i<possibleFrameRates.size(); i++ ) {
-
-				int v = possibleFrameRates.getElementDirect( i );
-
-				double diff = fabs( frameRate - v );
-
-				if( diff < closestFPSDiff ) {
-					closestTargetFrameRate = v;
-					closestFPSDiff = diff;
+		currentGamePage->base_step();
+		switch( loadingPhase ) {
+			case 0: {
+				float progress;
+				for( int i=0; i<loadingStepBatchSize; i++ ) {
+					progress = initSpriteBankStep();
+					loadingPage->setCurrentProgress( progress );
 				}
-			}
-
-			double overAllowFactor = 1.05;
 
 
+				if( progress == 1.0 ) {
+					initSpriteBankFinish();
 
-			if( numFramesMeasured > 10 &&
-				frameRate > overAllowFactor * closestTargetFrameRate ) {
+					loadingPhaseStartTime = Time::getCurrentTime();
 
-				secondsToMeasure = warningSecondsToMeasure;
-			}
-			else {
-				secondsToMeasure = noWarningSecondsToMeasure;
-			}
+					char rebuilding;
 
-			if( totalTime <= secondsToMeasure ) {
-				char *message = autoSprintf( "%s\n%0.2f\nFPS",
-						translate( "measuringFPS" ),
-						frameRate );
+					int numSounds = initSoundBankStart( &rebuilding );
 
-
-				drawString( message, true );
-
-				delete [] message;
-			}
-
-			if( totalTime > secondsToMeasure ) {
-
-				if( ! measureRecorded ) {
-
-					if( targetFrameRate == idealTargetFrameRate ) {
-						// not invoking halfFrameRate
-
-						AppLog::infoF( "Measured frame rate = %f fps\n",
-								frameRate );
-						AppLog::infoF(
-								"Closest possible frame rate = %d fps\n",
-								closestTargetFrameRate );
-
-						if( frameRate >
-							overAllowFactor * closestTargetFrameRate ) {
-
-							AppLog::infoF(
-									"Vsync to enforce closested frame rate of "
-									"%d fps doesn't seem to be in effect.\n",
-									closestTargetFrameRate );
-
-							AppLog::infoF(
-									"Will sleep each frame to enforce desired "
-									"frame rate of %d fps\n",
-									idealTargetFrameRate );
-
-							targetFrameRate = idealTargetFrameRate;
-
-							this->useFrameSleep( true );
-							countingOnVsync = false;
-						}
-						else {
-							AppLog::infoF(
-									"Vsync seems to be enforcing an allowed frame "
-									"rate of %d fps.\n", closestTargetFrameRate );
-
-							targetFrameRate = closestTargetFrameRate;
-
-							this->useFrameSleep( false );
-							countingOnVsync = true;
-						}
+					if( rebuilding ) {
+						loadingPage->setCurrentPhase(
+								translate( "soundsRebuild" ) );
 					}
 					else {
-						// half frame rate must be set
-
-						AppLog::infoF(
-								"User has halfFrameRate set, so we're going "
-								"to manually sleep to enforce a target "
-								"frame rate of %d fps.\n", targetFrameRate );
-						this->useFrameSleep( true );
-						countingOnVsync = false;
+						loadingPage->setCurrentPhase(
+								translate( "sounds" ) );
 					}
 
+					loadingPage->setCurrentProgress( 0 );
 
-					this->setFullFrameRate( targetFrameRate );
-					measureRecorded = true;
+
+					loadingStepBatchSize = numSounds / numLoadingSteps;
+
+					if( loadingStepBatchSize < 1 ) {
+						loadingStepBatchSize = 1;
+					}
+
+					loadingPhase ++;
+				}
+				break;
+			}
+			case 1: {
+				float progress;
+				for( int i=0; i<loadingStepBatchSize; i++ ) {
+					progress = initSoundBankStep();
+					loadingPage->setCurrentProgress( progress );
 				}
 
-				if( !countingOnVsync ) {
-					// show warning message
-					char *message =
-							autoSprintf( "%s\n%s\n\n%s\n\n\n%s",
-									translate( "vsyncWarning" ),
-									translate( "vsyncWarning2" ),
-									translate( "vsyncWarning3" ),
-									translate( "vsyncContinueMessage" ) );
-					drawString( message, true );
+				if( progress == 1.0 ) {
+					initSoundBankFinish();
 
-					delete [] message;
+					loadingPhaseStartTime = Time::getCurrentTime();
+
+					char rebuilding;
+
+					int numAnimations =
+							initAnimationBankStart( &rebuilding );
+
+					if( rebuilding ) {
+						loadingPage->setCurrentPhase(
+								translate( "animationsRebuild" ) );
+					}
+					else {
+						loadingPage->setCurrentPhase(
+								translate( "animations" ) );
+					}
+					loadingPage->setCurrentProgress( 0 );
+
+
+					loadingStepBatchSize = numAnimations / numLoadingSteps;
+
+					if( loadingStepBatchSize < 1 ) {
+						loadingStepBatchSize = 1;
+					}
+
+					loadingPhase ++;
+				}
+				break;
+			}
+			case 2: {
+				float progress;
+				for( int i=0; i<loadingStepBatchSize; i++ ) {
+					progress = initAnimationBankStep();
+					loadingPage->setCurrentProgress( progress );
+				}
+
+				if( progress == 1.0 ) {
+					initAnimationBankFinish();
+					printf( "Finished loading animation bank in %f sec\n",
+							Time::getCurrentTime() -
+							loadingPhaseStartTime );
+					loadingPhaseStartTime = Time::getCurrentTime();
+
+					char rebuilding;
+
+					int numObjects =
+							initObjectBankStart( &rebuilding, true, true );
+
+					if( rebuilding ) {
+						loadingPage->setCurrentPhase(
+								translate( "objectsRebuild" ) );
+					}
+					else {
+						loadingPage->setCurrentPhase(
+								translate( "objects" ) );
+					}
+					loadingPage->setCurrentProgress( 0 );
+
+
+					loadingStepBatchSize = numObjects / numLoadingSteps;
+
+					if( loadingStepBatchSize < 1 ) {
+						loadingStepBatchSize = 1;
+					}
+
+					loadingPhase ++;
+				}
+				break;
+			}
+			case 3: {
+				float progress;
+				for( int i=0; i<loadingStepBatchSize; i++ ) {
+					progress = initObjectBankStep();
+					loadingPage->setCurrentProgress( progress );
+				}
+
+				if( progress == 1.0 ) {
+					initObjectBankFinish();
+					printf( "Finished loading object bank in %f sec\n",
+							Time::getCurrentTime() -
+							loadingPhaseStartTime );
+					loadingPhaseStartTime = Time::getCurrentTime();
+
+					char rebuilding;
+
+					int numCats =
+							initCategoryBankStart( &rebuilding );
+
+					if( rebuilding ) {
+						loadingPage->setCurrentPhase(
+								translate( "categoriesRebuild" ) );
+					}
+					else {
+						loadingPage->setCurrentPhase(
+								translate( "categories" ) );
+					}
+					loadingPage->setCurrentProgress( 0 );
+
+
+					loadingStepBatchSize = numCats / numLoadingSteps;
+
+					if( loadingStepBatchSize < 1 ) {
+						loadingStepBatchSize = 1;
+					}
+
+					loadingPhase ++;
+				}
+				break;
+			}
+			case 4: {
+				float progress;
+				for( int i=0; i<loadingStepBatchSize; i++ ) {
+					progress = initCategoryBankStep();
+					loadingPage->setCurrentProgress( progress );
+				}
+
+				if( progress == 1.0 ) {
+					initCategoryBankFinish();
+					printf( "Finished loading category bank in %f sec\n",
+							Time::getCurrentTime() -
+							loadingPhaseStartTime );
+					loadingPhaseStartTime = Time::getCurrentTime();
+
+					char rebuilding;
+
+					// true to auto-generate concrete transitions
+					// for all abstract category transitions
+					int numTrans =
+							initTransBankStart( &rebuilding, true, true, true,
+									true );
+
+					if( rebuilding ) {
+						loadingPage->setCurrentPhase(
+								translate( "transitionsRebuild" ) );
+					}
+					else {
+						loadingPage->setCurrentPhase(
+								translate( "transitions" ) );
+					}
+					loadingPage->setCurrentProgress( 0 );
+
+
+					loadingStepBatchSize = numTrans / numLoadingSteps;
+
+					if( loadingStepBatchSize < 1 ) {
+						loadingStepBatchSize = 1;
+					}
+
+					loadingPhase ++;
+				}
+				break;
+			}
+			case 5: {
+				float progress;
+				for( int i=0; i<loadingStepBatchSize; i++ ) {
+					progress = initTransBankStep();
+					loadingPage->setCurrentProgress( progress );
+				}
+
+				if( progress == 1.0 ) {
+					initTransBankFinish();
+					printf( "Finished loading transition bank in %f sec\n",
+							Time::getCurrentTime() -
+							loadingPhaseStartTime );
+
+					loadingPhaseStartTime = Time::getCurrentTime();
+
+					loadingPage->setCurrentPhase(
+							translate( "groundTextures" ) );
+
+					loadingPage->setCurrentProgress( 0 );
+
+					initGroundSpritesStart();
+
+					loadingStepBatchSize = 1;
+
+
+					loadingPhase ++;
+				}
+				break;
+			}
+			case 6: {
+				float progress;
+				for( int i=0; i<loadingStepBatchSize; i++ ) {
+					progress = initGroundSpritesStep();
+					loadingPage->setCurrentProgress( progress );
+				}
+
+				if( progress == 1.0 ) {
+					initGroundSpritesFinish();
+					printf( "Finished loading ground sprites in %f sec\n",
+							Time::getCurrentTime() -
+							loadingPhaseStartTime );
+
+					loadingPhaseStartTime = Time::getCurrentTime();
+
+
+					initLiveObjectSet();
+
+					loadingPhaseStartTime = Time::getCurrentTime();
+
+					serverIP = SettingsManager::getStringSetting("customServerAddress" );
+					if( serverIP == NULL ) { serverIP = stringDuplicate( "127.0.0.1" ); }
+					serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
+
+					livingLifePage = new LivingLifePage();
+					livingLifePage->setServerSocket(this->connection);
+
+					loadingPhase ++;
+				}
+				break;
+			}
+			default:
+				// NOW game engine can start measuring frame rate
+				loadingComplete();
+				initEmotion();
+				initPhotos();
+				initLifeTokens();
+				initFitnessScore();
+				initMusicPlayer();
+				setMusicLoudness( musicLoudness );
+				mapPullMode = SettingsManager::getIntSetting( "mapPullMode", 0 );
+				autoLogIn = SettingsManager::getIntSetting( "autoLogIn", 0 );
+				if( userEmail == NULL || accountKey == NULL ){autoLogIn = false;}
+				currentGamePage = existingAccountPage;
+				currentGamePage->base_makeActive( true );
+		}
+	}
+	else if( currentGamePage == getServerAddressPage )
+	{
+		currentGamePage->base_step();
+		if( getServerAddressPage->isResponseReady() )
+		{
+
+			if( serverIP != NULL ) {
+				delete [] serverIP;
+			}
+
+			serverIP = getServerAddressPage->getResponse( "serverIP" );
+			serverPort = getServerAddressPage->getResponseInt( "serverPort" );
+
+
+			if( strstr( serverIP, "NONE_FOUND" ) != NULL ) {
+
+				currentGamePage = finalMessagePage;
+
+				finalMessagePage->setMessageKey( "serverShutdownMessage" );
+
+
+				currentGamePage->base_makeActive( true );
+			}
+			else {
+
+
+				printf( "Got server address: %s:%d\n",
+						serverIP, serverPort );
+
+				int requiredVersion =
+						getServerAddressPage->getResponseInt(
+								"requiredVersionNumber" );
+
+				if( versionNumber < requiredVersion ) {
+
+					if( SettingsManager::getIntSetting(
+							"useSteamUpdate", 0 ) ) {
+
+						// flag SteamGate that app needs update
+						FILE *f = fopen( "steamGateForceUpdate.txt", "w" );
+						if( f != NULL ) {
+							fprintf( f, "1" );
+							fclose( f );
+						}
+
+						// launch steamGateClient in parallel
+						// it will tell Steam that the app is dirty
+						// and needs to be updated.
+						runSteamGateClient();
+
+
+
+						currentGamePage = finalMessagePage;
+
+						finalMessagePage->setMessageKey(
+								"upgradeMessageSteam" );
+
+						currentGamePage->base_makeActive( true );
+					}
+					else {
+						char *autoUpdateURL =
+								getServerAddressPage->getResponse(
+										"autoUpdateURL" );
+
+						char updateStarted =
+								startUpdate( autoUpdateURL, versionNumber );
+
+						delete [] autoUpdateURL;
+
+						if( ! updateStarted ) {
+							currentGamePage = finalMessagePage;
+
+							finalMessagePage->setMessageKey(
+									"upgradeMessage" );
+
+							currentGamePage->base_makeActive( true );
+						}
+						else {
+							currentGamePage = autoUpdatePage;
+							currentGamePage->base_makeActive( true );
+						}
+					}
 				}
 				else {
-					// auto-save it now
-					saveFrameRateSettings();
-					this->startRecordingOrPlayback();
-					measureFrameRate = false;
+					// up to date, okay to connect
+					currentGamePage = livingLifePage;
+					currentGamePage->base_makeActive( true );
 				}
 			}
 		}
-		//return;
 	}
-	else if( !loadingMessageShown ){
-		if(this->idScreen !=4){printf("\n===>!loadingMessageShown");this->idScreen = 4;}
-		drawString( translate( "loading" ), true );
-		loadingMessageShown = true;
-	}//step1
-	else if( loadingFailedFlag ) {
-		if(this->idScreen !=5){printf("\n===>loadingFailedFlag");this->idScreen = 5;}
-		drawString( loadingFailedMessage, true );
+	else if( currentGamePage == existingAccountPage ) {
+		currentGamePage->base_step();
+		if( existingAccountPage->checkSignal( "quit" ) ) {
+			quitGame();
+		}
+		else if( existingAccountPage->checkSignal( "poll" ) ) {
+			currentGamePage = pollPage;
+			currentGamePage->base_makeActive( true );
+		}
+		else if( existingAccountPage->checkSignal( "genes" ) ) {
+			currentGamePage = geneticHistoryPage;
+			currentGamePage->base_makeActive( true );
+		}
+		else if( existingAccountPage->checkSignal( "settings" ) ) {
+			currentGamePage = settingsPage;
+			currentGamePage->base_makeActive( true );
+		}
+		else if( existingAccountPage->checkSignal( "review" ) ) {
+			currentGamePage = reviewPage;
+			currentGamePage->base_makeActive( true );
+		}
+		else if( existingAccountPage->checkSignal( "friends" ) ) {
+			currentGamePage = twinPage;
+			currentGamePage->base_makeActive( true );
+		}
+		else if( existingAccountPage->checkSignal( "done" )||mapPullMode || autoLogIn ) {
+
+			// auto-log-in one time for map pull
+			// or one time for autoLogInMode
+			mapPullMode = false;
+			autoLogIn = false;
+
+			// login button clears twin status
+			// they have to login from twin page to play as twin
+			if( userTwinCode != NULL ) {
+				delete [] userTwinCode;
+				userTwinCode = NULL;
+			}
+
+			printf("\n=====>startConnecting() existingAccountPage done");
+			startConnecting();
+		}
+		else if( existingAccountPage->checkSignal( "tutorial" ) ) {
+			livingLifePage->runTutorial();
+
+			// tutorial button clears twin status
+			// they have to login from twin page to play as twin
+			if( userTwinCode != NULL ) {
+				delete [] userTwinCode;
+				userTwinCode = NULL;
+			}
+
+			printf("\n=====>startConnecting() existingAccountPage tutorial");
+			startConnecting();
+		}
+		else if( autoUpdatePage->checkSignal( "relaunchFailed" ) ) {
+			currentGamePage = finalMessagePage;
+
+			finalMessagePage->setMessageKey( "manualRestartMessage" );
+
+			currentGamePage->base_makeActive( true );
+		}
 	}
-	else if( !writeFailed && !loadingFailedFlag && !frameDrawerInited ) {
-		if(this->idScreen !=6){printf("\n===>!writeFailed && !loadingFailedFlag && !frameDrawerInited");this->idScreen = 6;}
-		drawString( translate( "loading" ), true );
+	else if(currentGamePage == livingLifePage)
+	{
+		currentGamePage->base_step();
+		if( livingLifePage->checkSignal( "loginFailed" ) ) {
+			lastScreenViewCenter.x = 0;
+			lastScreenViewCenter.y = 0;
 
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
 
+			currentGamePage = existingAccountPage;
 
-		int readCursorMode = SettingsManager::getIntSetting( "cursorMode", -1 );
+			existingAccountPage->setStatus( "loginFailed", true );
 
+			existingAccountPage->setStatusPositiion( true );
 
-		if( readCursorMode < 0 ) {
-			// never set before
-
-			// check if we are ultrawidescreen
-			char ultraWide = false;
-
-			const SDL_VideoInfo* currentScreenInfo = SDL_GetVideoInfo();
-
-			int currentW = currentScreenInfo->current_w;
-			int currentH = currentScreenInfo->current_h;
-
-			double aspectRatio = (double)currentW / (double)currentH;
-
-			// give a little wiggle room above 16:9
-			// ultrawide starts at 21:9
-			if( aspectRatio > 18.0 / 9.0 ) {
-				ultraWide = true;
-			}
-
-			if( ultraWide ) {
-				// drawn cursor, because system native cursor
-				// is off-target on ultrawide displays
-
-				setCursorMode( 1 );
-
-				double startingScale = 1.0;
-
-				int forceBigPointer =
-						SettingsManager::getIntSetting( "forceBigPointer", 0 );
-				if( forceBigPointer ||
-					screenWidth > 1920 || screenHeight > 1080 ) {
-
-					startingScale *= 2;
-				}
-				setEmulatedCursorScale( startingScale );
-			}
+			currentGamePage->base_makeActive( true );
 		}
-		else {
-			setCursorMode( readCursorMode );
+		else if( livingLifePage->checkSignal( "noLifeTokens" ) ) {
+			lastScreenViewCenter.x = 0;
+			lastScreenViewCenter.y = 0;
 
-			double readCursorScale =
-					SettingsManager::
-					getDoubleSetting( "emulatedCursorScale", -1.0 );
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
 
-			if( readCursorScale >= 1 ) {
-				setEmulatedCursorScale( readCursorScale );
-			}
+			currentGamePage = existingAccountPage;
+
+			existingAccountPage->setStatus( "noLifeTokens", true );
+
+			existingAccountPage->setStatusPositiion( true );
+
+			currentGamePage->base_makeActive( true );
 		}
+		else if( livingLifePage->checkSignal( "connectionFailed" ) ) {
+			lastScreenViewCenter.x = 0;
+			lastScreenViewCenter.y = 0;
+
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
+
+			currentGamePage = existingAccountPage;
+
+			existingAccountPage->setStatus( "connectionFailed", true );
+
+			existingAccountPage->setStatusPositiion( true );
+
+			currentGamePage->base_makeActive( true );
+		}
+		else if( livingLifePage->checkSignal( "versionMismatch" ) ) {
+			lastScreenViewCenter.x = 0;
+			lastScreenViewCenter.y = 0;
+
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
+
+			currentGamePage = existingAccountPage;
+
+			char *message = autoSprintf( translate( "versionMismatch" ),
+					versionNumber,
+					livingLifePage->
+							getRequiredVersion() );
+
+			if( SettingsManager::getIntSetting( "useCustomServer", 0 ) ) {
+				existingAccountPage->showDisableCustomServerButton( true );
+			}
 
 
+			existingAccountPage->setStatusDirect( message, true );
 
-		frameDrawerInited = true;
+			delete [] message;
 
-		// this is a good time, a while after launch, to do the post
-		// update step
-		postUpdate();
+			existingAccountPage->setStatusPositiion( true );
 
-	}//step2
+			currentGamePage->base_makeActive( true );
+		}
+		else if( livingLifePage->checkSignal( "twinCancel" ) ) {
+
+			existingAccountPage->setStatus( NULL, false );
+
+			lastScreenViewCenter.x = 0;
+			lastScreenViewCenter.y = 0;
+
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
+
+			currentGamePage = existingAccountPage;
+
+			currentGamePage->base_makeActive( true );
+		}
+		else if( livingLifePage->checkSignal( "serverShutdown" ) ) {
+			lastScreenViewCenter.x = 0;
+			lastScreenViewCenter.y = 0;
+
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
+
+			currentGamePage = existingAccountPage;
+
+			existingAccountPage->setStatus( "serverShutdown", true );
+
+			existingAccountPage->setStatusPositiion( true );
+
+			currentGamePage->base_makeActive( true );
+		}
+		else if( livingLifePage->checkSignal( "serverUpdate" ) ) {
+			lastScreenViewCenter.x = 0;
+			lastScreenViewCenter.y = 0;
+
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
+
+			currentGamePage = existingAccountPage;
+
+			existingAccountPage->setStatus( "serverUpdate", true );
+
+			existingAccountPage->setStatusPositiion( true );
+
+			currentGamePage->base_makeActive( true );
+		}
+		else if( livingLifePage->checkSignal( "serverFull" ) ) {
+			lastScreenViewCenter.x = 0;
+			lastScreenViewCenter.y = 0;
+
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
+
+			currentGamePage = existingAccountPage;
+
+			existingAccountPage->setStatus( "serverFull", true );
+
+			existingAccountPage->setStatusPositiion( true );
+
+			currentGamePage->base_makeActive( true );
+		}
+		else if( livingLifePage->checkSignal( "died" ) ) {
+			showDiedPage();
+		}
+		else if( livingLifePage->checkSignal( "disconnect" ) ) {
+			showReconnectPage();
+		}
+		else if( livingLifePage->checkSignal( "loadFailure" ) ) {
+			currentGamePage = finalMessagePage;
+
+			finalMessagePage->setMessageKey( "loadingMapFailedMessage" );
+
+			char *failedFileName = getSpriteBankLoadFailure();
+			if( failedFileName == NULL ) {
+				failedFileName = getSoundBankLoadFailure();
+			}
+
+			if( failedFileName != NULL ) {
+
+				char *detailMessage =
+						autoSprintf( translate( "loadingMapFailedSubMessage" ),
+								failedFileName );
+				finalMessagePage->setSubMessage( detailMessage );
+				delete [] detailMessage;
+			}
+
+			currentGamePage->base_makeActive( true );
+		}
+	}
+
 	else if( !writeFailed && !loadingFailedFlag  )//step3 (demo mode done or was never enabled )
 	{
 		if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}
@@ -1361,291 +1954,7 @@ void OneLife::game::Application::selectScreen()
 		if( currentGamePage != NULL )
 		{
 			currentGamePage->base_step();
-			if( currentGamePage == loadingPage ) {
-
-				switch( loadingPhase ) {
-					case 0: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initSpriteBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-
-						if( progress == 1.0 ) {
-							initSpriteBankFinish();
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							int numSounds = initSoundBankStart( &rebuilding );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "soundsRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "sounds" ) );
-							}
-
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numSounds / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 1: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initSoundBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initSoundBankFinish();
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							int numAnimations =
-									initAnimationBankStart( &rebuilding );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "animationsRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "animations" ) );
-							}
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numAnimations / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 2: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initAnimationBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initAnimationBankFinish();
-							printf( "Finished loading animation bank in %f sec\n",
-									Time::getCurrentTime() -
-									loadingPhaseStartTime );
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							int numObjects =
-									initObjectBankStart( &rebuilding, true, true );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "objectsRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "objects" ) );
-							}
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numObjects / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 3: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initObjectBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initObjectBankFinish();
-							printf( "Finished loading object bank in %f sec\n",
-									Time::getCurrentTime() -
-									loadingPhaseStartTime );
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							int numCats =
-									initCategoryBankStart( &rebuilding );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "categoriesRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "categories" ) );
-							}
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numCats / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 4: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initCategoryBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initCategoryBankFinish();
-							printf( "Finished loading category bank in %f sec\n",
-									Time::getCurrentTime() -
-									loadingPhaseStartTime );
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							// true to auto-generate concrete transitions
-							// for all abstract category transitions
-							int numTrans =
-									initTransBankStart( &rebuilding, true, true, true,
-											true );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "transitionsRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "transitions" ) );
-							}
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numTrans / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 5: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initTransBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initTransBankFinish();
-							printf( "Finished loading transition bank in %f sec\n",
-									Time::getCurrentTime() -
-									loadingPhaseStartTime );
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							loadingPage->setCurrentPhase(
-									translate( "groundTextures" ) );
-
-							loadingPage->setCurrentProgress( 0 );
-
-							initGroundSpritesStart();
-
-							loadingStepBatchSize = 1;
-
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 6: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initGroundSpritesStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initGroundSpritesFinish();
-							printf( "Finished loading ground sprites in %f sec\n",
-									Time::getCurrentTime() -
-									loadingPhaseStartTime );
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-
-							initLiveObjectSet();
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							livingLifePage = new LivingLifePage();
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					default:
-						// NOW game engine can start measuring frame rate
-						loadingComplete();
-
-
-						initEmotion();
-						initPhotos();
-
-						initLifeTokens();
-						initFitnessScore();
-
-						initMusicPlayer();
-						setMusicLoudness( musicLoudness );
-
-						mapPullMode = SettingsManager::getIntSetting( "mapPullMode", 0 );
-						autoLogIn = SettingsManager::getIntSetting( "autoLogIn", 0 );
-
-						if( userEmail == NULL || accountKey == NULL ) {
-							autoLogIn = false;
-						}
-
-						currentGamePage = existingAccountPage;
-						currentGamePage->base_makeActive( true );
-				}
-
-			}
-			else if( currentGamePage == settingsPage ) {
+			if( currentGamePage == settingsPage ) {
 				if( settingsPage->checkSignal( "back" ) ) {
 					existingAccountPage->setStatus( NULL, false );
 					currentGamePage = existingAccountPage;
@@ -1683,159 +1992,8 @@ void OneLife::game::Application::selectScreen()
 					currentGamePage->base_makeActive( true );
 				}
 				else if( twinPage->checkSignal( "done" ) ) {
+					printf("\n=====>startConnecting() livingLifePage done");
 					startConnecting();
-				}
-			}
-			else if( currentGamePage == existingAccountPage ) {
-				if( existingAccountPage->checkSignal( "quit" ) ) {
-					quitGame();
-				}
-				else if( existingAccountPage->checkSignal( "poll" ) ) {
-					currentGamePage = pollPage;
-					currentGamePage->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "genes" ) ) {
-					currentGamePage = geneticHistoryPage;
-					currentGamePage->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "settings" ) ) {
-					currentGamePage = settingsPage;
-					currentGamePage->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "review" ) ) {
-					currentGamePage = reviewPage;
-					currentGamePage->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "friends" ) ) {
-					currentGamePage = twinPage;
-					currentGamePage->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "done" )
-						 ||
-						 mapPullMode || autoLogIn ) {
-
-					// auto-log-in one time for map pull
-					// or one time for autoLogInMode
-					mapPullMode = false;
-					autoLogIn = false;
-
-					// login button clears twin status
-					// they have to login from twin page to play as twin
-					if( userTwinCode != NULL ) {
-						delete [] userTwinCode;
-						userTwinCode = NULL;
-					}
-
-					startConnecting();
-				}
-				else if( existingAccountPage->checkSignal( "tutorial" ) ) {
-					livingLifePage->runTutorial();
-
-					// tutorial button clears twin status
-					// they have to login from twin page to play as twin
-					if( userTwinCode != NULL ) {
-						delete [] userTwinCode;
-						userTwinCode = NULL;
-					}
-
-					startConnecting();
-				}
-				else if( autoUpdatePage->checkSignal( "relaunchFailed" ) ) {
-					currentGamePage = finalMessagePage;
-
-					finalMessagePage->setMessageKey( "manualRestartMessage" );
-
-					currentGamePage->base_makeActive( true );
-				}
-			}
-			else if( currentGamePage == getServerAddressPage ) {
-				if( getServerAddressPage->isResponseReady() ) {
-
-					if( serverIP != NULL ) {
-						delete [] serverIP;
-					}
-
-					serverIP = getServerAddressPage->getResponse( "serverIP" );
-
-					serverPort =
-							getServerAddressPage->getResponseInt( "serverPort" );
-
-
-					if( strstr( serverIP, "NONE_FOUND" ) != NULL ) {
-
-						currentGamePage = finalMessagePage;
-
-						finalMessagePage->setMessageKey( "serverShutdownMessage" );
-
-
-						currentGamePage->base_makeActive( true );
-					}
-					else {
-
-
-						printf( "Got server address: %s:%d\n",
-								serverIP, serverPort );
-
-						int requiredVersion =
-								getServerAddressPage->getResponseInt(
-										"requiredVersionNumber" );
-
-						if( versionNumber < requiredVersion ) {
-
-							if( SettingsManager::getIntSetting(
-									"useSteamUpdate", 0 ) ) {
-
-								// flag SteamGate that app needs update
-								FILE *f = fopen( "steamGateForceUpdate.txt", "w" );
-								if( f != NULL ) {
-									fprintf( f, "1" );
-									fclose( f );
-								}
-
-								// launch steamGateClient in parallel
-								// it will tell Steam that the app is dirty
-								// and needs to be updated.
-								runSteamGateClient();
-
-
-
-								currentGamePage = finalMessagePage;
-
-								finalMessagePage->setMessageKey(
-										"upgradeMessageSteam" );
-
-								currentGamePage->base_makeActive( true );
-							}
-							else {
-								char *autoUpdateURL =
-										getServerAddressPage->getResponse(
-												"autoUpdateURL" );
-
-								char updateStarted =
-										startUpdate( autoUpdateURL, versionNumber );
-
-								delete [] autoUpdateURL;
-
-								if( ! updateStarted ) {
-									currentGamePage = finalMessagePage;
-
-									finalMessagePage->setMessageKey(
-											"upgradeMessage" );
-
-									currentGamePage->base_makeActive( true );
-								}
-								else {
-									currentGamePage = autoUpdatePage;
-									currentGamePage->base_makeActive( true );
-								}
-							}
-						}
-						else {
-							// up to date, okay to connect
-							currentGamePage = livingLifePage;
-							currentGamePage->base_makeActive( true );
-						}
-					}
 				}
 			}
 			else  if( currentGamePage == autoUpdatePage ) {
@@ -1858,166 +2016,6 @@ void OneLife::game::Application::selectScreen()
 					currentGamePage = finalMessagePage;
 
 					finalMessagePage->setMessageKey( "manualRestartMessage" );
-
-					currentGamePage->base_makeActive( true );
-				}
-			}
-			else if( currentGamePage == livingLifePage ) {
-				if( livingLifePage->checkSignal( "loginFailed" ) ) {
-					lastScreenViewCenter.x = 0;
-					lastScreenViewCenter.y = 0;
-
-					setViewCenterPosition( lastScreenViewCenter.x,
-							lastScreenViewCenter.y );
-
-					currentGamePage = existingAccountPage;
-
-					existingAccountPage->setStatus( "loginFailed", true );
-
-					existingAccountPage->setStatusPositiion( true );
-
-					currentGamePage->base_makeActive( true );
-				}
-				else if( livingLifePage->checkSignal( "noLifeTokens" ) ) {
-					lastScreenViewCenter.x = 0;
-					lastScreenViewCenter.y = 0;
-
-					setViewCenterPosition( lastScreenViewCenter.x,
-							lastScreenViewCenter.y );
-
-					currentGamePage = existingAccountPage;
-
-					existingAccountPage->setStatus( "noLifeTokens", true );
-
-					existingAccountPage->setStatusPositiion( true );
-
-					currentGamePage->base_makeActive( true );
-				}
-				else if( livingLifePage->checkSignal( "connectionFailed" ) ) {
-					lastScreenViewCenter.x = 0;
-					lastScreenViewCenter.y = 0;
-
-					setViewCenterPosition( lastScreenViewCenter.x,
-							lastScreenViewCenter.y );
-
-					currentGamePage = existingAccountPage;
-
-					existingAccountPage->setStatus( "connectionFailed", true );
-
-					existingAccountPage->setStatusPositiion( true );
-
-					currentGamePage->base_makeActive( true );
-				}
-				else if( livingLifePage->checkSignal( "versionMismatch" ) ) {
-					lastScreenViewCenter.x = 0;
-					lastScreenViewCenter.y = 0;
-
-					setViewCenterPosition( lastScreenViewCenter.x,
-							lastScreenViewCenter.y );
-
-					currentGamePage = existingAccountPage;
-
-					char *message = autoSprintf( translate( "versionMismatch" ),
-							versionNumber,
-							livingLifePage->
-									getRequiredVersion() );
-
-					if( SettingsManager::getIntSetting( "useCustomServer", 0 ) ) {
-						existingAccountPage->showDisableCustomServerButton( true );
-					}
-
-
-					existingAccountPage->setStatusDirect( message, true );
-
-					delete [] message;
-
-					existingAccountPage->setStatusPositiion( true );
-
-					currentGamePage->base_makeActive( true );
-				}
-				else if( livingLifePage->checkSignal( "twinCancel" ) ) {
-
-					existingAccountPage->setStatus( NULL, false );
-
-					lastScreenViewCenter.x = 0;
-					lastScreenViewCenter.y = 0;
-
-					setViewCenterPosition( lastScreenViewCenter.x,
-							lastScreenViewCenter.y );
-
-					currentGamePage = existingAccountPage;
-
-					currentGamePage->base_makeActive( true );
-				}
-				else if( livingLifePage->checkSignal( "serverShutdown" ) ) {
-					lastScreenViewCenter.x = 0;
-					lastScreenViewCenter.y = 0;
-
-					setViewCenterPosition( lastScreenViewCenter.x,
-							lastScreenViewCenter.y );
-
-					currentGamePage = existingAccountPage;
-
-					existingAccountPage->setStatus( "serverShutdown", true );
-
-					existingAccountPage->setStatusPositiion( true );
-
-					currentGamePage->base_makeActive( true );
-				}
-				else if( livingLifePage->checkSignal( "serverUpdate" ) ) {
-					lastScreenViewCenter.x = 0;
-					lastScreenViewCenter.y = 0;
-
-					setViewCenterPosition( lastScreenViewCenter.x,
-							lastScreenViewCenter.y );
-
-					currentGamePage = existingAccountPage;
-
-					existingAccountPage->setStatus( "serverUpdate", true );
-
-					existingAccountPage->setStatusPositiion( true );
-
-					currentGamePage->base_makeActive( true );
-				}
-				else if( livingLifePage->checkSignal( "serverFull" ) ) {
-					lastScreenViewCenter.x = 0;
-					lastScreenViewCenter.y = 0;
-
-					setViewCenterPosition( lastScreenViewCenter.x,
-							lastScreenViewCenter.y );
-
-					currentGamePage = existingAccountPage;
-
-					existingAccountPage->setStatus( "serverFull", true );
-
-					existingAccountPage->setStatusPositiion( true );
-
-					currentGamePage->base_makeActive( true );
-				}
-				else if( livingLifePage->checkSignal( "died" ) ) {
-					showDiedPage();
-				}
-				else if( livingLifePage->checkSignal( "disconnect" ) ) {
-					showReconnectPage();
-				}
-				else if( livingLifePage->checkSignal( "loadFailure" ) ) {
-					currentGamePage = finalMessagePage;
-
-					finalMessagePage->setMessageKey( "loadingMapFailedMessage" );
-
-					char *failedFileName = getSpriteBankLoadFailure();
-					if( failedFileName == NULL ) {
-						failedFileName = getSoundBankLoadFailure();
-					}
-
-					if( failedFileName != NULL ) {
-
-						char *detailMessage =
-								autoSprintf( translate( "loadingMapFailedSubMessage" ),
-										failedFileName );
-						finalMessagePage->setSubMessage( detailMessage );
-						delete [] detailMessage;
-					}
 
 					currentGamePage->base_makeActive( true );
 				}
@@ -2059,11 +2057,13 @@ void OneLife::game::Application::selectScreen()
 					// the server we were on just crashed
 
 					// but keep twin status, if set
+					printf("\n=====>startConnecting() geneticHistoryPage reborn");
 					startConnecting();
 				}
 				else if( rebirthChoicePage->checkSignal( "tutorial" ) ) {
 					livingLifePage->runTutorial();
 					// heck, allow twins in tutorial too, for now, it's funny
+					printf("\n=====>startConnecting() geneticHistoryPage tutorial");
 					startConnecting();
 				}
 				else if( rebirthChoicePage->checkSignal( "review" ) ) {

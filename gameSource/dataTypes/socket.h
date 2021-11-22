@@ -10,6 +10,11 @@
 namespace OneLife::game::dataType::socket
 {
 	typedef struct{
+		char ip[16];
+		int port;
+	}Address;
+
+	typedef struct{
 		char* body;
 	}Message;
 }

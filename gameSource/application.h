@@ -44,7 +44,7 @@ namespace OneLife::game
 			~Application();
 
 			void init(OneLife::game::Settings settings);
-			void setConnection();
+			void setConnection(const char* ip, int port);
 			OneLife::game::component::Socket* getConnection();
 
 			void start();

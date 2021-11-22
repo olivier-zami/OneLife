@@ -16,6 +16,11 @@ OneLife::game::InitializationScreen::InitializationScreen()
 
 OneLife::game::InitializationScreen::~InitializationScreen() {}
 
+void OneLife::game::InitializationScreen::handle(OneLife::game::dataType::ServerSocket* socket)
+{
+	this->socket = socket;
+}
+
 void OneLife::game::InitializationScreen::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;

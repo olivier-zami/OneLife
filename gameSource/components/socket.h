@@ -6,23 +6,27 @@
 #define ONELIFE_SOCKET_H
 
 #include "../../../minorGems/util/SimpleVector.h"
-#include "OneLife/gameSource/dataTypes/socket.h"
 #include "minorGems/network/SocketClient.h"
-#include "OneLife/gameSource/dataTypes/game.h"
+#include "../dataTypes/game.h"
+#include "../dataTypes/socket.h"
 
 namespace OneLife::game::component
 {
 	class Socket
 	{
 		public:
-			Socket(
-				SimpleVector<unsigned char>* serverSocketBuffer,
-				int* bytesInCount,
-				int* idServerSocket);
-
+			Socket();
 			~Socket();
 
-			void connect(OneLife::game::dataType::ServerSocket socket);
+			void handle(
+					SimpleVector<unsigned char>* serverSocketBuffer = nullptr,
+					int* bytesInCount = nullptr,
+					int* idServerSocket = nullptr);
+
+			void setAddress(OneLife::game::dataType::socket::Address address);
+			OneLife::game::dataType::socket::Address getAddress();
+
+			void connect();
 			bool isConnected();
 			void sendMessage(OneLife::game::dataType::socket::Message message);
 			char readMessage();
@@ -39,6 +43,7 @@ namespace OneLife::game::component
 			int getTotalServerMessageSent();
 
 		private:
+			OneLife::game::dataType::socket::Address address;
 			int* idServerSocket;
 			char forceDisconnect;
 			char serverSocketConnected;

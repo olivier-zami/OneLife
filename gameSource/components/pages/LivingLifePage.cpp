@@ -312,10 +312,6 @@ LivingLifePage::LivingLifePage()
           mZKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 )
 {
-	this->socket = new OneLife::game::component::Socket(
-		&serverSocketBuffer,
-		&bytesInCount,
-		&mServerSocket);
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
         mUsingSteam = true;
@@ -349,18 +345,11 @@ LivingLifePage::LivingLifePage()
         delete [] name;
         }
 
-
     mMapGlobalOffset.x = 0;
     mMapGlobalOffset.y = 0;
-
     emotDuration = SettingsManager::getFloatSetting( "emotDuration", 10 );
-
-    drunkEmotionIndex =
-        SettingsManager::getIntSetting( "drunkEmotionIndex", 2 );
-
-    trippingEmotionIndex =
-        SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
-
+    drunkEmotionIndex = SettingsManager::getIntSetting( "drunkEmotionIndex", 2 );
+    trippingEmotionIndex = SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
     hideGuiPanel = SettingsManager::getIntSetting( "hideGameUI", 0 );
 
     mHungerSound = loadSoundSprite( "otherSounds", "hunger.aiff" );
@@ -570,8 +559,7 @@ LivingLifePage::LivingLifePage()
     mMapCellDrawnFlags = new char[ mMapD * mMapD ];
 
     mMapContainedStacks = new SimpleVector<int>[ mMapD * mMapD ];
-    mMapSubContainedStacks =
-        new SimpleVector< SimpleVector<int> >[ mMapD * mMapD ];
+    mMapSubContainedStacks = new SimpleVector< SimpleVector<int> >[ mMapD * mMapD ];
 
     mMapAnimationFrameCount =  new double[ mMapD * mMapD ];
     mMapAnimationLastFrameCount =  new double[ mMapD * mMapD ];
@@ -673,6 +661,15 @@ void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 	screen->draw = nullptr;
 }
 
+void LivingLifePage::setServerSocket(OneLife::game::component::Socket *socket)
+{
+	this->socket = socket;
+	this->socket->handle(
+			&serverSocketBuffer,
+			&bytesInCount,
+			&mServerSocket);
+}
+
 void LivingLifePage::sendToServerSocket( char *inMessage )
 {
 	OneLife::game::dataType::socket::Message message;
@@ -681,7 +678,7 @@ void LivingLifePage::sendToServerSocket( char *inMessage )
 	{
 		this->socket->sendMessage(message);
 	}
-	catch(OneLife::game::dataType::Exception* e)
+	catch(OneLife::game::Exception* e)
 	{
 		if( mFirstServerMessagesReceived  )
 		{
@@ -2523,7 +2520,8 @@ void LivingLifePage::step() {
         apocalypseDisplayProgress += stepSize;
         }
     
-    if( mRemapPeak > 0 ) {
+    if( mRemapPeak > 0 )
+	{
         if( mRemapDelay < 1 ) {
             double stepSize = 
                 frameRateFactor / ( remapDelaySeconds * 60.0 );
@@ -2552,17 +2550,18 @@ void LivingLifePage::step() {
                 setRemapFraction( mCurrentRemapFraction );
                 }
             }
-        }
+	}
     
 
-    if( mouseDown ) {
+	if( mouseDown )
+	{
         mouseDownFrames++;
-        }
+	}
     
     if( !this->socket->isConnected() )
 	{
-		OneLife::game::dataType::ServerSocket serverSocket = {serverIP, serverPort};
-		this->socket->connect(serverSocket);
+		printf("\n=====>Connect({%s,%i})", serverIP, serverPort);
+		this->socket->connect();
 		connectionMessageFade = 1.0f;
         return;
 	}

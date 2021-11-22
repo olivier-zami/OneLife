@@ -71,7 +71,7 @@ void splitAndExpandSprites(
 {
 	Image *full = readTGAFile( inTgaFileName );
 	if( full != NULL ) {
-		printf("\n=====>readTGAFile");
+		//printf("\n=====>readTGAFile");
 
 		int spriteW = full->getWidth() / inNumSprites;
 
@@ -83,7 +83,7 @@ void splitAndExpandSprites(
 			Image *partExpanded = expandToPowersOfTwoWhite( part );
 			delete part;
 			inDestArray[i] = fillSprite( partExpanded, false );
-			printf("\n====>store idx %s[%i]", inTgaFileName, i);
+			//printf("\n====>store idx %s[%i]", inTgaFileName, i);
 			delete partExpanded;
 		}
 		delete full;

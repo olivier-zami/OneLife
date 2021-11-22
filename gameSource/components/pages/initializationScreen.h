@@ -8,6 +8,7 @@
 #include "minorGems/system/Time.h"
 #include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 
 namespace OneLife::game
 {
@@ -19,6 +20,7 @@ namespace OneLife::game
 			~InitializationScreen();
 
 			void handle(OneLife::dataType::UiComponent* screen);
+			void handle(OneLife::game::dataType::ServerSocket* socket);
 			bool isTaskComplete();
 
 		private:
@@ -27,6 +29,7 @@ namespace OneLife::game
 			timeSec_t frameStartSec;
 			unsigned long frameStartMSec;
 			OneLife::dataType::uiComponent::LoadingScreen screen;
+			OneLife::game::dataType::ServerSocket* socket;
 	};
 }
 

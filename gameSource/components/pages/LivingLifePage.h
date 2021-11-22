@@ -2,7 +2,6 @@
 #define LIVING_LIFE_PAGE_INCLUDED
 
 
-#include "OneLife/gameSource/components/socket.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/util/SimpleVector.h"
@@ -15,6 +14,7 @@
 #include "OneLife/gameSource/animationBank.h"
 #include "OneLife/gameSource/emotion.h"
 #include "OneLife/gameSource/TextField.h"
+#include "../../components/socket.h"
 #include "OneLife/gameSource/dataTypes/misc.h"
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/components/pages/menu/playerStatus.h"
@@ -25,6 +25,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         LivingLifePage();
         ~LivingLifePage();
+
+		void setServerSocket(OneLife::game::component::Socket* socket);
 
 		void handle(OneLife::dataType::UiComponent* screen);
         
@@ -611,7 +613,6 @@ class LivingLifePage : public GamePage, public ActionListener {
 
 	private:
 		const char* screenName = "LivingLifePage";
-
     };
 
 

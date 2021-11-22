@@ -3,16 +3,19 @@
 //
 
 #include "socket.h"
+
 #include <cstdio>
-#include "OneLife/gameSource/game.h"
-#include "minorGems/formats/encodingUtils.h"
-#include "OneLife/gameSource/dataTypes/socket.h"
+
+#include "minorGems/util/log/AppLog.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/network/HostAddress.h"
 #include "minorGems/util/stringUtils.h"
+#include "minorGems/formats/encodingUtils.h"
 #include "minorGems/network/SocketClient.h"
+#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/application.h"
-#include "minorGems/util/log/AppLog.h"
+
 
 extern OneLife::game::Application *screen;
 
@@ -34,15 +37,8 @@ char *lastMessageSentToServer = NULL;
 
 static int nextSocketConnectionHandle = 0;
 
-OneLife::game::component::Socket::Socket(
-	SimpleVector<unsigned char>* serverSocketBuffer,//serverSocketBuffer
-	int* bytesInCount,//bytesInCount
-	int* idServerSocket)//mServerSocket
+OneLife::game::component::Socket::Socket()
 {
-	this->serverSocketBuffer = serverSocketBuffer;
-	this->bytesInCount = bytesInCount;
-	this->idServerSocket = idServerSocket;
-	*(this->idServerSocket) = -1;
 	this->serverSocketConnected = false;
 	this->numServerBytesRead = 0;
 	this->numServerBytesSent = 0;
@@ -54,9 +50,33 @@ OneLife::game::component::Socket::Socket(
 
 OneLife::game::component::Socket::~Socket() {}
 
-void OneLife::game::component::Socket::connect(OneLife::game::dataType::ServerSocket socket)
+void OneLife::game::component::Socket::handle(
+		SimpleVector<unsigned char>* serverSocketBuffer, //serverSocketBuffer
+		int* bytesInCount,//bytesInCount
+		int* idServerSocket)//mServerSocket
 {
-	*(this->idServerSocket) = openSocketConnection( socket.ip, socket.port );
+	this->serverSocketBuffer = serverSocketBuffer;
+	this->bytesInCount = bytesInCount;
+	this->idServerSocket = idServerSocket;
+	*(this->idServerSocket) = -1;
+}
+
+void OneLife::game::component::Socket::setAddress(OneLife::game::dataType::socket::Address address)
+{
+	printf("\n===>OneLife::game::component::Socket::setAddress({%s:%i})", address.ip, address.port);
+	strcpy(this->address.ip, address.ip);
+	this->address.port = address.port;
+}
+
+OneLife::game::dataType::socket::Address OneLife::game::component::Socket::getAddress()
+{
+	return this->address;
+}
+
+void OneLife::game::component::Socket::connect()
+{
+	printf("\n===>OneLife::game::component::Socket::connect() :: %s:%i", this->address.ip, this->address.port);
+	*(this->idServerSocket) = openSocketConnection( this->address.ip, this->address.port );
 	this->timeLastMessageSent = game_getCurrentTime();
 }
 
@@ -784,16 +804,11 @@ void startConnecting()
 			delete [] serverIP;
 			serverIP = NULL;
 		}
-		serverIP = SettingsManager::getStringSetting(
-				"customServerAddress" );
-		if( serverIP == NULL ) {
-			serverIP = stringDuplicate( "127.0.0.1" );
-		}
-		serverPort = SettingsManager::getIntSetting(
-				"customServerPort", 8005 );
 
-		printf( "Using custom server address: %s:%d\n",
-				serverIP, serverPort );
+		serverIP = SettingsManager::getStringSetting("customServerAddress" );
+		if( serverIP == NULL ) { serverIP = stringDuplicate( "127.0.0.1" ); }
+		serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
+		printf( "Using custom server address: %s:%d\n", serverIP, serverPort );
 
 		currentGamePage = livingLifePage;
 		currentGamePage->base_makeActive( true );

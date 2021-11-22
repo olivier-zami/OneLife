@@ -744,7 +744,7 @@ int mainFunction( int inNumArgs, char **inArgs )
 				getWindowTitle(),
 				NULL, NULL, NULL );
 
-		screen->setConnection();
+		screen->setConnection("127.0.0.1", 8005);
 
 	}
 	catch(OneLife::game::Exception* e)
