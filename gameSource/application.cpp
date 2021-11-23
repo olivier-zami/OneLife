@@ -1630,7 +1630,7 @@ void OneLife::game::Application::selectScreen()
 				currentGamePage->base_makeActive( true );
 		}
 	}
-	else if( currentGamePage == getServerAddressPage )
+	else if(currentGamePage == getServerAddressPage)
 	{
 		currentGamePage->base_step();
 		if( getServerAddressPage->isResponseReady() )
@@ -1721,7 +1721,7 @@ void OneLife::game::Application::selectScreen()
 			}
 		}
 	}
-	else if( currentGamePage == existingAccountPage ) {
+	else if(currentGamePage == existingAccountPage) {
 		currentGamePage->base_step();
 		if( existingAccountPage->checkSignal( "quit" ) ) {
 			quitGame();

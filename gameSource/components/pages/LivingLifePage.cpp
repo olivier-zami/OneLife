@@ -58,6 +58,7 @@
 #include "OneLife/gameSource/scenes1/maps/outsideMap.h"
 #include "OneLife/gameSource/components/soundPlayer.h"
 #include "OneLife/gameSource/procedures/graphics/components.h"
+#include "OneLife/gameSource/procedures/graphics/screens.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -1620,8 +1621,13 @@ void LivingLifePage::draw(
 	double inViewSize )
 {
 	#include "OneLife/gameSource/procedures/graphics/drawTutorialSheet.cpp"
-	//TODO: replace with OneLife::game::graphic::drawGameScreen();
-	/******************************************************************************************************************/
+	/*******************************************************************************************************************
+	OneLife::game::graphic::drawGameScreen(
+			mFirstServerMessagesReceived,
+			mStartedLoadingFirstObjectSet,
+			mFirstObjectSetLoadingProgress,
+			mDoneLoadingFirstObjectSet);//TODO: replace with OneLife::game::graphic::drawGameScreen();
+	*******************************************************************************************************************/
 }
 
 void LivingLifePage::applyReceiveOffset( int *inX, int *inY ) {

@@ -20,7 +20,27 @@ else if( mFirstServerMessagesReceived == 3 )
 
 if( stillWaitingBirth )
 {
-#include "OneLife/gameSource/components/pages/waitingBirthPage.cpp"
+if( getSpriteBankLoadFailure() != NULL || getSoundBankLoadFailure() != NULL )
+{
+	this->setSignal( "loadFailure" );
+}
+
+	OneLife::game::graphic::drawWaitingBirthScreen(
+			nullptr,
+			this->socket,
+			lastScreenViewCenter,
+			connectionMessageFade,
+			frameRateFactor,
+			mFirstObjectSetLoadingProgress,
+			usingCustomServer,
+			serverIP,
+			serverPort,
+			userReconnect,
+			mPlayerInFlight,
+			userTwinCode,
+			userTwinCount,
+			mStartedLoadingFirstObjectSet);
+return;
 }
 
 int gridCenterX = lrintf( lastScreenViewCenter.x / CELL_D ) - mMapOffsetX + mMapD/2;

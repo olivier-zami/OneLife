@@ -41,6 +41,7 @@ components/pages/RebirthChoicePage.cpp \
 components/pages/ReviewPage.cpp \
 components/pages/SettingsPage.cpp \
 components/pages/TwinPage.cpp \
+components/pages/waitingBirthScreen.cpp \
 components/socket.cpp \
 components/soundPlayer.cpp \
 dataTypes/exception/exception.cpp \
@@ -51,15 +52,16 @@ procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
 procedures/graphics/drawInitializingScreen.cpp \
+procedures/graphics/drawGameScreen.cpp \
 procedures/graphics/drawLoadingScreen.cpp \
 procedures/graphics/drawUnimplementedScreen.cpp \
 procedures/graphics/drawString.cpp \
+procedures/graphics/drawWaitingBirthScreen.cpp \
 procedures/graphics/base/drawLine.cpp \
 procedures/graphics/components/drawFixedShadowString.cpp \
 procedures/graphics/components/drawGraph.cpp \
 procedures/graphics/components/drawHUDBarPart.cpp \
 procedures/graphics/modalObjects/drawPausePanel.cpp \
-procedures/graphics/screens/drawGameScreen.cpp \
 procedures/graphics/sprites/drawChalkBackgroundString.cpp \
 procedures/graphics/sprites/drawHungerMaxFillLine.cpp \
 procedures/graphics/sprites/drawLiveObject.cpp \

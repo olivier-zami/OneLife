@@ -2,7 +2,7 @@
 // Created by olivier on 17/11/2021.
 //
 
-#include "../screens.h"
+#include "screens.h"
 
 #include <cstdio>
 #include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h" //TODO put drawMessage in procedure/graphic
