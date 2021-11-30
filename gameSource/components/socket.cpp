@@ -17,7 +17,7 @@
 #include "OneLife/gameSource/application.h"
 
 
-extern OneLife::game::Application *screen;
+extern OneLife::game::Application *gameApplication;
 
 SimpleVector<SocketConnectionRecord> socketConnectionRecords;
 SimpleVector<unsigned char> serverSocketBuffer;
@@ -52,23 +52,21 @@ OneLife::game::component::Socket::~Socket() {}
 
 void OneLife::game::component::Socket::handle(
 		SimpleVector<unsigned char>* serverSocketBuffer, //serverSocketBuffer
-		int* bytesInCount,//bytesInCount
-		int* idServerSocket)//mServerSocket
+		int* bytesInCount)//bytesInCount
 {
 	this->serverSocketBuffer = serverSocketBuffer;
 	this->bytesInCount = bytesInCount;
-	this->idServerSocket = idServerSocket;
-	*(this->idServerSocket) = -1;
+	this->idSocket = -1;
 }
 
-void OneLife::game::component::Socket::setAddress(OneLife::game::dataType::socket::Address address)
+void OneLife::game::component::Socket::setAddress(OneLife::dataType::socket::Address address)
 {
 	printf("\n===>OneLife::game::component::Socket::setAddress({%s:%i})", address.ip, address.port);
 	strcpy(this->address.ip, address.ip);
 	this->address.port = address.port;
 }
 
-OneLife::game::dataType::socket::Address OneLife::game::component::Socket::getAddress()
+OneLife::dataType::socket::Address OneLife::game::component::Socket::getAddress()
 {
 	return this->address;
 }
@@ -76,28 +74,47 @@ OneLife::game::dataType::socket::Address OneLife::game::component::Socket::getAd
 void OneLife::game::component::Socket::connect()
 {
 	printf("\n===>OneLife::game::component::Socket::connect() :: %s:%i", this->address.ip, this->address.port);
-	*(this->idServerSocket) = openSocketConnection( this->address.ip, this->address.port );
+	SocketConnectionRecord r;
+	r.handle = nextSocketConnectionHandle;
+	nextSocketConnectionHandle++;
+	HostAddress address( stringDuplicate( this->address.ip ), this->address.port );
+	char timedOut;
+	r.sock = SocketClient::connectToServer( &address, 0, &timedOut );// non-blocking connet
+	if( r.sock != NULL )
+	{
+		socketConnectionRecords.push_back( r );
+		this->idSocket = r.handle;
+	}
+	else
+	{
+		return;// -1; TODO: exception ...
+	}
 	this->timeLastMessageSent = game_getCurrentTime();
 }
 
 bool OneLife::game::component::Socket::isConnected()
 {
-	if(*(this->idServerSocket) == -1) this->serverSocketConnected = false;
-	return (bool) (*(this->idServerSocket) != -1);
+	if(this->idSocket == -1) this->serverSocketConnected = false;
+	return (bool) (this->idSocket != -1);
+}
+
+bool OneLife::game::component::Socket::isClosed()
+{
+	return (this->idSocket == -1);
 }
 
 /**
  *
  * @param message
  */
-void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::socket::Message message)
+void OneLife::game::component::Socket::sendMessage(OneLife::dataType::socket::Message message)
 {
 	this->timeLastMessageSent = game_getCurrentTime();
 	printf( "Sending message to server: %s\n", message.body );
 	replaceLastMessageSent( stringDuplicate( message.body ) );//TODO: if lastMessageSentToServer used create method getlastMessageSent()
 	int len = strlen( message.body );
-	//TODO: test idServerSocket
-	int numSent = sendToSocket( *(this->idServerSocket), (unsigned char*)(message.body), len );
+	//TODO: test idSocket
+	int numSent = sendToSocket(this->idSocket, (unsigned char*)(message.body), len );
 
 	if( numSent == len )
 	{
@@ -109,7 +126,8 @@ void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::sock
 	else
 	{
 		printf( "Failed to send message to server socket at time %f (tried to send %d, but numSent=%d)\n", game_getCurrentTime(), len, numSent );
-		closeSocket( *(this->idServerSocket) ); *(this->idServerSocket) = -1;//TODO: set idServerSocket to -1 in closeSocket();
+		closeSocket(this->idSocket);
+		this->idSocket = -1;//TODO: set idSocket to -1 in closeSocket();
 	}
 }
 
@@ -130,7 +148,7 @@ char OneLife::game::component::Socket::readMessage()
 
 	unsigned char buffer[512];
 
-	int numRead = readFromSocket( *(this->idServerSocket), buffer, 512 );
+	int numRead = readFromSocket(this->idSocket, buffer, 512 );
 
 
 	while( numRead > 0 ) {
@@ -143,7 +161,7 @@ char OneLife::game::component::Socket::readMessage()
 		this->numServerBytesRead += numRead;
 		*(this->bytesInCount) += numRead;
 
-		numRead = readFromSocket( *(this->idServerSocket), buffer, 512 );
+		numRead = readFromSocket(this->idSocket, buffer, 512 );
 	}
 
 	if( numRead == -1 ) {
@@ -177,7 +195,7 @@ void OneLife::game::component::Socket::disconnect()
 
 void OneLife::game::component::Socket::close()
 {
-	//*(this->idServerSocket) = -1;//TODO: close socket before
+	this->idSocket = -1;//TODO: close socket before
 	this->forceDisconnect = true;
 }
 
@@ -214,46 +232,24 @@ int OneLife::game::component::Socket::getTotalServerMessageSent()
 /**********************************************************************************************************************/
 
 // returns unique int handle for socket connection, -1 on error
-int openSocketConnection( const char *inNumericalAddress, int inPort )
-{
-	SocketConnectionRecord r;
 
-	r.handle = nextSocketConnectionHandle;
-	nextSocketConnectionHandle++;
-
-	HostAddress address( stringDuplicate( inNumericalAddress ), inPort );
-
-	char timedOut;
-
-	// non-blocking connet
-	r.sock = SocketClient::connectToServer( &address, 0, &timedOut );
-
-	if( r.sock != NULL ) {
-		socketConnectionRecords.push_back( r );
-
-		return r.handle;
-	}
-	else {
-		return -1;
-	}
-}
 
 // non-blocking send
 // returns number sent (maybe 0) on success, -1 on error
 int sendToSocket( int inHandle, unsigned char *inData, int inDataLength )
 {
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// play back result of this send
 
 		int nextType, nextNumBodyBytes;
-		screen->getSocketEventTypeAndSize( inHandle,
+		gameApplication->getSocketEventTypeAndSize( inHandle,
 				&nextType, &nextNumBodyBytes );
 
 		while( nextType == 2 && nextNumBodyBytes == 0 ) {
 			// skip over any lingering waiting-for-read events
 			// sometimes there are extra in recording that aren't needed
 			// on playback for some reason
-			screen->getSocketEventTypeAndSize( inHandle,
+			gameApplication->getSocketEventTypeAndSize( inHandle,
 					&nextType, &nextNumBodyBytes );
 		}
 
@@ -291,7 +287,7 @@ int sendToSocket( int inHandle, unsigned char *inData, int inDataLength )
 			numSent = 0;
 		}
 
-		screen->registerSocketEvent( inHandle, type, numSent, NULL );
+		gameApplication->registerSocketEvent( inHandle, type, numSent, NULL );
 
 		return numSent;
 	}
@@ -301,7 +297,7 @@ int sendToSocket( int inHandle, unsigned char *inData, int inDataLength )
 
 void closeSocket( int inHandle ) {
 
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// not a real socket, do nothing
 		return;
 	}
@@ -344,11 +340,11 @@ Socket *getSocketByHandle( int inHandle ) {
 int readFromSocket( int inHandle,
 					unsigned char *inDataBuffer, int inBytesToRead ) {
 
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// play back result of this read
 
 		int nextType, nextNumBodyBytes;
-		screen->getSocketEventTypeAndSize( inHandle, &nextType, &nextNumBodyBytes );
+		gameApplication->getSocketEventTypeAndSize( inHandle, &nextType, &nextNumBodyBytes );
 
 		if( nextType == 2 ) {
 
@@ -366,7 +362,7 @@ int readFromSocket( int inHandle,
 			}
 
 			unsigned char *bodyBytes =
-					screen->getSocketEventBodyBytes( inHandle );
+					gameApplication->getSocketEventBodyBytes( inHandle );
 
 			memcpy( inDataBuffer, bodyBytes, nextNumBodyBytes );
 			delete [] bodyBytes;
@@ -406,7 +402,7 @@ int readFromSocket( int inHandle,
 			bodyBytes = inDataBuffer;
 		}
 
-		screen->registerSocketEvent( inHandle, type, numRead, bodyBytes );
+		gameApplication->registerSocketEvent( inHandle, type, numRead, bodyBytes );
 
 		return numRead;
 	}
@@ -810,6 +806,7 @@ void startConnecting()
 		serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
 		printf( "Using custom server address: %s:%d\n", serverIP, serverPort );
 
+		printf("\n===>setting currentGamePage to livingLifePage (startConnecting)");
 		currentGamePage = livingLifePage;
 		currentGamePage->base_makeActive( true );
 	}

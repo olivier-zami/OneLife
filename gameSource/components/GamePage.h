@@ -6,6 +6,9 @@
 #include "minorGems/game/doublePair.h"
 #include "minorGems/game/gameGraphics.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
+#include "OneLife/gameSource/components/socket.h"
+#include "OneLife/gameSource/components/messageChannel.h"
+#include "../dataTypes/message.h"
 
 class GamePage :
 		public PageComponent
@@ -13,6 +16,18 @@ class GamePage :
     public:
         virtual ~GamePage();
 		virtual void handle(OneLife::dataType::UiComponent* screen);
+
+		static void setSocket(OneLife::game::component::Socket* socket);
+		OneLife::game::component::Socket* getSocket();
+		static void setMessageChannel(OneLife::game::component::MessageChannel* messageChannel);
+		OneLife::game::component::MessageChannel* getMessageChannel();
+
+		void sendSignal(unsigned int signal);
+
+		void sendDeathMessage(const char* message);
+		void sendTripMessage(const char* message);
+
+
         void setStatus( const char *inStatusMessageKey, char inError );
         // inStatusMessage destroyed by caller
         void setStatusDirect( const char *inStatusMessage, char inError );
@@ -178,10 +193,12 @@ class GamePage :
         virtual void clearSignal();
         
         virtual char isAnySignalSet();
-        
-
 
         GamePage();
+
+		/**************************************************************************************************************/
+		static OneLife::game::component::Socket* socket;
+		static OneLife::game::component::MessageChannel* messageChannel;
         
 
         char mStatusError;

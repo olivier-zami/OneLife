@@ -7,7 +7,7 @@
 //#include "minorGems/graphics/openGL/ScreenGL.h"
 #include "OneLife/gameSource/components/asyncFileRecord.h"
 
-extern OneLife::game::Application *screen;
+extern OneLife::game::Application *gameApplication;
 
 //TODO: newFileToReadSem, newFileDoneReadingSem, asyncFiles, asyncLock must be declared before fileReadThread => improve modularity
 BinarySemaphore newFileToReadSem;
@@ -149,8 +149,8 @@ char checkAsyncFileReadDone( int inHandle ) {
 	asyncLock.unlock();
 
 
-	if( screen->isPlayingBack() ) {
-		char playbackSaysReady = screen->getAsyncFileDone( inHandle );
+	if( gameApplication->isPlayingBack() ) {
+		char playbackSaysReady = gameApplication->getAsyncFileDone( inHandle );
 
 		if( ready && playbackSaysReady ) {
 			return true;
@@ -186,7 +186,7 @@ char checkAsyncFileReadDone( int inHandle ) {
 	}
 	else {
 		if( ready ) {
-			screen->registerAsyncFileDone( inHandle );
+			gameApplication->registerAsyncFileDone( inHandle );
 		}
 	}
 

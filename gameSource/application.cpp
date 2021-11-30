@@ -25,6 +25,10 @@
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/messageChannel.h"
+#include "OneLife/gameSource/dataTypes/signals.h"
+
+using signal = OneLife::dataType::Signal;
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
@@ -192,6 +196,7 @@ OneLife::game::Application::Application(
 
 	//!gameScreens declaration
 	this->initializationScreen = nullptr;
+	this->loadingLocalMapScreen = nullptr;
 
 	//!init SDL context ...
 	Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
@@ -425,8 +430,13 @@ OneLife::game::Application::Application(
 	/******************************************************************************************************************/
 
 	this->connection = nullptr;
+	this->lastSignalValue = signal::NONE;
+	this->useCustomServer = false;
 	//this->currentScreen.status.fullScreen;
 	this->deviceListener = new OneLife::game::DeviceListener();
+
+	this->messageChannel = new OneLife::game::component::MessageChannel();
+	GamePage::setMessageChannel(this->messageChannel);
 
 	this->screenRenderer = new OneLife::game::ScreenRenderer(this->currentScreen);
 	this->screenRenderer->setDefault(
@@ -498,17 +508,28 @@ void OneLife::game::Application::init(OneLife::game::Settings settings)
 
 void OneLife::game::Application::setConnection(const char* ip, int port)
 {
-	OneLife::game::dataType::socket::Address serverAddress;
+	OneLife::dataType::socket::Address serverAddress;
 	memset(serverAddress.ip, 0, sizeof(serverAddress.ip));
 	strcpy(serverAddress.ip, ip);
 	serverAddress.port = port;
 	this->connection = new OneLife::game::component::Socket();
 	this->connection->setAddress(serverAddress);
+	GamePage::setSocket(this->connection);
 }
 
 OneLife::game::component::Socket* OneLife::game::Application::getConnection()
 {
 	return this->connection;
+}
+
+void OneLife::game::Application::setUseCustomServerStatus(bool status)
+{
+	this->useCustomServer = status;
+}
+
+bool OneLife::game::Application::isUsingCustomServer()
+{
+	return this->useCustomServer;
 }
 
 /**
@@ -544,6 +565,7 @@ void OneLife::game::Application::start()
 	Time::getCurrentTime( &frameStartSec, &frameStartMSec );
 
 	if(!this->initializationScreen) this->initializationScreen = new OneLife::game::InitializationScreen();
+	if(!this->loadingLocalMapScreen) this->loadingLocalMapScreen = new OneLife::game::WaitingScreen();
 	currentGamePage = this->initializationScreen;
 
 	OneLife::dataType::UiComponent dataScreen;
@@ -567,6 +589,8 @@ void OneLife::game::Application::start()
 
 
 		this->readDevicesStatus();
+		this->readMessages();
+
 		if(this->quit) break;
 
 		// now all events handled, actually draw the screen
@@ -1098,17 +1122,16 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 	}
 }
 
-void OneLife::game::Application::readServerMessage()
+void OneLife::game::Application::readMessages()
 {
-	//printf("\n==========>read server message");
+	this->lastSignalValue = this->messageChannel->getLastSignal();
+	this->messageChannel->setLastSignal(signal::NONE);
 }
 
 void OneLife::game::Application::selectScreen()
 {
 	if(currentGamePage == this->initializationScreen)
 	{
-
-
 		if(demoMode)
 		{
 			if(this->idScreen !=1){printf("\n===>demoMode");this->idScreen = 1;}
@@ -1715,13 +1738,15 @@ void OneLife::game::Application::selectScreen()
 				}
 				else {
 					// up to date, okay to connect
+					printf("\n===>setting currentGamePage to livingLifePage (getServerAddressPage)");
 					currentGamePage = livingLifePage;
 					currentGamePage->base_makeActive( true );
 				}
 			}
 		}
 	}
-	else if(currentGamePage == existingAccountPage) {
+	else if(currentGamePage == existingAccountPage)
+	{
 		currentGamePage->base_step();
 		if( existingAccountPage->checkSignal( "quit" ) ) {
 			quitGame();
@@ -1746,8 +1771,8 @@ void OneLife::game::Application::selectScreen()
 			currentGamePage = twinPage;
 			currentGamePage->base_makeActive( true );
 		}
-		else if( existingAccountPage->checkSignal( "done" )||mapPullMode || autoLogIn ) {
-
+		else if( existingAccountPage->checkSignal( "done" )||mapPullMode || autoLogIn )
+		{
 			// auto-log-in one time for map pull
 			// or one time for autoLogInMode
 			mapPullMode = false;
@@ -1759,9 +1784,10 @@ void OneLife::game::Application::selectScreen()
 				delete [] userTwinCode;
 				userTwinCode = NULL;
 			}
-
+			currentGamePage = this->loadingLocalMapScreen;
+			/***********************************************************************************************************/
 			printf("\n=====>startConnecting() existingAccountPage done");
-			startConnecting();
+			//startConnecting();
 		}
 		else if( existingAccountPage->checkSignal( "tutorial" ) ) {
 			livingLifePage->runTutorial();
@@ -1782,6 +1808,15 @@ void OneLife::game::Application::selectScreen()
 			finalMessagePage->setMessageKey( "manualRestartMessage" );
 
 			currentGamePage->base_makeActive( true );
+		}
+	}
+	else if(currentGamePage == this->loadingLocalMapScreen)
+	{
+		switch(this->lastSignalValue)
+		{
+			case signal::DONE:
+				currentGamePage = livingLifePage;
+				break;
 		}
 	}
 	else if(currentGamePage == livingLifePage)
@@ -1846,7 +1881,8 @@ void OneLife::game::Application::selectScreen()
 					livingLifePage->
 							getRequiredVersion() );
 
-			if( SettingsManager::getIntSetting( "useCustomServer", 0 ) ) {
+			if(!this->isUsingCustomServer())
+			{
 				existingAccountPage->showDisableCustomServerButton( true );
 			}
 
@@ -1946,7 +1982,6 @@ void OneLife::game::Application::selectScreen()
 			currentGamePage->base_makeActive( true );
 		}
 	}
-
 	else if( !writeFailed && !loadingFailedFlag  )//step3 (demo mode done or was never enabled )
 	{
 		if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}
@@ -2026,6 +2061,7 @@ void OneLife::game::Application::selectScreen()
 					extendedMessagePage->setSubMessage( "" );
 
 					if( userReconnect ) {
+						printf("\n===>setting currentGamePage to livingLifePage (extendedMessagePage)");
 						currentGamePage = livingLifePage;
 					}
 					else {

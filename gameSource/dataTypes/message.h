@@ -5,7 +5,7 @@
 #ifndef ONELIFE_GAME_DATATYPE_MESSAGE_H
 #define ONELIFE_GAME_DATATYPE_MESSAGE_H
 
-namespace OneLife::game::dataType
+namespace OneLife::dataType
 {
 	typedef struct{
 		unsigned int type;
@@ -14,11 +14,12 @@ namespace OneLife::game::dataType
 	}Message;
 }
 
-namespace OneLife::game::dataType::message
+namespace OneLife::dataType::message
 {
 	typedef enum{
 		NONE,
-		KEYBOARD
+		KEYBOARD,
+		DEATH
 	}TYPE;
 
 	typedef struct{

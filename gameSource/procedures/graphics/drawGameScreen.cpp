@@ -5,42 +5,15 @@
 #include "screens.h"
 
 #include <cstdio>
-#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h" //TODO put drawMessage in procedure/graphic
-
-struct {
-	bool intro;
-}debug_var = {0};
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 
 void OneLife::game::graphic::drawGameScreen(
-		int mFirstServerMessagesReceived,
 		char mStartedLoadingFirstObjectSet,
 		float mFirstObjectSetLoadingProgress,
 		char mDoneLoadingFirstObjectSet
 		)
 {
-	if(!debug_var.intro){printf("\n======>drawGameScreen");debug_var.intro=1;}
-
-	char stillWaitingBirth = false;
-	if( mFirstServerMessagesReceived != 3 )
-	{
-		stillWaitingBirth = true; // haven't gotten first messages from server yet
-		printf("\n=====>waiting for birth");
-	}
-	else if( mFirstServerMessagesReceived == 3 )
-	{
-		if( !mDoneLoadingFirstObjectSet )
-		{
-			stillWaitingBirth = true;
-		}
-	}
-
-	/*
-	  if( stillWaitingBirth )
-	  {
-  #include "OneLife/gameSource/components/pages/waitingBirthPage.cpp"
-	  }
-
-
+	 /*
 	  int gridCenterX = lrintf( lastScreenViewCenter.x / CELL_D ) - mMapOffsetX + mMapD/2;
 	  int gridCenterY = lrintf( lastScreenViewCenter.y / CELL_D ) - mMapOffsetY + mMapD/2;
 

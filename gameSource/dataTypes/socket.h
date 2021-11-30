@@ -7,7 +7,7 @@
 
 #include "minorGems/network/web/WebRequest.h"
 
-namespace OneLife::game::dataType::socket
+namespace OneLife::dataType::socket
 {
 	typedef struct{
 		char ip[16];
@@ -19,7 +19,7 @@ namespace OneLife::game::dataType::socket
 	}Message;
 }
 
-namespace OneLife::game::dataType
+namespace OneLife::dataType
 {
 	typedef struct serverSocket
 	{

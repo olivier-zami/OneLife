@@ -12,18 +12,16 @@
 #include "OneLife/gameSource/accountHmac.h"
 #include "OneLife/gameSource/lifeTokens.h"
 #include "OneLife/gameSource/fitnessScore.h"
+#include "OneLife/gameSource/application.h"
 
+extern OneLife::game::Application *gameApplication;
 extern Font *mainFont;
 extern char gamePlayingBack;
 extern char *userEmail;
 extern char *accountKey;
 extern SpriteHandle instructionsSprite;
-
 char loginEditOverride = false;
 static JenkinsRandomSource randSource;
-
-
-
 
 ExistingAccountPage::ExistingAccountPage()
         : mEmailField( mainFont, 0, 128, 10, false, 
@@ -168,10 +166,7 @@ ExistingAccountPage::ExistingAccountPage()
     setTipPosition( true );
     }
 
-          
-
-ExistingAccountPage::~ExistingAccountPage() {
-    }
+ExistingAccountPage::~ExistingAccountPage() {}
 
 void ExistingAccountPage::handle(OneLife::dataType::UiComponent* screen)
 {
@@ -179,30 +174,24 @@ void ExistingAccountPage::handle(OneLife::dataType::UiComponent* screen)
 	screen->draw = nullptr;
 }
 
-void ExistingAccountPage::clearFields() {
+void ExistingAccountPage::clearFields()
+{
     mEmailField.setText( "" );
     mKeyField.setText( "" );
-    }
+}
 
-
-
-void ExistingAccountPage::showReviewButton( char inShow ) {
+void ExistingAccountPage::showReviewButton( char inShow )
+{
     mReviewButton.setVisible( inShow );
-    }
+}
 
-
-
-void ExistingAccountPage::showDisableCustomServerButton( char inShow ) {
+void ExistingAccountPage::showDisableCustomServerButton( char inShow )
+{
     mDisableCustomServerButton.setVisible( inShow );
-    }
+}
 
-
-
-
-void ExistingAccountPage::makeActive( char inFresh ) {
-
-    
-
+void ExistingAccountPage::makeActive( char inFresh )
+{
     if( SettingsManager::getIntSetting( "tutorialDone", 0 ) ) {
         mTutorialButton.setVisible( true );
         }
@@ -336,27 +325,21 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         }
 		
 	mReviewButton.setVisible( false );
-    }
+}
 
+void ExistingAccountPage::makeNotActive()
+{
+    for( int i=0; i<2; i++ ){ mFields[i]->unfocus();}
+}
 
-
-void ExistingAccountPage::makeNotActive() {
-    for( int i=0; i<2; i++ ) {
-        mFields[i]->unfocus();
-        }
-    }
-
-
-
-void ExistingAccountPage::step() {
-    mPasteButton.setVisible( isClipboardSupported() &&
-                             mKeyField.isFocused() );
+void ExistingAccountPage::step()
+{
+    mPasteButton.setVisible( isClipboardSupported() && mKeyField.isFocused() );
     mAtSignButton.setVisible( mEmailField.isFocused() );
-    }
+}
 
-
-
-void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
+void ExistingAccountPage::actionPerformed( GUIComponent *inTarget )
+{
     if( inTarget == &mLoginButton ) {
         processLogin( true, "done" );
         }
@@ -500,59 +483,57 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
             }
         }
     else if( inTarget == &mDisableCustomServerButton ) {
-        SettingsManager::setSetting( "useCustomServer", 0 );
+		gameApplication->setUseCustomServerStatus(false);
+        //SettingsManager::setSetting( "useCustomServer", 0 );
         mDisableCustomServerButton.setVisible( false );
         processLogin( true, "done" );
         }
-    }
+}
 
-
-
-void ExistingAccountPage::switchFields() {
-    if( mFields[0]->isFocused() ) {
+void ExistingAccountPage::switchFields()
+{
+    if( mFields[0]->isFocused() )
+	{
         mFields[1]->focus();
-        }
-    else if( mFields[1]->isFocused() ) {
+	}
+    else if( mFields[1]->isFocused() )
+	{
         mFields[0]->focus();
-        }
-    }
+	}
+}
 
-    
-
-void ExistingAccountPage::keyDown( unsigned char inASCII ) {
-    if( inASCII == 9 ) {
+void ExistingAccountPage::keyDown( unsigned char inASCII )
+{
+    if( inASCII == 9 )
+	{
         // tab
         switchFields();
         return;
-        }
+	}
 
-    if( inASCII == 10 || inASCII == 13 ) {
+    if( inASCII == 10 || inASCII == 13 )
+	{
         // enter key
-        
-        if( mKeyField.isFocused() ) {
-
+        if( mKeyField.isFocused() )
+		{
             processLogin( true, "done" );
-            
             return;
-            }
-        else if( mEmailField.isFocused() ) {
+		}
+        else if( mEmailField.isFocused() )
+		{
             switchFields();
-            }
-        }
-    }
+		}
+	}
+}
 
-
-
-void ExistingAccountPage::specialKeyDown( int inKeyCode ) {
-    if( inKeyCode == MG_KEY_DOWN ||
-        inKeyCode == MG_KEY_UP ) {
-        
+void ExistingAccountPage::specialKeyDown( int inKeyCode )
+{
+    if( inKeyCode == MG_KEY_DOWN || inKeyCode == MG_KEY_UP )
+	{
         switchFields();
         return;
-        }
-    }
-
-
+	}
+}
 
 void ExistingAccountPage::processLogin( char inStore, const char *inSignal ) {
     if( userEmail != NULL ) {
@@ -581,10 +562,7 @@ void ExistingAccountPage::processLogin( char inStore, const char *inSignal ) {
     setSignal( inSignal );
     }
 
-
-
-void ExistingAccountPage::draw( doublePair inViewCenter, 
-                                double inViewSize ) {
+void ExistingAccountPage::draw( doublePair inViewCenter, double inViewSize ) {
     
     
     if( !mFPSMeasureDone ) {

@@ -20,14 +20,14 @@ namespace OneLife::game
 
 			void listen();
 			void reset();
-			std::vector<OneLife::game::dataType::message::Device> getEvent();
+			std::vector<OneLife::dataType::message::Device> getEvent();
 			bool receiveQuitSignal();
 			void updateKeyboard(int key, int value);
 			void updateMouse(SDL_MouseButtonEvent ev, int value);
 
 		private:
 			bool exit;
-			std::vector<OneLife::game::dataType::message::Device> lastEvent;
+			std::vector<OneLife::dataType::message::Device> lastEvent;
 			struct{
 				size_t size;
 				char* key;

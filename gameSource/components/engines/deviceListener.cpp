@@ -56,7 +56,7 @@ void OneLife::game::DeviceListener::listen()
 				break;
 		}
 	}
-	OneLife::game::dataType::message::Device devMsg;
+	OneLife::dataType::message::Device devMsg;
 	devMsg.keyboard = this->keyboard.key;
 	devMsg.mouse = &(this->mouse);
 	this->lastEvent.push_back(devMsg);
@@ -71,7 +71,7 @@ void OneLife::game::DeviceListener::reset()
 	this->mouse.middleButton = 0;
 }
 
-std::vector <OneLife::game::dataType::message::Device> OneLife::game::DeviceListener::getEvent()
+std::vector <OneLife::dataType::message::Device> OneLife::game::DeviceListener::getEvent()
 {
 	return this->lastEvent;
 }

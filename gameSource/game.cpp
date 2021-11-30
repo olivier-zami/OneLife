@@ -108,6 +108,9 @@ extern char rMetaDown;
 extern char lMetaDown;
 extern char lShiftDown;
 extern char rShiftDown;
+extern char userReconnect;
+extern char *serverIP;//from socket.cpp
+extern int serverPort;//from socket.cpp
 
 CustomRandomSource randSource( 34957197 );// static seed
 int cursorMode = 0;
@@ -153,7 +156,7 @@ extern double *soundSpriteMixingBufferL;
 extern double *soundSpriteMixingBufferR;
 
 SDL_Cursor *ourCursor = NULL;
-OneLife::game::Application *screen;
+OneLife::game::Application *gameApplication;
 
 static float soundLoudnessIncrementPerSample = 0.0f;
 static double maxTotalSoundSpriteVolume = 1.0;
@@ -731,7 +734,7 @@ int mainFunction( int inNumArgs, char **inArgs )
 	/******************************************************************************************************************/
 	try //TODO catch error after Exception implementation
 	{
-		screen = new OneLife::game::Application(
+		gameApplication = new OneLife::game::Application(
 				gameSettings,
 				screenWidth,
 				screenHeight,
@@ -744,8 +747,22 @@ int mainFunction( int inNumArgs, char **inArgs )
 				getWindowTitle(),
 				NULL, NULL, NULL );
 
-		screen->setConnection("127.0.0.1", 8005);
-
+		//!
+		userReconnect = false;
+		if(SettingsManager::getIntSetting("useCustomServer", 0))
+		{
+			gameApplication->setUseCustomServerStatus(true);
+			serverIP = SettingsManager::getStringSetting("customServerAddress");
+			if( serverIP == nullptr ) { serverIP = stringDuplicate( "127.0.0.1" ); }
+			serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
+			printf( "\n===>Using custom server address: %s:%d", serverIP, serverPort );
+		}
+		else
+		{
+			gameApplication->setUseCustomServerStatus(false);
+		}
+		gameApplication->setConnection(serverIP, serverPort);
+		if(serverIP) free(serverIP);
 	}
 	catch(OneLife::game::Exception* e)
 	{
@@ -761,9 +778,9 @@ int mainFunction( int inNumArgs, char **inArgs )
 
 	// may change if specified resolution is not supported
 	// or for event playback mode
-	screenWidth = screen->getWidth();
-	screenHeight = screen->getHeight();
-	targetFrameRate = screen->getMaxFramerate();
+	screenWidth = gameApplication->getWidth();
+	screenHeight = gameApplication->getHeight();
+	targetFrameRate = gameApplication->getMaxFramerate();
 
 
 
@@ -866,7 +883,7 @@ int mainFunction( int inNumArgs, char **inArgs )
 		// may be *slight* black bars on left/right
 		gameWidth = screenWidth / pixelZoomFactor;
 
-		screen->setImageSize( pixelZoomFactor * gameWidth,
+		gameApplication->setImageSize( pixelZoomFactor * gameWidth,
 							  pixelZoomFactor * gameHeight );
 	}
 	else {
@@ -891,12 +908,12 @@ int mainFunction( int inNumArgs, char **inArgs )
 			imageH = (int)( imageW / targetAspectRatio );
 		}
 
-		screen->setImageSize( imageH,
+		gameApplication->setImageSize( imageH,
 							  imageW );
 	}
 
 
-	screen->allowSlowdownKeysDuringPlayback( enableSpeedControlKeys );
+	gameApplication->allowSlowdownKeysDuringPlayback( enableSpeedControlKeys );
 
 	//SDL_ShowCursor( SDL_DISABLE );
 
@@ -970,10 +987,10 @@ int mainFunction( int inNumArgs, char **inArgs )
 	}
 	delete languageNameFile;
 
-	atexit( cleanUpAtExit );// register cleanup function, since screen->start() will never return
+	atexit( cleanUpAtExit );// register cleanup function, since gameApplication->start() will never return
 
 
-	screen->switchTo2DMode();
+	gameApplication->switchTo2DMode();
 
 	if( getUsesSound() )
 	{
@@ -1153,25 +1170,25 @@ int mainFunction( int inNumArgs, char **inArgs )
 
 	if( demoMode )
 	{
-		showDemoCodePanel( screen, getFontTGAFileName(), gameWidth, gameHeight );
+		showDemoCodePanel( gameApplication, getFontTGAFileName(), gameWidth, gameHeight );
 		// wait to start handling events
 		// wait to start recording/playback
 	}
 	else if( writeFailed )
 	{
 		// handle key events right away to listen for ESC
-		screen->addKeyboardHandler( sceneHandler );
+		gameApplication->addKeyboardHandler( sceneHandler );
 	}
 	else
 	{
 		// handle events right away
-		screen->addMouseHandler( sceneHandler );
-		screen->addKeyboardHandler( sceneHandler );
+		gameApplication->addMouseHandler( sceneHandler );
+		gameApplication->addKeyboardHandler( sceneHandler );
 
-		if( screen->isPlayingBack() )
+		if( gameApplication->isPlayingBack() )
 		{
-			screen->startRecordingOrPlayback();// start playback right away
-			AppLog::infoF( "Using frame rate from recording file:  %d fps\n", screen->getMaxFramerate() );
+			gameApplication->startRecordingOrPlayback();// start playback right away
+			AppLog::infoF( "Using frame rate from recording file:  %d fps\n", gameApplication->getMaxFramerate() );
 		}
 		// else wait to start recording until after we've measured
 		// frame rate
@@ -1186,12 +1203,12 @@ int mainFunction( int inNumArgs, char **inArgs )
 		targetFrameRate = readTarget;
 		countingOnVsync = readCounting;
 
-		screen->setFullFrameRate( targetFrameRate );
-		screen->useFrameSleep( !countingOnVsync );
-		screen->startRecordingOrPlayback();
+		gameApplication->setFullFrameRate( targetFrameRate );
+		gameApplication->useFrameSleep( !countingOnVsync );
+		gameApplication->startRecordingOrPlayback();
 
-		if( screen->isPlayingBack() ) {
-			screen->useFrameSleep( true );
+		if( gameApplication->isPlayingBack() ) {
+			gameApplication->useFrameSleep( true );
 		}
 		measureFrameRate = false;
 	}
@@ -1201,7 +1218,7 @@ int mainFunction( int inNumArgs, char **inArgs )
 	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
 
-	screen->start();
+	gameApplication->start();
 
 
 	return 0;
@@ -1209,7 +1226,7 @@ int mainFunction( int inNumArgs, char **inArgs )
 
 
 unsigned int getRandSeed() {
-	return screen->getRandSeed();
+	return gameApplication->getRandSeed();
 }
 
 void pauseGame() {
@@ -1234,15 +1251,15 @@ void wakeUpPauseFrameRate() {
 
 // returns true if we're currently executing a recorded game
 char isGamePlayingBack() {
-	return screen->isPlayingBack();
+	return gameApplication->isPlayingBack();
 }
 
 void mapKey( unsigned char inFromKey, unsigned char inToKey ) {
-	screen->setKeyMapping( inFromKey, inToKey );
+	gameApplication->setKeyMapping( inFromKey, inToKey );
 }
 
 void toggleKeyMapping( char inMappingOn ) {
-	screen->toggleKeyMapping( inMappingOn );
+	gameApplication->toggleKeyMapping( inMappingOn );
 }
 
 void setCursorVisible( char inIsVisible ) {
@@ -1302,7 +1319,7 @@ char isShiftKeyDown() {
 		return true;
 	}
 
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// ignore these, saved internally, unless we're playing back
 		// they can fall out of sync with keyboard reality as the user
 		// alt-tabs between windows and release events are lost.
@@ -1317,13 +1334,13 @@ char isShiftKeyDown() {
 
 
 char isLastMouseButtonRight() {
-	return screen->isLastMouseButtonRight();
+	return gameApplication->isLastMouseButtonRight();
 }
 
 
 // FOVMOD NOTE:  Change 1/1 - Take these lines during the merge process
 int getLastMouseButton() {
-	return screen->getLastMouseButton();
+	return gameApplication->getLastMouseButton();
 }
 
 
@@ -1331,7 +1348,7 @@ int getLastMouseButton() {
 void obscureRecordedNumericTyping( char inObscure,
 								   char inCharToRecordInstead ) {
 
-	screen->obscureRecordedNumericTyping( inObscure, inCharToRecordInstead );
+	gameApplication->obscureRecordedNumericTyping( inObscure, inCharToRecordInstead );
 }
 
 
@@ -1642,7 +1659,7 @@ int startWebRequest( const char *inMethod, const char *inURL,
 	nextWebRequestHandle ++;
 
 
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// stop here, don't actually start a real web request
 		return r.handle;
 	}
@@ -1676,11 +1693,11 @@ static WebRequest *getRequestByHandle( int inHandle ) {
 
 int stepWebRequest( int inHandle ) {
 
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// don't step request, because we're only simulating the response
 		// of the server
 
-		int nextType = screen->getWebEventType( inHandle );
+		int nextType = gameApplication->getWebEventType( inHandle );
 
 		if( nextType == 2 ) {
 			return 1;
@@ -1703,7 +1720,7 @@ int stepWebRequest( int inHandle ) {
 
 		int stepResult = r->step();
 
-		screen->registerWebEvent( inHandle, stepResult );
+		gameApplication->registerWebEvent( inHandle, stepResult );
 
 		return stepResult;
 	}
@@ -1715,13 +1732,13 @@ int stepWebRequest( int inHandle ) {
 
 // gets the response body as a \0-terminated string, destroyed by caller
 char *getWebResult( int inHandle ) {
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// return a recorded server result
 
-		int nextType = screen->getWebEventType( inHandle );
+		int nextType = gameApplication->getWebEventType( inHandle );
 
 		if( nextType == 2 ) {
-			return screen->getWebEventResultBody( inHandle );
+			return gameApplication->getWebEventResultBody( inHandle );
 		}
 		else {
 			AppLog::error( "Expecting a web result body in playback file, "
@@ -1739,7 +1756,7 @@ char *getWebResult( int inHandle ) {
 		char *result = r->getResult();
 
 		if( result != NULL ) {
-			screen->registerWebEvent( inHandle,
+			gameApplication->registerWebEvent( inHandle,
 					// the type for "result" is 2
 									  2,
 									  result );
@@ -1755,14 +1772,14 @@ char *getWebResult( int inHandle ) {
 
 
 unsigned char *getWebResult( int inHandle, int *outSize ) {
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// return a recorded server result
 
-		int nextType = screen->getWebEventType( inHandle );
+		int nextType = gameApplication->getWebEventType( inHandle );
 
 		if( nextType == 2 ) {
 			return (unsigned char *)
-					screen->getWebEventResultBody( inHandle, outSize );
+					gameApplication->getWebEventResultBody( inHandle, outSize );
 		}
 		else {
 			AppLog::error( "Expecting a web result body in playback file, "
@@ -1780,7 +1797,7 @@ unsigned char *getWebResult( int inHandle, int *outSize ) {
 		unsigned char *result = r->getResult( outSize );
 
 		if( result != NULL ) {
-			screen->registerWebEvent( inHandle,
+			gameApplication->registerWebEvent( inHandle,
 					// the type for "result" is 2
 									  2,
 									  (char*)result,
@@ -1796,10 +1813,10 @@ unsigned char *getWebResult( int inHandle, int *outSize ) {
 
 
 int getWebProgressSize( int inHandle ) {
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// return a recorded server result
 
-		int nextType = screen->getWebEventType( inHandle );
+		int nextType = gameApplication->getWebEventType( inHandle );
 
 		if( nextType > 2 ) {
 			return nextType;
@@ -1820,7 +1837,7 @@ int getWebProgressSize( int inHandle ) {
 	if( r != NULL ) {
 		int progress = r->getProgressSize();
 		if( progress > 2 ) {
-			screen->registerWebEvent( inHandle,
+			gameApplication->registerWebEvent( inHandle,
 					// the type for "progress" is
 					// the actual size
 									  progress );
@@ -1844,7 +1861,7 @@ int getWebProgressSize( int inHandle ) {
 // if hostname lookup is not complete, this call might block.
 void clearWebRequest( int inHandle ) {
 
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// not a real request, do nothing
 		return;
 	}
@@ -1870,24 +1887,24 @@ void clearWebRequest( int inHandle ) {
 
 
 timeSec_t game_timeSec() {
-	return screen->getTimeSec();
+	return gameApplication->getTimeSec();
 }
 
 
 
 double game_getCurrentTime() {
-	return screen->getCurrentTime();
+	return gameApplication->getCurrentTime();
 }
 
 
 
 double getRecentFrameRate() {
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 
-		return screen->getRecordedFrameRate();
+		return gameApplication->getRecordedFrameRate();
 	}
 	else {
-		screen->registerActualFrameRate( sceneHandler->mLastFrameRate );
+		gameApplication->registerActualFrameRate( sceneHandler->mLastFrameRate );
 
 		return sceneHandler->mLastFrameRate;
 	}

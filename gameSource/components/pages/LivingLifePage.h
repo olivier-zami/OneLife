@@ -18,6 +18,7 @@
 #include "OneLife/gameSource/dataTypes/misc.h"
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/components/pages/menu/playerStatus.h"
+#include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 
 class LivingLifePage : public GamePage, public ActionListener {
         
@@ -112,28 +113,17 @@ class LivingLifePage : public GamePage, public ActionListener {
         
 
     protected:
-
-        int mServerSocket;
-        
         int mRequiredVersion;
-
         char mForceRunTutorial;
         int mTutorialNumber;
-
         char mGlobalMessageShowing;
         double mGlobalMessageStartTime;
         SimpleVector<char*>mGlobalMessagesToDestroy;
-        
-
-        int mFirstServerMessagesReceived;
-        
+        int mFirstServerMessagesReceived;//TODO: delete after remove from cpp
         char mStartedLoadingFirstObjectSet;
         char mDoneLoadingFirstObjectSet;
         double mStartedLoadingFirstObjectSetStartTime;
-
         float mFirstObjectSetLoadingProgress;
-        
-        
 
         // an offset that we apply to all server-recieved coordinates
         // before storing them locally, and reverse-apply to all local
@@ -167,6 +157,7 @@ class LivingLifePage : public GamePage, public ActionListener {
 			bool debugMessageEnabled;
 		}feature;
 
+		OneLife::dataType::uiComponent::OutdoorSceneScreen screen;
 		OneLife::game::component::Socket* socket;
         
         int *mMapBiomes;

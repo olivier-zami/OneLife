@@ -20,15 +20,16 @@ namespace OneLife::game::component
 
 			void handle(
 					SimpleVector<unsigned char>* serverSocketBuffer = nullptr,
-					int* bytesInCount = nullptr,
-					int* idServerSocket = nullptr);
+					int* bytesInCount = nullptr);
 
-			void setAddress(OneLife::game::dataType::socket::Address address);
-			OneLife::game::dataType::socket::Address getAddress();
+			void setAddress(OneLife::dataType::socket::Address address);
+			OneLife::dataType::socket::Address getAddress();
 
 			void connect();
 			bool isConnected();
-			void sendMessage(OneLife::game::dataType::socket::Message message);
+			bool isClosed();
+
+			void sendMessage(OneLife::dataType::socket::Message message);
 			char readMessage();
 			double getLastQueryLifeTime();
 			double getTimeLastMessageSent();
@@ -43,8 +44,8 @@ namespace OneLife::game::component
 			int getTotalServerMessageSent();
 
 		private:
-			OneLife::game::dataType::socket::Address address;
-			int* idServerSocket;
+			OneLife::dataType::socket::Address address;
+			int idSocket;
 			char forceDisconnect;
 			char serverSocketConnected;
 			double connectedTime;

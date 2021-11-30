@@ -75,7 +75,6 @@ extern int targetFrameRate;
 extern GamePage *currentGamePage;
 extern char demoMode;
 extern char *loadingFailedMessage;
-extern OneLife::game::Application *screen;
 extern char writeFailed;
 extern double *soundSpriteMixingBufferL;
 extern double *soundSpriteMixingBufferR;
@@ -136,7 +135,7 @@ extern float blendOutputFrameFraction;
 extern doublePair lastScreenViewCenter;
 extern double viewWidth;
 extern char measureRecorded;
-extern OneLife::game::Application *screen;
+extern OneLife::game::Application *gameApplication;
 
 // need to track these separately from SDL_GetModState so that
 // we replay isCommandKeyDown properly during recorded game playback
@@ -201,13 +200,13 @@ GameSceneHandler::GameSceneHandler():
 	// set external pointer so it can be used in calls below
 	sceneHandler = this;
 
-	screen->addRedrawListener( sceneHandler );
+	gameApplication->addRedrawListener( sceneHandler );
 }
 
 GameSceneHandler::~GameSceneHandler() {
-	screen->removeMouseHandler( this );
-	//screen->removeSceneHandler( this );
-	screen->removeRedrawListener( this );
+	gameApplication->removeMouseHandler( this );
+	//gameApplication->removeSceneHandler( this );
+	gameApplication->removeRedrawListener( this );
 
 	if( demoMode ) {
 		// panel has not freed itself yet
@@ -516,7 +515,7 @@ void GameSceneHandler::keyPressed( unsigned char inKey, int inX, int inY )
 	if( measureFrameRate && measureRecorded ) {
 		if( inKey == 'y' || inKey == 'Y' ) {
 			saveFrameRateSettings();
-			screen->startRecordingOrPlayback();
+			gameApplication->startRecordingOrPlayback();
 			measureFrameRate = false;
 		}
 		else if( inKey == 27 ) {
@@ -536,7 +535,7 @@ void GameSceneHandler::keyPressed( unsigned char inKey, int inX, int inY )
 	}
 
 
-	if( inKey == 9 && isCommandKeyDown() && screen->isPlayingBack() ) {
+	if( inKey == 9 && isCommandKeyDown() && gameApplication->isPlayingBack() ) {
 
 		printf( "Caught alt-tab during playback, pausing\n" );
 
@@ -553,39 +552,39 @@ void GameSceneHandler::keyPressed( unsigned char inKey, int inX, int inY )
 
 		if( inKey == '^' ) {
 			// slow
-			screen->setMaxFrameRate( 2 );
-			screen->useFrameSleep( true );
+			gameApplication->setMaxFrameRate( 2 );
+			gameApplication->useFrameSleep( true );
 		}
 		if( inKey == '&' ) {
 			// half
-			screen->setMaxFrameRate( targetFrameRate / 2 );
-			screen->useFrameSleep( true );
+			gameApplication->setMaxFrameRate( targetFrameRate / 2 );
+			gameApplication->useFrameSleep( true );
 		}
 		if( inKey == '*' ) {
 			// normal
-			screen->setMaxFrameRate( targetFrameRate );
+			gameApplication->setMaxFrameRate( targetFrameRate );
 
 			if( countingOnVsync ) {
-				screen->useFrameSleep( false );
+				gameApplication->useFrameSleep( false );
 			}
 			else {
-				screen->useFrameSleep( true );
+				gameApplication->useFrameSleep( true );
 			}
 		}
 		if( inKey == '(' ) {
 			// fast forward
-			screen->setMaxFrameRate( targetFrameRate * 2 );
-			screen->useFrameSleep( true );
+			gameApplication->setMaxFrameRate( targetFrameRate * 2 );
+			gameApplication->useFrameSleep( true );
 		}
 		if( inKey == ')' ) {
 			// fast fast forward
-			screen->setMaxFrameRate( targetFrameRate * 4 );
-			screen->useFrameSleep( true );
+			gameApplication->setMaxFrameRate( targetFrameRate * 4 );
+			gameApplication->useFrameSleep( true );
 		}
 		if( inKey == '-' ) {
 			// fast fast fast forward
-			screen->setMaxFrameRate( targetFrameRate * 8 );
-			screen->useFrameSleep( true );
+			gameApplication->setMaxFrameRate( targetFrameRate * 8 );
+			gameApplication->useFrameSleep( true );
 		}
 	}
 
@@ -869,7 +868,7 @@ void cleanUpAtExit() {
 
 
 	AppLog::info( "exiting: Deleting screen\n" );
-	delete screen;
+	delete gameApplication;
 
 
 	AppLog::info( "exiting: freeing drawString\n" );
@@ -954,7 +953,7 @@ char isCommandKeyDown() {
 		return true;
 	}
 
-	if( screen->isPlayingBack() ) {
+	if( gameApplication->isPlayingBack() ) {
 		// ignore these, saved internally, unless we're playing back
 		// they can fall out of sync with keyboard reality as the user
 		// alt-tabs between windows and release events are lost.

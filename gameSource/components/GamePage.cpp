@@ -7,8 +7,11 @@
 #include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
+#include "OneLife/gameSource/dataTypes/exception/exception.h"
+#include "OneLife/gameSource/components/messageChannel.h"
 
-
+OneLife::game::component::Socket* GamePage::socket = nullptr;
+OneLife::game::component::MessageChannel* GamePage::messageChannel = nullptr;
 
 int GamePage::sPageCount = 0;
 
@@ -93,6 +96,38 @@ void GamePage::handle(OneLife::dataType::UiComponent* screen)
 	screen->draw = OneLife::game::graphic::drawUnimplementedScreen;
 	OneLife::dataType::uiComponent::UnimplementedScreen* dataScreen = {0};
 	screen->body = dataScreen;
+}
+
+void GamePage::setSocket(OneLife::game::component::Socket* socket)
+{
+	GamePage::socket = socket;
+}
+
+OneLife::game::component::Socket* GamePage::getSocket()
+{
+	return GamePage::socket;
+}
+
+void GamePage::setMessageChannel(OneLife::game::component::MessageChannel* messageChannel)
+{
+	GamePage::messageChannel = messageChannel;
+}
+
+void GamePage::sendSignal(unsigned int signal)
+{
+	GamePage::messageChannel->setLastSignal(signal);
+}
+
+void GamePage::sendDeathMessage(const char* message)
+{
+	if(!GamePage::messageChannel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
+	GamePage::messageChannel->setExitMapMessage(message);
+}
+
+void GamePage::sendTripMessage(const char* message)
+{
+	if(!GamePage::messageChannel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
+	GamePage::messageChannel->setInitMapMessage(message);
 }
 
 void GamePage::skipDrawingSubComponents( char inSkip ) {

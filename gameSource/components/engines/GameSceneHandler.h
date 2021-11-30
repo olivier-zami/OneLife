@@ -109,7 +109,7 @@ class GameSceneHandler :
 	Color mBackgroundColor;
 
 	private:
-		SimpleVector<OneLife::game::dataType::message::Device> event;
+		SimpleVector<OneLife::dataType::message::Device> event;
 
 
 };

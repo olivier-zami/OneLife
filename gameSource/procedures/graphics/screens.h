@@ -15,13 +15,14 @@ namespace OneLife::game::graphic
 	void drawInitializingScreen(void* screen = nullptr);
 	void drawLoadingScreen(void* screen = nullptr);
 	void drawUnimplementedScreen(void* screen = nullptr);
+	void drawOutdoorSceneScreen(void* screen = nullptr);
 
 	void drawGameScreen(
-			int mFirstServerMessagesReceived,
 			char mStartedLoadingFirstObjectSet,
 			float mFirstObjectSetLoadingProgress,
 			char mDoneLoadingFirstObjectSet);
 
+	void drawWaitingBirthScreen(void* screen = nullptr);
 	void drawWaitingBirthScreen(
 			void* screen = nullptr,
 			OneLife::game::component::Socket* socket = nullptr,

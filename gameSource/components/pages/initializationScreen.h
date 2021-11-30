@@ -20,7 +20,7 @@ namespace OneLife::game
 			~InitializationScreen();
 
 			void handle(OneLife::dataType::UiComponent* screen);
-			void handle(OneLife::game::dataType::ServerSocket* socket);
+			void handle(OneLife::dataType::ServerSocket* socket);
 			bool isTaskComplete();
 
 		private:
@@ -29,7 +29,7 @@ namespace OneLife::game
 			timeSec_t frameStartSec;
 			unsigned long frameStartMSec;
 			OneLife::dataType::uiComponent::LoadingScreen screen;
-			OneLife::game::dataType::ServerSocket* socket;
+			OneLife::dataType::ServerSocket* socket;
 	};
 }
 

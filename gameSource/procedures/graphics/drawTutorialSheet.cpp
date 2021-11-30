@@ -2,47 +2,6 @@
 // Created by olivier on 23/10/2021.
 //
 
-//!
-char stillWaitingBirth = false;
-if( mFirstServerMessagesReceived != 3 )
-{
-	// haven't gotten first messages from server yet
-	stillWaitingBirth = true;
-}
-else if( mFirstServerMessagesReceived == 3 )
-{
-	if( !mDoneLoadingFirstObjectSet )
-	{
-		stillWaitingBirth = true;
-	}
-}
-
-
-if( stillWaitingBirth )
-{
-if( getSpriteBankLoadFailure() != NULL || getSoundBankLoadFailure() != NULL )
-{
-	this->setSignal( "loadFailure" );
-}
-
-	OneLife::game::graphic::drawWaitingBirthScreen(
-			nullptr,
-			this->socket,
-			lastScreenViewCenter,
-			connectionMessageFade,
-			frameRateFactor,
-			mFirstObjectSetLoadingProgress,
-			usingCustomServer,
-			serverIP,
-			serverPort,
-			userReconnect,
-			mPlayerInFlight,
-			userTwinCode,
-			userTwinCount,
-			mStartedLoadingFirstObjectSet);
-return;
-}
-
 int gridCenterX = lrintf( lastScreenViewCenter.x / CELL_D ) - mMapOffsetX + mMapD/2;
 int gridCenterY = lrintf( lastScreenViewCenter.y / CELL_D ) - mMapOffsetY + mMapD/2;
 

@@ -23,6 +23,7 @@
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/settings.h"
 #include "OneLife/gameSource/components/pages/initializationScreen.h"
+#include "OneLife/gameSource/components/pages/initOutdoorSceneScreen.h"
 
 namespace OneLife::game
 {
@@ -44,8 +45,17 @@ namespace OneLife::game
 			~Application();
 
 			void init(OneLife::game::Settings settings);
+
 			void setConnection(const char* ip, int port);
 			OneLife::game::component::Socket* getConnection();
+
+			void storeMessage();
+			void putMessageIn();
+
+			void setOption(int option, int value);
+			bool isEnable(int option);
+			void setUseCustomServerStatus(bool status);
+			bool isUsingCustomServer();
 
 			void start();
 
@@ -537,24 +547,30 @@ namespace OneLife::game
 		private:
 			void readDevicesStatus();
 			void _oldReadDevicesStatus();
-			void readServerMessage();
+			void readMessages();
 			void selectScreen();
 			void update(OneLife::dataType::UiComponent* dataScreen);
 			void render(OneLife::dataType::UiComponent* dataScreen);
 			void sendClientMessage();
 
-			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
-			unsigned int idScreen;
-			OneLife::game::InitializationScreen* initializationScreen;
-
-			OneLife::dataType::ui::Screen currentScreen;
-			OneLife::game::component::Socket* connection;
-			OneLife::game::DeviceListener* deviceListener;
-			OneLife::game::ScreenRenderer* screenRenderer;
-
 			struct{
 				bool pauseOnMinimize;
 			}option;
+			unsigned lastSignalValue;
+
+			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
+			bool useCustomServer;
+			unsigned int idScreen;
+			OneLife::game::InitializationScreen* initializationScreen;
+			OneLife::game::WaitingScreen* loadingLocalMapScreen;
+
+
+			OneLife::dataType::ui::Screen currentScreen;//TODO: rename this screenData and make var GameScreen* currentScreen
+			OneLife::game::DeviceListener* deviceListener;
+			OneLife::game::ScreenRenderer* screenRenderer;
+
+			OneLife::game::component::Socket* connection;
+			OneLife::game::component::MessageChannel* messageChannel;
 
 			bool quit;
 	};

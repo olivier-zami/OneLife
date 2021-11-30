@@ -282,12 +282,10 @@ extern void setTrippingColor( double x, double y );
 /**********************************************************************************************************************/
 
 LivingLifePage::LivingLifePage()
-        : mServerSocket( -1 ),
-          mForceRunTutorial( false ),
+        : mForceRunTutorial( false ),
           mTutorialNumber( 0 ),
           mGlobalMessageShowing( false ),
           mGlobalMessageStartTime( 0 ),
-          mFirstServerMessagesReceived( 0 ),
           mMapGlobalOffsetSet( false ),
           mMapD( MAP_D ),
           mMapOffsetX( 0 ),
@@ -659,7 +657,8 @@ LivingLifePage::LivingLifePage()
 void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = this->screenName;
-	screen->draw = nullptr;
+	screen->draw = OneLife::game::graphic::drawOutdoorSceneScreen;
+	screen->body = &(this->screen);
 }
 
 void LivingLifePage::setServerSocket(OneLife::game::component::Socket *socket)
@@ -667,13 +666,12 @@ void LivingLifePage::setServerSocket(OneLife::game::component::Socket *socket)
 	this->socket = socket;
 	this->socket->handle(
 			&serverSocketBuffer,
-			&bytesInCount,
-			&mServerSocket);
+			&bytesInCount);
 }
 
 void LivingLifePage::sendToServerSocket( char *inMessage )
 {
-	OneLife::game::dataType::socket::Message message;
+	OneLife::dataType::socket::Message message;
 	message.body = inMessage;
 	try
 	{
@@ -681,17 +679,13 @@ void LivingLifePage::sendToServerSocket( char *inMessage )
 	}
 	catch(OneLife::game::Exception* e)
 	{
-		if( mFirstServerMessagesReceived  )
+		if(true)//if map has been loaded
 		{
-
-			if( mDeathReason != NULL ) {
-				delete [] mDeathReason;
-			}
-			mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
-
+			this->sendDeathMessage(translate( "reasonDisconnected" ));
 			handleOurDeath( true );
 		}
-		else {
+		else
+		{
 			setWaiting( false );
 			setSignal( "loginFailed" );
 		}
@@ -1063,10 +1057,7 @@ LivingLifePage::~LivingLifePage()
 
     mSentChatPhrases.deallocateStringElements();
     
-    if( mServerSocket != -1 )
-	{
-        closeSocket( mServerSocket );
-	}
+    if( !this->socket->isClosed()) this->socket->close();
     
     mPreviousHomeDistStrings.deallocateStringElements();
     mPreviousHomeDistFades.deleteAll();
@@ -1620,10 +1611,9 @@ void LivingLifePage::draw(
 	doublePair inViewCenter,
 	double inViewSize )
 {
-	#include "OneLife/gameSource/procedures/graphics/drawTutorialSheet.cpp"
+	//#include "OneLife/gameSource/procedures/graphics/drawTutorialSheet.cpp"
 	/*******************************************************************************************************************
 	OneLife::game::graphic::drawGameScreen(
-			mFirstServerMessagesReceived,
 			mStartedLoadingFirstObjectSet,
 			mFirstObjectSetLoadingProgress,
 			mDoneLoadingFirstObjectSet);//TODO: replace with OneLife::game::graphic::drawGameScreen();
@@ -2591,12 +2581,9 @@ void LivingLifePage::step() {
         if( pageLifeTime > 10 )
 		{
             // having trouble connecting.
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
-
+            this->socket->close();
             setWaiting( false );
             setSignal( "connectionFailed" );
-            
             return;
 		}
 	}
@@ -2608,7 +2595,6 @@ void LivingLifePage::step() {
 
     if( ! readSuccess )
 	{
-        
         if( this->socket->isConnected() )
 		{
             if( this->socket->getLastQueryLifeTime() < 1 )
@@ -2618,24 +2604,17 @@ void LivingLifePage::step() {
                 return;
 			}
 		}
-        
-
-        closeSocket( mServerSocket );
-        mServerSocket = -1;
-
-        if( mFirstServerMessagesReceived  ) {
-            
-            if( mDeathReason != NULL ) {
-                delete [] mDeathReason;
-                }
-            mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
-            
-            handleOurDeath( true );
-            }
-        else {
-            setWaiting( false );
+		this->socket->close();
+		if(true)//scene has ben loaded
+		{
+			this->sendDeathMessage(translate( "reasonDisconnected" ));
+			handleOurDeath( true );
+		}
+		else
+		{
+			setWaiting( false );
             setSignal( "loginFailed" );
-            }
+		}
         return;
 	}
     
@@ -2979,9 +2958,7 @@ void LivingLifePage::step() {
             
             doublePair dir = normalize( delta );
             
-            mHomeSlipPosOffset = 
-                add( mHomeSlipPosOffset,
-                     mult( dir, speed ) );
+            mHomeSlipPosOffset = add( mHomeSlipPosOffset, mult( dir, speed ) );
             }        
         if( equal( mHomeSlipPosTargetOffset, mHomeSlipHideOffset ) ) {
             // fully hidden
@@ -3532,9 +3509,8 @@ void LivingLifePage::step() {
                 curTime - ourObject->pendingActionAnimationStartTime,
                 curTime - lastServerMessageReceiveTime );
 
-        closeSocket( mServerSocket );
-        mServerSocket = -1;
-        
+		this->socket->close();
+
         if( mDeathReason != NULL ) {
             delete [] mDeathReason;
             }
@@ -3614,8 +3590,7 @@ void LivingLifePage::step() {
                 "for our PING.  Declaring connection broken.\n",
                 curTime - ourObject->pendingActionAnimationStartTime );
             
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+            this->socket->close();
 
             if( mDeathReason != NULL ) {
                 delete [] mDeathReason;
@@ -3653,9 +3628,9 @@ void LivingLifePage::step() {
             type = UNKNOWN;
             }
         
-        if( type == SHUTDOWN  || type == FORCED_SHUTDOWN ) {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+        if( type == SHUTDOWN  || type == FORCED_SHUTDOWN )
+		{
+            this->socket->close();
             
             setWaiting( false );
             setSignal( "serverShutdown" );
@@ -3663,9 +3638,9 @@ void LivingLifePage::step() {
             delete [] message;
             return;
             }
-        else if( type == SERVER_FULL ) {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+        else if( type == SERVER_FULL )
+		{
+            this->socket->close();
             
             setWaiting( false );
             setSignal( "serverFull" );
@@ -3809,9 +3784,7 @@ void LivingLifePage::step() {
                 
                 // if server is using an older version, check that
                 // their version is not behind our data version at least
-
-                closeSocket( mServerSocket );
-                mServerSocket = -1;
+                this->socket->close();
 
                 setWaiting( false );
 
@@ -3943,9 +3916,9 @@ void LivingLifePage::step() {
             delete [] message;
             return;
             }
-        else if( type == REJECTED ) {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+        else if( type == REJECTED )
+		{
+            this->socket->close();
             
             setWaiting( false );
             setSignal( "loginFailed" );
@@ -3953,9 +3926,9 @@ void LivingLifePage::step() {
             delete [] message;
             return;
             }
-        else if( type == NO_LIFE_TOKENS ) {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+        else if( type == NO_LIFE_TOKENS )
+		{
+            this->socket->close();
             
             setWaiting( false );
             setSignal( "noLifeTokens" );
@@ -4386,7 +4359,8 @@ void LivingLifePage::step() {
                     flyingPerson->inMotion = false;
                         
 
-                    if( flyingPerson->id == ourID ) {
+                    if( flyingPerson->id == ourID )
+					{
                         // special case for self
                         
                         // jump camera there instantly
@@ -4396,18 +4370,18 @@ void LivingLifePage::step() {
                                                lastScreenViewCenter.y );
                         
                         // show loading screen again
-                        mFirstServerMessagesReceived = 2;
                         mStartedLoadingFirstObjectSet = false;
                         mDoneLoadingFirstObjectSet = false;
                         mFirstObjectSetLoadingProgress = 0;
                         mPlayerInFlight = true;
+						this->sendTripMessage("Flying yo destination ...");
 
                         // home markers invalid now
                         homePosStack.deleteAll();
-                        }
-                    }
-                }            
-            }
+					}
+				}
+			}
+		}
         else if( type == VOG_UPDATE ) {
             int posX, posY;
             
@@ -4849,78 +4823,7 @@ void LivingLifePage::step() {
                 
                 tokens->deallocateStringElements();
                 delete tokens;
-                
-                if( !( mFirstServerMessagesReceived & 1 ) ) {
-                    // first map chunk just recieved
-					
-					minitech::initOnBirth();
-					
-					//reset fov on birth
-					if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) {
-						changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
-						}
-					else {
-						changeFOV( 1.0f );
-						}
-					changeHUDFOV( SettingsManager::getFloatSetting( "fovScaleHUD", 1.25f ) );
-                    
-                    char found = false;
-                    int closestX = 0;
-                    int closestY = 0;
-                    
-                    // only if marker starts on birth map chunk
-                    
-                    // use distance squared here, no need for sqrt
-
-                    // rough estimate of radius of birth map chunk
-                    // this allows markers way off the screen, but so what?
-                    double closestDist = 16 * 16;
-
-                    int mapCenterY = y + sizeY / 2;
-                    int mapCenterX = x + sizeX / 2;
-                    printf( "Map center = %d,%d\n", mapCenterX, mapCenterY );
-                    
-                    for( int mapY=0; mapY < mMapD; mapY++ ) {
-                        for( int mapX=0; mapX < mMapD; mapX++ ) {
-                        
-                            int i = mMapD * mapY + mapX;
-                            
-                            int id = mMap[ i ];
-                            
-                            if( id > 0 ) {
-                            
-                                // check for home marker
-                                if( getObject( id )->homeMarker ) {
-                                    int worldY = mapY + mMapOffsetY - mMapD / 2;
-                                    
-                                    int worldX = mapX + mMapOffsetX - mMapD / 2;
-
-                                    double dist = 
-                                        pow( worldY - mapCenterY, 2 )
-                                        +
-                                        pow( worldX - mapCenterX, 2 );
-                                    
-                                    if( dist < closestDist ) {
-                                        closestDist = dist;
-                                        closestX = worldX;
-                                        closestY = worldY;
-                                        found = true;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    
-                    if( found ) {
-                        printf( "Found starting home marker at %d,%d\n",
-                                closestX, closestY );
-                        addHomeLocation( closestX, closestY );
-                        }
-                    }
-                
-
-                mFirstServerMessagesReceived |= 1;
-                }
+			}
 
             if( mapPullMode ) {
                 
@@ -7814,8 +7717,7 @@ void LivingLifePage::step() {
                         // if we're in live trigger mode, leave 
                         // server connection open so we can see what happens
                         // next
-                        closeSocket( mServerSocket );
-                        mServerSocket = -1;
+                        this->socket->close();
                         handleOurDeath();
                         }
                     else {
@@ -8002,44 +7904,7 @@ void LivingLifePage::step() {
 
 
             delete [] lines;
-
-
-            if( ( mFirstServerMessagesReceived & 2 ) == 0 ) {
-            
-                LiveObject *ourObject = 
-                    gameObjects.getElement( recentInsertedGameObjectIndex );
-                
-                ourID = ourObject->id;
-				
-
-                if( ourID != lastPlayerID ) {
-					minitech::initOnBirth();
-                    // different ID than last time, delete old home markers
-                    oldHomePosStack.deleteAll();
-                    }
-                homePosStack.push_back_other( &oldHomePosStack );
-
-                lastPlayerID = ourID;
-
-                // we have no measurement yet
-                ourObject->lastActionSendStartTime = 0;
-                ourObject->lastResponseTimeDelta = 0;
-                
-
-                remapRandSource.reseed( ourID );
-
-                mCurrentRemapFraction = 0;
-                mRemapPeak = 0;
-                setRemapFraction( mCurrentRemapFraction );
-
-                printf( "Got first PLAYER_UPDATE message, our ID = %d\n",
-                        ourID );
-
-                ourObject->displayChar = 'A';
-                }
-            
-            mFirstServerMessagesReceived |= 2;
-            }
+		}
         else if( type == PLAYER_MOVES_START ) {
             
             int numLines;
@@ -8886,7 +8751,8 @@ void LivingLifePage::step() {
                 }
             delete [] lines;
             }
-        else if( type == LINEAGE ) {
+        else if( type == LINEAGE )
+		{
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8968,13 +8834,13 @@ void LivingLifePage::step() {
             // now process each one and generate relation string
             LiveObject *ourObject = getOurLiveObject();
             
-            for( int j=0; j<gameObjects.size(); j++ ) {
-                if( gameObjects.getElement(j)->id != ourID ) {
-                            
+            for( int j=0; j<gameObjects.size(); j++ )
+			{
+                if( gameObjects.getElement(j)->id != ourID )
+				{
                     LiveObject *other = gameObjects.getElement(j);
-                 
-                    if( other->relationName == NULL ) {
-                        
+                    if( other->relationName == NULL )
+					{
                         /*
                         // test
                         ourObject->lineage.deleteAll();
@@ -8992,12 +8858,12 @@ void LivingLifePage::step() {
                             }
                         other->lineage.push_back( cousinNum );
                         */
-                        other->relationName = getRelationName( ourObject,
-                                                               other );
-                        }
-                    }
-                }
-            }
+
+                        other->relationName = getRelationName( ourObject, other );//TODO: uncomment
+					}
+				}
+			}
+		}
         else if( type == CURSED ) {
             int numLines;
             char **lines = split( message, "\n", &numLines );
@@ -9571,60 +9437,46 @@ void LivingLifePage::step() {
 
 
     
-    if( !mapPullMode && 
-        mDoneLoadingFirstObjectSet && ourLiveObject != NULL ) {
-        
-
+    if( !mapPullMode && mDoneLoadingFirstObjectSet && ourLiveObject != NULL )
+	{
         // current age
         double age = computeCurrentAge( ourLiveObject );
-
         int sayCap = (int)( floor( age ) + 1 );
-        
-        if( ourLiveObject->lineage.size() == 0  && sayCap < 30 ) {
+        if( ourLiveObject->lineage.size() == 0  && sayCap < 30 )
+		{
             // eve has a larger say limit
             sayCap = 30;
-            }
-        if( vogMode ) {
+		}
+        if( vogMode )
+		{
             sayCap = 200;
-            }
-        
+		}
         char *currentText = mSayField.getText();
-        
-        if( strlen( currentText ) > 0 && currentText[0] == '/' ) {
+        if( strlen( currentText ) > 0 && currentText[0] == '/' )
+		{
             // typing a filter
             // hard cap at 25, regardless of age
             // don't want them typing long filters that overflow the display
             sayCap = 23;
             }
         delete [] currentText;
-
         mSayField.setMaxLength( sayCap );
-
-
-
         LiveObject *cameraFollowsObject = ourLiveObject;
-        
-        if( ourLiveObject->heldByAdultID != -1 ) {
-            cameraFollowsObject = 
-                getGameObject( ourLiveObject->heldByAdultID );
-            
-            if( cameraFollowsObject == NULL ) {
+        if( ourLiveObject->heldByAdultID != -1 )
+		{
+            cameraFollowsObject = getGameObject( ourLiveObject->heldByAdultID );
+            if( cameraFollowsObject == NULL )
+			{
                 ourLiveObject->heldByAdultID = -1;
                 cameraFollowsObject = ourLiveObject;
-                }
-            }
-        
+			}
+		}
         doublePair targetObjectPos = cameraFollowsObject->currentPos;
-        
-        if( vogMode ) {
+        if( vogMode )
+		{
             targetObjectPos = vogPos;
-            }
-        
-
-
-        doublePair screenTargetPos = 
-            mult( targetObjectPos, CELL_D );
-        
+		}
+        doublePair screenTargetPos = mult( targetObjectPos, CELL_D );
         if( vogMode || SettingsManager::getIntSetting( "centerCamera", 0 ) ) {
             // don't adjust camera
             }
@@ -10601,221 +10453,6 @@ void LivingLifePage::step() {
             ourLiveObject->lastFlipSent = ourLiveObject->holdingFlip;
             }
         }
-    
-    
-
-    if( mFirstServerMessagesReceived == 3 ) {
-
-        if( mStartedLoadingFirstObjectSet && ! mDoneLoadingFirstObjectSet ) {
-            mDoneLoadingFirstObjectSet = 
-                isLiveObjectSetFullyLoaded( &mFirstObjectSetLoadingProgress );
-            
-            if( mDoneLoadingFirstObjectSet &&
-                game_getCurrentTime() - mStartedLoadingFirstObjectSetStartTime
-                < 1 ) {
-                // always show loading progress for at least 1 second
-                //mDoneLoadingFirstObjectSet = false;
-                }
-            
-
-            if( mDoneLoadingFirstObjectSet ) {
-                mPlayerInFlight = false;
-                
-                printf( "First map load done\n" );
-                
-                int loaded, total;
-                countLoadedSprites( &loaded, &total );
-                
-                printf( "%d/%d sprites loaded\n", loaded, total );
-                
-
-                restartMusic( computeCurrentAge( ourLiveObject ),
-                              ourLiveObject->ageRate );
-                setSoundLoudness( 1.0 );
-                resumePlayingSoundSprites();
-                setMusicLoudness( musicLoudness );
-
-                // center view on player's starting position
-                lastScreenViewCenter.x = CELL_D * ourLiveObject->xd;
-                lastScreenViewCenter.y = CELL_D * ourLiveObject->yd;
-
-                setViewCenterPosition( lastScreenViewCenter.x, 
-                                       lastScreenViewCenter.y );
-
-                mapPullMode = 
-                    SettingsManager::getIntSetting( "mapPullMode", 0 );
-                mapPullStartX = 
-                    SettingsManager::getIntSetting( "mapPullStartX", -10 );
-                mapPullStartY = 
-                    SettingsManager::getIntSetting( "mapPullStartY", -10 );
-                mapPullEndX = 
-                    SettingsManager::getIntSetting( "mapPullEndX", 10 );
-                mapPullEndY = 
-                    SettingsManager::getIntSetting( "mapPullEndY", 10 );
-                
-                mapPullCurrentX = mapPullStartX;
-                mapPullCurrentY = mapPullStartY;
-
-                if( mapPullMode ) {
-                    mMapGlobalOffset.x = mapPullCurrentX;
-                    mMapGlobalOffset.y = mapPullCurrentY;
-                    mMapGlobalOffsetSet = true;
-                    
-                    applyReceiveOffset( &mapPullCurrentX, &mapPullCurrentY );
-                    applyReceiveOffset( &mapPullStartX, &mapPullStartY );
-                    applyReceiveOffset( &mapPullEndX, &mapPullEndY );
-                
-
-                    mapPullCurrentSaved = true;
-                    mapPullModeFinalImage = false;
-                    
-                    char *message = autoSprintf( "MAP %d %d#",
-                                                 sendX( mapPullCurrentX ),
-                                                 sendY( mapPullCurrentY ) );
-
-                    sendToServerSocket( message );
-               
-                    mapPullCurrentSent = true;
-
-                    delete [] message;
-
-                    int screenWidth, screenHeight;
-                    getScreenDimensions( &screenWidth, &screenHeight );
-
-                    double scale = screenWidth / (double)screenW;
-
-                    mapPullTotalImage = 
-                        new Image( lrint(
-                                       ( 10 + mapPullEndX - mapPullStartX ) 
-                                       * CELL_D * scale ),
-                                   lrint( ( 6 + mapPullEndY - mapPullStartY ) 
-                                          * CELL_D * scale ),
-                                   3, false );
-                    numScreensWritten = 0;
-                    }
-                }
-            }
-        else {
-            
-            clearLiveObjectSet();
-            
-            
-            // push all objects from grid, live players, what they're holding
-            // and wearing into live set
-
-            // any direct-from-death graves
-            // we want these to pop in instantly whenever someone dies
-            SimpleVector<int> *allPossibleDeathMarkerIDs = 
-                getAllPossibleDeathIDs();
-            
-            for( int i=0; i<allPossibleDeathMarkerIDs->size(); i++ ) {
-                addBaseObjectToLiveObjectSet( 
-                    allPossibleDeathMarkerIDs->getElementDirect( i ) );
-                }
-            
-            
-            
-            // next, players
-            for( int i=0; i<gameObjects.size(); i++ ) {
-                LiveObject *o = gameObjects.getElement( i );
-                
-                addBaseObjectToLiveObjectSet( o->displayID );
-                
-                
-                if( ! o->allSpritesLoaded ) {
-                    // check if they're loaded yet
-                    
-                    int numLoaded = 0;
-
-                    ObjectRecord *displayObj = getObject( o->displayID );
-                    for( int s=0; s<displayObj->numSprites; s++ ) {
-                        
-                        if( markSpriteLive( displayObj->sprites[s] ) ) {
-                            numLoaded ++;
-                            }
-                        }
-                    
-                    if( numLoaded == displayObj->numSprites ) {
-                        o->allSpritesLoaded = true;
-                        }
-                    }
-                
-
-                // and what they're holding
-                if( o->holdingID > 0 ) {
-                    addBaseObjectToLiveObjectSet( o->holdingID );
-
-                    // and what it contains
-                    for( int j=0; j<o->numContained; j++ ) {
-                        addBaseObjectToLiveObjectSet(
-                            o->containedIDs[j] );
-                        
-                        for( int s=0; s<o->subContainedIDs[j].size(); s++ ) {
-                            addBaseObjectToLiveObjectSet(
-                                o->subContainedIDs[j].getElementDirect( s ) );
-                            }
-                        }
-                    }
-                
-                // and their clothing
-                for( int c=0; c<NUM_CLOTHING_PIECES; c++ ) {
-                    ObjectRecord *cObj = clothingByIndex( o->clothing, c );
-                    
-                    if( cObj != NULL ) {
-                        addBaseObjectToLiveObjectSet( cObj->id );
-
-                        // and what it containes
-                        for( int cc=0; 
-                             cc< o->clothingContained[c].size(); cc++ ) {
-                            int ccID = 
-                                o->clothingContained[c].getElementDirect( cc );
-                            addBaseObjectToLiveObjectSet( ccID );
-                            }
-                        }
-                    }
-                }
-            
-            
-            // next all objects in grid
-            int numMapCells = mMapD * mMapD;
-            
-            for( int i=0; i<numMapCells; i++ ) {
-                if( mMapFloors[i] > 0 ) {
-                    addBaseObjectToLiveObjectSet( mMapFloors[i] );
-                    }
-                
-                if( mMap[i] > 0 ) {
-                    
-                    addBaseObjectToLiveObjectSet( mMap[i] );
-            
-                    // and what is contained in each object
-                    int numCont = mMapContainedStacks[i].size();
-                    
-                    for( int j=0; j<numCont; j++ ) {
-                        addBaseObjectToLiveObjectSet(
-                            mMapContainedStacks[i].getElementDirect( j ) );
-                        
-                        SimpleVector<int> *subVec =
-                            mMapSubContainedStacks[i].getElement( j );
-                        
-                        int numSub = subVec->size();
-                        for( int s=0; s<numSub; s++ ) {
-                            addBaseObjectToLiveObjectSet( 
-                                subVec->getElementDirect( s ) );
-                            }
-                        }
-                    }
-                }
-
-
-            markEmotionsLive();
-            
-            finalizeLiveObjectSet();
-            
-            mStartedLoadingFirstObjectSet = true;
-            mStartedLoadingFirstObjectSetStartTime = game_getCurrentTime();
-            }
-        }
 }
 
 
@@ -11107,7 +10744,6 @@ void LivingLifePage::makeActive( char inFresh ) {
     
 
     clearLiveObjects();
-    mFirstServerMessagesReceived = 0;
     mStartedLoadingFirstObjectSet = false;
     mDoneLoadingFirstObjectSet = false;
     mFirstObjectSetLoadingProgress = 0;
@@ -11673,12 +11309,8 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         return;
         }
 
-    if( mServerSocket == -1 ) {
+    if( this->socket->isClosed() ) {//TODO: call connectPage if socket closed
         // dead
-        return;
-        }
-
-    if( mFirstServerMessagesReceived != 3 || ! mDoneLoadingFirstObjectSet ) {
         return;
         }
 
@@ -11955,7 +11587,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
     
-    if( mServerSocket == -1 ) {
+    if( this->socket->isClosed() ) {
         // dead
         return;
         }
@@ -12006,10 +11638,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         }
     
     getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
-    
-    if( mFirstServerMessagesReceived != 3 || ! mDoneLoadingFirstObjectSet ) {
-        return;
-        }
 
     if( playerActionPending ) {
         printf( "Skipping click, action pending\n" );
@@ -13557,12 +13185,8 @@ void LivingLifePage::pointerUp( float inX, float inY ) {
         }
     
 
-    if( mServerSocket == -1 ) {
+    if( this->socket->isClosed() ) {//TODO: call connectPage if socket closed
         // dead
-        return;
-        }
-
-    if( mFirstServerMessagesReceived != 3 || ! mDoneLoadingFirstObjectSet ) {
         return;
         }
 
@@ -13612,7 +13236,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
     registerTriggerKeyCommand( inASCII, this );
 
 
-    if( mServerSocket == -1 ) {
+    if( this->socket->isClosed() ) {
         // dead
         return;
         }
@@ -13827,8 +13451,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             if( userTwinCode != NULL &&
                 ! mStartedLoadingFirstObjectSet ) {
                 
-                closeSocket( mServerSocket );
-                mServerSocket = -1;
+                this->socket->close();
                 
                 setWaiting( false );
                 setSignal( "twinCancel" );
@@ -14177,7 +13800,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         return;
         }
     
-    if( mServerSocket == -1 ) {
+    if( this->socket->isClosed() ) {
         // dead
         return;
         }

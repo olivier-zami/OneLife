@@ -375,9 +375,7 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
 	screenH = inHeight;
 
 	if( inTargetFrameRate != baseFramesPerSecond ) {
-		frameRateFactor =
-				(double)baseFramesPerSecond / (double)inTargetFrameRate;
-
+		frameRateFactor = (double)baseFramesPerSecond / (double)inTargetFrameRate;
 		numLoadingSteps /= frameRateFactor;
 	}
 

@@ -27,12 +27,14 @@ components/engines/GameSceneHandler.cpp \
 components/engines/screenRenderer.cpp \
 components/GamePage.cpp \
 components/keyboard.cpp \
+components/messageChannel.cpp \
 components/pages/AutoUpdatePage.cpp \
 components/pages/ExistingAccountPage.cpp \
 components/pages/ExtendedMessagePage.cpp \
 components/pages/FinalMessagePage.cpp \
 components/pages/GeneticHistoryPage.cpp \
 components/pages/initializationScreen.cpp \
+components/pages/initOutdoorSceneScreen.cpp \
 components/pages/LivingLifePage.cpp \
 components/pages/LoadingPage.cpp \
 components/pages/PollPage.cpp \
@@ -41,7 +43,6 @@ components/pages/RebirthChoicePage.cpp \
 components/pages/ReviewPage.cpp \
 components/pages/SettingsPage.cpp \
 components/pages/TwinPage.cpp \
-components/pages/waitingBirthScreen.cpp \
 components/socket.cpp \
 components/soundPlayer.cpp \
 dataTypes/exception/exception.cpp \
@@ -54,6 +55,7 @@ procedures/graphics/drawGround.cpp \
 procedures/graphics/drawInitializingScreen.cpp \
 procedures/graphics/drawGameScreen.cpp \
 procedures/graphics/drawLoadingScreen.cpp \
+procedures/graphics/drawOutdoorSceneScreen.cpp \
 procedures/graphics/drawUnimplementedScreen.cpp \
 procedures/graphics/drawString.cpp \
 procedures/graphics/drawWaitingBirthScreen.cpp \
