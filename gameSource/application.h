@@ -544,6 +544,7 @@ namespace OneLife::game
 
 			// for playing back minimized window state
 			char mLastMinimizedStatus;
+
 		private:
 			void readDevicesStatus();
 			void _oldReadDevicesStatus();
@@ -554,16 +555,24 @@ namespace OneLife::game
 			void sendClientMessage();
 
 			struct{
+				bool connectedMode;
+			}status;
+
+			struct{
 				bool pauseOnMinimize;
 			}option;
 			unsigned lastSignalValue;
-
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			bool useCustomServer;
-			unsigned int idScreen;
-			OneLife::game::InitializationScreen* initializationScreen;
-			OneLife::game::WaitingScreen* loadingLocalMapScreen;
 
+			LiveObject* player;
+			char* serverMessage;
+
+			unsigned int idScreen;
+			struct{
+				OneLife::game::WaitingScreen* mapGenerationScreen;
+			}controller;
+			OneLife::game::InitializationScreen* initializationScreen;
 
 			OneLife::dataType::ui::Screen currentScreen;//TODO: rename this screenData and make var GameScreen* currentScreen
 			OneLife::game::DeviceListener* deviceListener;

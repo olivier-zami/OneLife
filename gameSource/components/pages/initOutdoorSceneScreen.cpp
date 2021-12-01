@@ -5,6 +5,7 @@
 #include "initOutdoorSceneScreen.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
 
@@ -19,6 +20,8 @@ const char* OneLife::game::WaitingScreen::screenName = "Waiting birth";
 
 OneLife::game::WaitingScreen::WaitingScreen()
 {
+	this->player = nullptr;
+	this->screen = {0};
 	this->screen.center = {0,0};
 	this->screen.component.connectingMessage.color = {1,1,1,1};
 	this->screen.component.statusMessage.value = nullptr;
@@ -47,7 +50,18 @@ void OneLife::game::WaitingScreen::handle(OneLife::dataType::UiComponent* screen
 		this->initScreen();
 		this->isScreenInited = true;
 	}
+	/*
+	else if(!this->player)
+	{
+		printf("\n===>initialize player ....");
+	}
+ 	*/
 	else this->updateScreen();
+}
+
+void OneLife::game::WaitingScreen::handle(LiveObject* player)
+{
+	this->player = player;
 }
 
 void OneLife::game::WaitingScreen::initScreen()
@@ -410,32 +424,32 @@ void OneLife::game::WaitingScreen::update1()
 
 void OneLife::game::WaitingScreen::update2()
 {
+	//if( ( mFirstServerMessagesReceived & 2 ) == 0 ) { //legacy
 	/*
-	if( ( mFirstServerMessagesReceived & 2 ) == 0 )
+	LiveObject *ourObject = gameObjects.getElement( recentInsertedGameObjectIndex );
+	ourID = ourObject->id;
+
+	/*
+	if( ourID != lastPlayerID )
 	{
-		LiveObject *ourObject = gameObjects.getElement( recentInsertedGameObjectIndex );
-		ourID = ourObject->id;
-
-		if( ourID != lastPlayerID )
-		{
-			minitech::initOnBirth();
-			// different ID than last time, delete old home markers
-			oldHomePosStack.deleteAll();
-		}
-		homePosStack.push_back_other( &oldHomePosStack );
-
-		lastPlayerID = ourID;
-
-		// we have no measurement yet
-		ourObject->lastActionSendStartTime = 0;
-		ourObject->lastResponseTimeDelta = 0;
-		remapRandSource.reseed( ourID );
-		mCurrentRemapFraction = 0;
-		mRemapPeak = 0;
-		setRemapFraction( mCurrentRemapFraction );
-		printf( "Got first PLAYER_UPDATE message, our ID = %d\n", ourID );
-		ourObject->displayChar = 'A';
+		minitech::initOnBirth();
+		// different ID than last time, delete old home markers
+		oldHomePosStack.deleteAll();
 	}
+	homePosStack.push_back_other( &oldHomePosStack );
+
+	lastPlayerID = ourID;
+
+	// we have no measurement yet
+	ourObject->lastActionSendStartTime = 0;
+	ourObject->lastResponseTimeDelta = 0;
+	remapRandSource.reseed( ourID );
+	mCurrentRemapFraction = 0;
+	mRemapPeak = 0;
+	setRemapFraction( mCurrentRemapFraction );
+	printf( "Got first PLAYER_UPDATE message, our ID = %d\n", ourID );
+	ourObject->displayChar = 'A';
+	//} //legacy
 	mFirstServerMessagesReceived |= 2;//TODO: call loadingLocalMap ?
  	*/
 }

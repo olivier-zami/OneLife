@@ -1,0 +1,1 @@
+//legacy void OneLife::game::Application::readMessages() =>message from server

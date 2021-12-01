@@ -7,6 +7,7 @@
 
 #include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
+#include "OneLife/gameSource/dataTypes/game.h" //LiveObject
 
 namespace OneLife::game
 {
@@ -18,6 +19,7 @@ namespace OneLife::game
 			~WaitingScreen();
 
 			void handle(OneLife::dataType::UiComponent* screen);
+			void handle(LiveObject* player);
 
 		private:
 			void initScreen();
@@ -29,7 +31,8 @@ namespace OneLife::game
 
 			static const char* screenName;
 			bool isScreenInited;
-			OneLife::dataType::uiComponent::WaitingScreen screen;
+			LiveObject* player;
+			OneLife::dataType::uiComponent::WaitingScreen screen{};
 	};
 }
 

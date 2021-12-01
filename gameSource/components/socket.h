@@ -29,6 +29,7 @@ namespace OneLife::game::component
 			bool isConnected();
 			bool isClosed();
 
+			void sendMessage(const char* message);
 			void sendMessage(OneLife::dataType::socket::Message message);
 			char readMessage();
 			double getLastQueryLifeTime();

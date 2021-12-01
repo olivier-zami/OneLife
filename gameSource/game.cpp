@@ -1217,9 +1217,8 @@ int mainFunction( int inNumArgs, char **inArgs )
 	// default texture mode
 	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
-
+	gameApplication->init(gameSettings);
 	gameApplication->start();
-
 
 	return 0;
 }

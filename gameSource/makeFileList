@@ -45,6 +45,7 @@ components/pages/SettingsPage.cpp \
 components/pages/TwinPage.cpp \
 components/socket.cpp \
 components/soundPlayer.cpp \
+components/trace.cpp \
 dataTypes/exception/exception.cpp \
 features/family.cpp \
 features/homeland.cpp \

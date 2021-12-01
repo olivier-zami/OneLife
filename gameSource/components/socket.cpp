@@ -5,7 +5,6 @@
 #include "socket.h"
 
 #include <cstdio>
-
 #include "minorGems/util/log/AppLog.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/network/HostAddress.h"
@@ -101,6 +100,28 @@ bool OneLife::game::component::Socket::isConnected()
 bool OneLife::game::component::Socket::isClosed()
 {
 	return (this->idSocket == -1);
+}
+
+void OneLife::game::component::Socket::sendMessage(const char* message)
+{
+	this->timeLastMessageSent = game_getCurrentTime();
+	printf( "Sending message to server: %s\n", message );
+	replaceLastMessageSent(stringDuplicate( message));//TODO: if lastMessageSentToServer used create method getlastMessageSent()
+	size_t len = strlen(message);
+	int numSent = sendToSocket(this->idSocket, (unsigned char*)message, (int)len);
+	if( numSent == len )
+	{
+		this->numServerBytesSent += (int)len;
+		this->overheadServerBytesSent += 52;
+		this->numServerMessageSent++;//TODO: messagesOutCount++;
+		this->bytesOutCount += (int)len;
+	}
+	else
+	{
+		printf( "Failed to send message to server socket at time %f (tried to send %d, but numSent=%d)\n", game_getCurrentTime(), len, numSent );
+		closeSocket(this->idSocket);
+		this->idSocket = -1;//TODO: set idSocket to -1 in closeSocket();
+	}
 }
 
 /**
