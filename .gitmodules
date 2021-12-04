@@ -1,0 +1,3 @@
+[submodule "third_party/openlife"]
+	path = third_party/openlife
+	url = https://github.com/olivier-zami/openlife.git
