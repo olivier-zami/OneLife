@@ -1,6 +1,6 @@
 #include "ServerActionPage.h"
 
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/stringUtils.h"

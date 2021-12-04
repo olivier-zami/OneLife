@@ -2,7 +2,7 @@
 #include "TextArea.h"
 
 #include "minorGems/game/drawUtils.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 

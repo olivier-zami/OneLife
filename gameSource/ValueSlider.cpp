@@ -3,7 +3,7 @@
 #include "minorGems/util/stringUtils.h"
 
 #include "minorGems/game/drawUtils.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/dataTypes/hardware.h"
 
 

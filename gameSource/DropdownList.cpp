@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/util/stringUtils.h"

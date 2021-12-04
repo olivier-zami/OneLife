@@ -1,7 +1,7 @@
 #include "ageControl.h"
 
 #include <math.h>
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
 
 

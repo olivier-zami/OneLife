@@ -2,7 +2,7 @@
 
 
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/game/drawUtils.h"
 
 #include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"

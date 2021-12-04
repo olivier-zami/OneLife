@@ -8,7 +8,7 @@
 #include <cstring>
 #include "minorGems/game/doublePair.h"
 #include "minorGems/util/SimpleVector.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/dataTypes/game.h"
 
 SimpleVector<OffScreenSound> offScreenSounds;

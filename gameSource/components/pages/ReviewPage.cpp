@@ -3,7 +3,7 @@
 #include "minorGems/game/Font.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/stringUtils.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/network/web/URLUtils.h"
 #include "minorGems/crypto/hashes/sha1.h"
 #include "OneLife/gameSource/buttonStyle.h"

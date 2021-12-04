@@ -38,7 +38,7 @@ int accountHmacVersionNumber = 0;
 extern CustomRandomSource randSource;
 
 #include "minorGems/util/log/AppLog.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
@@ -75,7 +75,7 @@ extern CustomRandomSource randSource;
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/settings.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 
 extern double viewWidth;

@@ -44,7 +44,7 @@ CustomRandomSource randSource( 34957197 );
 
 
 
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"

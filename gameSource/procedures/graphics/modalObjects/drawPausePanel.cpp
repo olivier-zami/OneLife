@@ -16,7 +16,7 @@
 extern GamePage *currentGamePage;
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 
 extern double viewWidth;
 extern double viewHeight;

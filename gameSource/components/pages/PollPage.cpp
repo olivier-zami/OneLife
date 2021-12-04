@@ -4,7 +4,7 @@
 #include "../../procedures/graphics/sprites/drawMessage.h"
 #include "../../accountHmac.h"
 #include "minorGems/game/Font.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/network/web/URLUtils.h"
 #include "minorGems/crypto/hashes/sha1.h"
 #include "minorGems/util/stringUtils.h"

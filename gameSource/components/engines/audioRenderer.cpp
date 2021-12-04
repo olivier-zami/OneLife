@@ -12,7 +12,7 @@
 #include "minorGems/util/log/AppLog.h"
 #include "minorGems/sound/formats/aiff.h"
 #include "minorGems/io/file/File.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/dataTypes/sound.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 #include "OneLife/gameSource/soundBank.h"

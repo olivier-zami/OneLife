@@ -11,7 +11,7 @@
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "minorGems/network/SocketClient.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/application.h"
 

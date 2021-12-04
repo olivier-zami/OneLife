@@ -6,7 +6,7 @@
 #define ONELIFE_GAME_ENGINE_AUDIORENDERER_H
 
 #include <cctype>
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/animationBank.h"
 
 namespace OneLife::game

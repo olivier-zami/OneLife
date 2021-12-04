@@ -12,7 +12,7 @@
 #include "minorGems/sound/formats/aiff.h"
 #include "minorGems/system/Time.h"
 #include "binFolderCache.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
 
 

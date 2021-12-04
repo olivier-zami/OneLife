@@ -6,7 +6,7 @@
 
 #include <cstdio>
 #include "minorGems/util/SimpleVector.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/procedures/maths/gridPos.h"
 #include "OneLife/gameSource/ageControl.h"
 #include "OneLife/gameSource/procedures/ai/pathFind.h"

@@ -11,7 +11,7 @@
 
 #include "minorGems/io/file/FileInputStream.h"
 
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 
 
 

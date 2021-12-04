@@ -2,7 +2,7 @@
 #define SOUND_BANK_INCLUDED
 
 
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 
 #include "SoundUsage.h"
 

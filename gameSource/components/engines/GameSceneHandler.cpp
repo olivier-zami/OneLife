@@ -22,7 +22,7 @@
 #include "minorGems/game/Font.h"
 #include "minorGems/network/web/WebRequest.h"
 #include "minorGems/graphics/Image.h"//bytes
-#include "OneLife/gameSource/game.h"//Uint8
+#include "OneLife/gameSource/misc.h"//Uint8
 #include "OneLife/gameSource/components/GamePage.h"
 #include "OneLife/gameSource/procedures/graphics/drawString.h"
 #include "OneLife/gameSource/dataTypes/socket.h"

@@ -20,7 +20,7 @@
 #include "minorGems/util/SimpleVector.h"
 #include "OneLife/gameSource/application.h"
 #include "OneLife/gameSource/dataTypes/message.h"
-#include "OneLife/gameSource/game.h"//Uint8
+#include "OneLife/gameSource/misc.h"//Uint8
 
 class GameSceneHandler :
 		public SceneHandlerGL,

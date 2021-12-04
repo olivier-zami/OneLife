@@ -5,7 +5,7 @@
 #include "family.h"
 
 #include "minorGems/util/stringUtils.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/objectBank.h"
 
 char *getRelationName( SimpleVector<int> *ourLin,

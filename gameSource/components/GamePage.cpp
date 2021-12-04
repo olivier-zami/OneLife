@@ -3,7 +3,7 @@
 #include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/serialWebRequests.h"
 #include "OneLife/gameSource/whiteSprites.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"

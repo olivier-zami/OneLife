@@ -1,7 +1,7 @@
 #include "drawMessage.h"
 
 #include "minorGems/game/Font.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/game/gameGraphics.h"
 
 #include "minorGems/util/stringUtils.h"

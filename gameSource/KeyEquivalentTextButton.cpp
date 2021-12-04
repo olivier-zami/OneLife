@@ -1,7 +1,7 @@
 #include "KeyEquivalentTextButton.h"
 
 
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 
 
 

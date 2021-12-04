@@ -1,7 +1,7 @@
 #include "ExistingAccountPage.h"
 
 #include "minorGems/game/Font.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/crypto/hashes/sha1.h"

@@ -10,7 +10,7 @@
 #include "minorGems/graphics/Image.h"
 #include "minorGems/io/file/File.h"
 #include "minorGems/game/drawUtils.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/procedures/maths/misc.h"
 #include "OneLife/gameSource/scenes1/intangibles/text.h"
 

@@ -1,6 +1,6 @@
 #include "EditorTransitionPage.h"
 
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
 

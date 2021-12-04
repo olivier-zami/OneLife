@@ -1,7 +1,7 @@
 #include "TestPage.h"
 
 #include "minorGems/game/drawUtils.h"
-#include "OneLife/gameSource/game.h"
+#include "OneLife/gameSource/misc.h"
 
 
 TestPage::TestPage() 
