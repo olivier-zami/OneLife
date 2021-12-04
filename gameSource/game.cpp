@@ -9,11 +9,13 @@
  */
 
 
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
+#include <cmath>
 #include <SDL/SDL_main.h>// let SDL override our main function with SDLMain
+#include "OneLife/gameSource/features/base.h"
+
 int mainFunction( int inArgCount, char **inArgs );// must do this before SDL include to prevent WinMain linker errors on win32
 
 int main( int inArgCount, char **inArgs )
@@ -1217,12 +1219,18 @@ int mainFunction( int inNumArgs, char **inArgs )
 	// default texture mode
 	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
+	//!Add features to the game
+	gameApplication->addFeature(new OneLife::game::feature::Base());
+
+	//!
 	gameApplication->init(gameSettings);
+
 	gameApplication->start();
 
 	return 0;
 }
 
+/**********************************************************************************************************************/
 
 unsigned int getRandSeed() {
 	return gameApplication->getRandSeed();

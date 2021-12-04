@@ -7,6 +7,7 @@
 
 //#include "minorGems/graphics/openGL/ScreenGL.h"
 
+#include <vector>
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 #include "minorGems/graphics/openGL/MouseHandlerGL.h"
 #include "minorGems/graphics/openGL/SceneHandlerGL.h"
@@ -24,6 +25,7 @@
 #include "OneLife/gameSource/settings.h"
 #include "OneLife/gameSource/components/pages/initializationScreen.h"
 #include "OneLife/gameSource/components/pages/initOutdoorSceneScreen.h"
+#include "OneLife/gameSource/feature.h"
 
 namespace OneLife::game
 {
@@ -56,6 +58,8 @@ namespace OneLife::game
 			bool isEnable(int option);
 			void setUseCustomServerStatus(bool status);
 			bool isUsingCustomServer();
+
+			void addFeature(void* feature);
 
 			void start();
 
@@ -580,6 +584,8 @@ namespace OneLife::game
 
 			OneLife::game::component::Socket* connection;
 			OneLife::game::component::MessageChannel* messageChannel;
+
+			std::vector<OneLife::game::Feature*> registeredFeature;
 
 			bool quit;
 	};

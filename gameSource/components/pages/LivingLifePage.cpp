@@ -162,7 +162,6 @@ int playerActionTargetY;
 int ourID;
 SimpleVector<LiveObject> gameObjects;// youngest last
 FloatColor trailColor = { 0, 0.5, 0, 0.25 };
-int overheadServerBytesRead = 0;
 int overheadServerBytesSent = 0;
 SimpleVector<LocationSpeech> locationSpeech;
 int numServerBytesSent = 0;
@@ -4947,45 +4946,29 @@ void LivingLifePage::makeActive( char inFresh ) {
         }
     }
 
-
-
-
-
-
-
-void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
-                                         float inX, float inY ) {
-    
+void LivingLifePage::checkForPointerHit(
+		PointerHitRecord *inRecord,
+		float inX,
+		float inY )
+{
     LiveObject *ourLiveObject = getOurLiveObject();
-
     double minDistThatHits = 2.0;
-
     int clickDestX = lrintf( ( inX ) / CELL_D );
-    
     int clickDestY = lrintf( ( inY ) / CELL_D );
-    
     float clickExtraX = inX - clickDestX * CELL_D;
     float clickExtraY = inY - clickDestY * CELL_D;
 
     PointerHitRecord *p = inRecord;
-    
     p->closestCellX = clickDestX;
     p->closestCellY = clickDestY;
-
-    if( mForceGroundClick ) {
-        return;
-        }
+    if( mForceGroundClick ) return;
     
     int clickDestMapX = clickDestX - mMapOffsetX + mMapD / 2;
     int clickDestMapY = clickDestY - mMapOffsetY + mMapD / 2;
-    
     int clickDestMapI = clickDestMapY * mMapD + clickDestMapX;
-    
-    if( clickDestMapY >= 0 && clickDestMapY < mMapD &&
-        clickDestMapX >= 0 && clickDestMapX < mMapD ) {
-                
+    if( clickDestMapY >= 0 && clickDestMapY < mMapD && clickDestMapX >= 0 && clickDestMapX < mMapD )
+	{
         int oID = mMap[ clickDestMapI ];
-
         if( ! ourLiveObject->inMotion 
             &&
             // don't allow them to mouse over clicked cell after click
@@ -5000,7 +4983,8 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
 
             float oldFade = -0.8f;
             
-            for( int i=0; i<mPrevMouseOverCells.size(); i++ ) {
+            for( int i=0; i<mPrevMouseOverCells.size(); i++ )
+			{
                 GridPos old = mPrevMouseOverCells.getElementDirect( i );
             
                 if( equal( old, mCurMouseOverCell ) ) {

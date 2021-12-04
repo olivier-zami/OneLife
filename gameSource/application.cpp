@@ -30,6 +30,7 @@
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 #include "OneLife/gameSource/components/trace.h"
+#include "OneLife/gameSource/dataTypes/feature.h"
 
 using signal = OneLife::dataType::Signal;
 
@@ -543,6 +544,11 @@ void OneLife::game::Application::setUseCustomServerStatus(bool status)
 bool OneLife::game::Application::isUsingCustomServer()
 {
 	return this->useCustomServer;
+}
+
+void OneLife::game::Application::addFeature(void* feature)
+{
+	this->registeredFeature.push_back((OneLife::game::Feature*) feature);
 }
 
 /**
@@ -1147,22 +1153,37 @@ void OneLife::game::Application::readMessages()
 	char *message = nullptr;
 	while(message = getNextServerMessage())
 	{
+		printf("\n==============================================================================>");
 		OneLife::game::Trace::log(message);
-		printf("\n===>receive message: %s", message);
-		/*
-		overheadServerBytesRead += 52;
-
-		printf( "Got length %d message\n%s\n",
-				(int)strlen( message ), message );
+		printf("\n===>receive message length %d message\n%s\n", (int)strlen( message ), message );
 
 		messageType type = getMessageType( message );
+		printf("\n===>messageType : %i", type);
+
+		for(auto & feature : this->registeredFeature)
+		{
+			feature->readSocketMessage(message);
+			OneLife::dataType::Message gameMessage = feature->getGameMessage();
+			if(gameMessage.type != OneLife::dataType::message::TYPE::NONE)
+			{
+				printf("\n===>insert message in gameMessageQueue");
+			}
+			/*
+			switch(feature->getType())
+			{
+				case OneLife::dataType::feature::Type::BASE:
+					break;
+			}
+			 */
+		}
+
+		 /**
 
 		if( mapPullMode && type != MAP_CHUNK ) {
 // ignore it---map is a frozen snapshot in time
 // or as close as we can get to it
 			type = UNKNOWN;
 		}
-
 		if( type == SHUTDOWN  || type == FORCED_SHUTDOWN )
 		{
 			this->socket->close();
@@ -4786,8 +4807,6 @@ other->lineage.push_back( cousinNum );
 			}
 		}
 
-
-
 		delete [] message;
 
 // process next message if there is one
@@ -4833,7 +4852,8 @@ void OneLife::game::Application::selectScreen()
 			if(this->idScreen !=2){printf("\n===>write failed");this->idScreen = 2;}
 			drawString( translate( "writeFailed" ), true );
 		}
-		else if( !this->isPlayingBack() && measureFrameRate ) {
+		else if( !this->isPlayingBack() && measureFrameRate )
+		{
 			if(this->idScreen !=3){printf("\n===>!isPlayingBack && measureFrameRate");this->idScreen = 3;}
 			if( !measureRecorded )
 			{

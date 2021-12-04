@@ -33,6 +33,7 @@ char waitForFrameMessages = false;
 char serverFrameReady;
 SimpleVector<char*> serverFrameMessages;
 char *lastMessageSentToServer = NULL;
+int overheadServerBytesRead = 0;
 
 static int nextSocketConnectionHandle = 0;
 
@@ -45,6 +46,7 @@ OneLife::game::component::Socket::Socket()
 	this->overheadServerBytesSent = 0;
 	this->timeLastMessageSent = 0;
 	this->numServerMessageSent = 0;
+	this->forceDisconnect = false;
 }
 
 OneLife::game::component::Socket::~Socket() {}
@@ -567,25 +569,32 @@ char *getNextServerMessageRaw() {
 //
 // or returns NULL until a full frame of messages is available, and
 // then returns the first message from the frame
-char *getNextServerMessage() {
+char *getNextServerMessage()
+{
+	overheadServerBytesRead += 52;
 
-	if( readyPendingReceivedMessages.size() > 0 ) {
+	if( readyPendingReceivedMessages.size() > 0 )
+	{
 		char *message = readyPendingReceivedMessages.getElementDirect( 0 );
 		readyPendingReceivedMessages.deleteElement( 0 );
 		printf( "Playing a held pending message\n" );
 		return message;
 	}
 
-	if( !waitForFrameMessages ) {
+	if( !waitForFrameMessages )
+	{
 		return getNextServerMessageRaw();
 	}
-	else {
-		if( !serverFrameReady ) {
+	else
+	{
+		if( !serverFrameReady )
+		{
 			// read more and look for end of frame
 
 			char *message = getNextServerMessageRaw();
 
-			while( message != NULL ) {
+			while( message != NULL )
+			{
 				messageType t = getMessageType( message );
 
 				if( strstr( message, "FM" ) == message ) {
@@ -630,7 +639,8 @@ char *getNextServerMessage() {
 			}
 		}
 
-		if( serverFrameReady ) {
+		if( serverFrameReady )
+		{
 			char *message = serverFrameMessages.getElementDirect( 0 );
 
 			serverFrameMessages.deleteElement( 0 );
@@ -640,7 +650,9 @@ char *getNextServerMessage() {
 			}
 			return message;
 		}
-		else {
+		else
+		{
+			overheadServerBytesRead -= 52;
 			return NULL;
 		}
 	}

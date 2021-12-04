@@ -47,6 +47,8 @@ components/socket.cpp \
 components/soundPlayer.cpp \
 components/trace.cpp \
 dataTypes/exception/exception.cpp \
+feature.cpp \
+features/base.cpp \
 features/family.cpp \
 features/homeland.cpp \
 procedures/ai/pathFind.cpp \
@@ -75,6 +77,7 @@ procedures/game.cpp \
 procedures/maths/gridPos.cpp \
 procedures/maths/misc.cpp \
 procedures/misc.cpp \
+procedures/socket/message.cpp \
 scenes1/agent.cpp \
 scenes1/intangibles/text.cpp \
 scenes1/maps/outsideMap.cpp \
