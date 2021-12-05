@@ -558,6 +558,8 @@ namespace OneLife::game
 			void render(OneLife::dataType::UiComponent* dataScreen);
 			void sendClientMessage();
 
+			void setController(void* controller);
+
 			struct{
 				bool connectedMode;
 			}status;
@@ -568,6 +570,7 @@ namespace OneLife::game
 			unsigned lastSignalValue;
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			bool useCustomServer;
+			bool isControllerRecentlySet;
 
 			LiveObject* player;
 			char* serverMessage;

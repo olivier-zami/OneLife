@@ -31,6 +31,8 @@
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 #include "OneLife/gameSource/components/trace.h"
 #include "OneLife/gameSource/dataTypes/feature.h"
+#include "OneLife/gameSource/scenes1/casting.h"
+#include "OneLife/gameSource/debug.h"
 
 using signal = OneLife::dataType::Signal;
 
@@ -454,6 +456,7 @@ OneLife::game::Application::Application(
 			mForceSpecifiedDimensions
 	);
 
+	this->isControllerRecentlySet = false;
 	this->player = nullptr;
 
 	this->controller.mapGenerationScreen = new OneLife::game::WaitingScreen();
@@ -585,6 +588,7 @@ void OneLife::game::Application::start()
 
 	if(!this->initializationScreen) this->initializationScreen = new OneLife::game::InitializationScreen();
 	currentGamePage = this->initializationScreen;
+	this->isControllerRecentlySet = true;
 
 	OneLife::dataType::UiComponent dataScreen;
 
@@ -1147,13 +1151,10 @@ void OneLife::game::Application::readMessages()
 	this->lastSignalValue = this->messageChannel->getLastSignal();
 	this->messageChannel->setLastSignal(signal::NONE);
 
-	//!message from user
-
 	//!message from server
 	char *message = nullptr;
 	while(message = getNextServerMessage())
 	{
-		printf("\n==============================================================================>");
 		OneLife::game::Trace::log(message);
 		printf("\n===>receive message length %d message\n%s\n", (int)strlen( message ), message );
 
@@ -4835,6 +4836,11 @@ void OneLife::game::Application::selectScreen()
 {
 	if((void*)currentGamePage == (void*)this->initializationScreen)
 	{
+		if(this->isControllerRecentlySet)
+		{
+			OneLife::game::Debug::writeControllerInfo("Initialization");
+			this->isControllerRecentlySet = false;
+		}
 		this->status.connectedMode = false;
 		if(demoMode)
 		{
@@ -5074,15 +5080,21 @@ void OneLife::game::Application::selectScreen()
 		}//step2
 		else if(((OneLife::game::InitializationScreen*)currentGamePage)->isTaskComplete())
 		{
-			currentGamePage = loadingPage;
+			this->setController(loadingPage);
 		}
 	}
 	//!SEARCH LEG000001 for legacy place
 	else if(currentGamePage == loadingPage)
 	{
+		if(this->isControllerRecentlySet)
+		{
+			OneLife::game::Debug::writeControllerInfo("Loading assets");
+			this->isControllerRecentlySet = false;
+		}
 		this->status.connectedMode = false;
 		currentGamePage->base_step();
-		switch( loadingPhase ) {
+		switch( loadingPhase )
+		{
 			case 0: {
 				float progress;
 				for( int i=0; i<loadingStepBatchSize; i++ ) {
@@ -5336,8 +5348,10 @@ void OneLife::game::Application::selectScreen()
 					if( serverIP == NULL ) { serverIP = stringDuplicate( "127.0.0.1" ); }
 					serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
 
+					OneLife::game::Debug::write("livingLifePage instantiation");
 					livingLifePage = new LivingLifePage();
 					livingLifePage->setServerSocket(this->connection);
+					livingLifePage->setCasting(new OneLife::game::Casting());
 
 					loadingPhase ++;
 				}
@@ -5355,12 +5369,17 @@ void OneLife::game::Application::selectScreen()
 				mapPullMode = SettingsManager::getIntSetting( "mapPullMode", 0 );
 				autoLogIn = SettingsManager::getIntSetting( "autoLogIn", 0 );
 				if( userEmail == NULL || accountKey == NULL ){autoLogIn = false;}
-				currentGamePage = existingAccountPage;
+				this->setController(existingAccountPage);
 				currentGamePage->base_makeActive( true );
 		}
 	}
 	else if(currentGamePage == getServerAddressPage)
 	{
+		if(this->isControllerRecentlySet)
+		{
+			OneLife::game::Debug::writeControllerInfo("Waiting Server Info settings");
+			this->isControllerRecentlySet = false;
+		}
 		this->status.connectedMode = false;
 		currentGamePage->base_step();
 		if( getServerAddressPage->isResponseReady() )
@@ -5373,30 +5392,21 @@ void OneLife::game::Application::selectScreen()
 			serverIP = getServerAddressPage->getResponse( "serverIP" );
 			serverPort = getServerAddressPage->getResponseInt( "serverPort" );
 
-
-			if( strstr( serverIP, "NONE_FOUND" ) != NULL ) {
-
-				currentGamePage = finalMessagePage;
-
+			if( strstr( serverIP, "NONE_FOUND" ) != NULL )
+			{
+				this->setController(finalMessagePage);
 				finalMessagePage->setMessageKey( "serverShutdownMessage" );
-
-
 				currentGamePage->base_makeActive( true );
 			}
-			else {
-
-
-				printf( "Got server address: %s:%d\n",
-						serverIP, serverPort );
-
-				int requiredVersion =
-						getServerAddressPage->getResponseInt(
-								"requiredVersionNumber" );
-
-				if( versionNumber < requiredVersion ) {
-
+			else
+			{
+				printf( "Got server address: %s:%d\n", serverIP, serverPort );
+				int requiredVersion = getServerAddressPage->getResponseInt("requiredVersionNumber" );
+				if( versionNumber < requiredVersion )
+				{
 					if( SettingsManager::getIntSetting(
-							"useSteamUpdate", 0 ) ) {
+							"useSteamUpdate", 0 ) )
+					{
 
 						// flag SteamGate that app needs update
 						FILE *f = fopen( "steamGateForceUpdate.txt", "w" );
@@ -5419,7 +5429,8 @@ void OneLife::game::Application::selectScreen()
 
 						currentGamePage->base_makeActive( true );
 					}
-					else {
+					else
+					{
 						char *autoUpdateURL =
 								getServerAddressPage->getResponse(
 										"autoUpdateURL" );
@@ -5443,10 +5454,10 @@ void OneLife::game::Application::selectScreen()
 						}
 					}
 				}
-				else {
+				else
+				{
 					// up to date, okay to connect
-					printf("\n===>setting currentGamePage to livingLifePage (getServerAddressPage)");
-					currentGamePage = livingLifePage;
+					this->setController(livingLifePage);
 					currentGamePage->base_makeActive( true );
 				}
 			}
@@ -5454,29 +5465,39 @@ void OneLife::game::Application::selectScreen()
 	}
 	else if(currentGamePage == existingAccountPage)
 	{
+		if(this->isControllerRecentlySet)
+		{
+			OneLife::game::Debug::writeControllerInfo("Checking for existing account ...");
+			this->isControllerRecentlySet = false;
+		}
 		this->status.connectedMode = false;
 		currentGamePage->base_step();
 		if( existingAccountPage->checkSignal( "quit" ) ) {
 			quitGame();
 		}
-		else if( existingAccountPage->checkSignal( "poll" ) ) {
-			currentGamePage = pollPage;
+		else if( existingAccountPage->checkSignal( "poll" ) )
+		{
+			this->setController(pollPage);
 			currentGamePage->base_makeActive( true );
 		}
-		else if( existingAccountPage->checkSignal( "genes" ) ) {
-			currentGamePage = geneticHistoryPage;
+		else if( existingAccountPage->checkSignal( "genes" ) )
+		{
+			this->setController(geneticHistoryPage);
 			currentGamePage->base_makeActive( true );
 		}
-		else if( existingAccountPage->checkSignal( "settings" ) ) {
-			currentGamePage = settingsPage;
+		else if( existingAccountPage->checkSignal( "settings" ) )
+		{
+			this->setController(settingsPage);
 			currentGamePage->base_makeActive( true );
 		}
-		else if( existingAccountPage->checkSignal( "review" ) ) {
-			currentGamePage = reviewPage;
+		else if( existingAccountPage->checkSignal( "review" ) )
+		{
+			this->setController(reviewPage);
 			currentGamePage->base_makeActive( true );
 		}
-		else if( existingAccountPage->checkSignal( "friends" ) ) {
-			currentGamePage = twinPage;
+		else if( existingAccountPage->checkSignal( "friends" ) )
+		{
+			this->setController(twinPage);
 			currentGamePage->base_makeActive( true );
 		}
 		else if( existingAccountPage->checkSignal( "done" )||mapPullMode || autoLogIn )
@@ -5492,100 +5513,90 @@ void OneLife::game::Application::selectScreen()
 				delete [] userTwinCode;
 				userTwinCode = NULL;
 			}
-			currentGamePage = (GamePage*)this->controller.mapGenerationScreen;
-			/***********************************************************************************************************/
-			printf("\n=====>startConnecting() existingAccountPage done");
-			//startConnecting();
+			this->setController(this->controller.mapGenerationScreen);
 		}
-		else if( existingAccountPage->checkSignal( "tutorial" ) ) {
+		else if( existingAccountPage->checkSignal( "tutorial" ) )
+		{
 			livingLifePage->runTutorial();
 
 			// tutorial button clears twin status
 			// they have to login from twin page to play as twin
-			if( userTwinCode != NULL ) {
+			if( userTwinCode != NULL )
+			{
 				delete [] userTwinCode;
 				userTwinCode = NULL;
 			}
-
-			printf("\n=====>startConnecting() existingAccountPage tutorial");
 			startConnecting();
 		}
-		else if( autoUpdatePage->checkSignal( "relaunchFailed" ) ) {
-			currentGamePage = finalMessagePage;
-
+		else if( autoUpdatePage->checkSignal( "relaunchFailed" ) )
+		{
+			this->setController(finalMessagePage);
 			finalMessagePage->setMessageKey( "manualRestartMessage" );
-
 			currentGamePage->base_makeActive( true );
 		}
 	}
 	else if(currentGamePage == (void*)this->controller.mapGenerationScreen)
 	{
+		if(this->isControllerRecentlySet)
+		{
+			OneLife::game::Debug::writeControllerInfo("Generating environment...");
+			this->isControllerRecentlySet = false;
+			this->controller.mapGenerationScreen->handle(livingLifePage->getCasting());
+		}
 		this->status.connectedMode = false;
 		switch(this->lastSignalValue)
 		{
 			case signal::DONE:
-				currentGamePage = livingLifePage;
+				this->setController(livingLifePage);
+				startConnecting();
 				break;
 		}
 	}
 	else if(currentGamePage == livingLifePage)
 	{
+		if(this->isControllerRecentlySet)
+		{
+			OneLife::game::Debug::writeControllerInfo("Living Life!");
+			this->isControllerRecentlySet = false;
+		}
 		this->status.connectedMode = true;
 		currentGamePage->base_step();
-		if( livingLifePage->checkSignal( "loginFailed" ) ) {
+		if( livingLifePage->checkSignal( "loginFailed" ) )
+		{
 			lastScreenViewCenter.x = 0;
 			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
-			currentGamePage = existingAccountPage;
-
+			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+			this->setController(existingAccountPage);
 			existingAccountPage->setStatus( "loginFailed", true );
-
 			existingAccountPage->setStatusPositiion( true );
-
 			currentGamePage->base_makeActive( true );
 		}
-		else if( livingLifePage->checkSignal( "noLifeTokens" ) ) {
+		else if( livingLifePage->checkSignal( "noLifeTokens" ) )
+		{
 			lastScreenViewCenter.x = 0;
 			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
-			currentGamePage = existingAccountPage;
-
+			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+			this->setController(existingAccountPage);
 			existingAccountPage->setStatus( "noLifeTokens", true );
-
 			existingAccountPage->setStatusPositiion( true );
-
 			currentGamePage->base_makeActive( true );
 		}
-		else if( livingLifePage->checkSignal( "connectionFailed" ) ) {
+		else if( livingLifePage->checkSignal( "connectionFailed" ) )
+		{
 			lastScreenViewCenter.x = 0;
 			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
-			currentGamePage = existingAccountPage;
-
+			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+			this->setController(existingAccountPage);
 			existingAccountPage->setStatus( "connectionFailed", true );
-
 			existingAccountPage->setStatusPositiion( true );
-
 			currentGamePage->base_makeActive( true );
 		}
-		else if( livingLifePage->checkSignal( "versionMismatch" ) ) {
+		else if( livingLifePage->checkSignal( "versionMismatch" ) )
+		{
 			lastScreenViewCenter.x = 0;
 			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
-			currentGamePage = existingAccountPage;
-
+			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+			this->setController(existingAccountPage);
 			char *message = autoSprintf( translate( "versionMismatch" ),
 					versionNumber,
 					livingLifePage->
@@ -5637,16 +5648,10 @@ void OneLife::game::Application::selectScreen()
 		else if( livingLifePage->checkSignal( "serverUpdate" ) ) {
 			lastScreenViewCenter.x = 0;
 			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
-			currentGamePage = existingAccountPage;
-
+			setViewCenterPosition( lastScreenViewCenter.x,lastScreenViewCenter.y );
+			this->setController(existingAccountPage);
 			existingAccountPage->setStatus( "serverUpdate", true );
-
 			existingAccountPage->setStatusPositiion( true );
-
 			currentGamePage->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "serverFull" ) ) {
@@ -6387,6 +6392,16 @@ void OneLife::game::Application::sendClientMessage()
 	{
 	}
 }
+
+/**********************************************************************************************************************/
+
+void OneLife::game::Application::setController(void* controller)
+{
+	currentGamePage = (GamePage*)controller;
+	this->isControllerRecentlySet = true;
+}
+
+/**********************************************************************************************************************/
 
 /**
 * Gets data read from a recorded game file.

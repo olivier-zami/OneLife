@@ -6,8 +6,10 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include "minorGems/util/SimpleVector.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
+#include "OneLife/gameSource/debug.h"
 
 using signal = OneLife::dataType::Signal;
 
@@ -15,12 +17,16 @@ extern char userReconnect;
 extern double frameRateFactor;
 extern char *userTwinCode;
 extern int userTwinCount;
+extern SimpleVector<LiveObject> gameObjects;
+extern int ourID;
 
 const char* OneLife::game::WaitingScreen::screenName = "Waiting birth";
 
 OneLife::game::WaitingScreen::WaitingScreen()
 {
+	this->status.isPlayerAgentSet = false;
 	this->player = nullptr;
+	this->casting = nullptr;
 	this->screen = {0};
 	this->screen.center = {0,0};
 	this->screen.component.connectingMessage.color = {1,1,1,1};
@@ -50,18 +56,21 @@ void OneLife::game::WaitingScreen::handle(OneLife::dataType::UiComponent* screen
 		this->initScreen();
 		this->isScreenInited = true;
 	}
-	/*
-	else if(!this->player)
+	else if(!this->status.isPlayerAgentSet)
 	{
-		printf("\n===>initialize player ....");
+		this->initPlayerAgent();
 	}
- 	*/
 	else this->updateScreen();
 }
 
 void OneLife::game::WaitingScreen::handle(LiveObject* player)
 {
 	this->player = player;
+}
+
+void OneLife::game::WaitingScreen::handle(OneLife::game::Casting* casting)
+{
+	this->casting = casting;
 }
 
 void OneLife::game::WaitingScreen::initScreen()
@@ -91,6 +100,36 @@ void OneLife::game::WaitingScreen::initScreen()
 
 	this->screen.component.cancelMessage.position.x = this->screen.center.x;
 	this->screen.component.cancelMessage.position.y = this->screen.center.y - 200;
+}
+
+void OneLife::game::WaitingScreen::initPlayerAgent()
+{
+	//TODO: test for this->casting != nullptr
+	this->player = gameObjects.getElement(this->casting->getIndexRecentlyInsertedGameObject());//LECAGY: recentInsertedGameObjectIndex
+	ourID = this->player->id;
+
+	/*
+	if( ourID != lastPlayerID )
+	{
+		minitech::initOnBirth();
+		// different ID than last time, delete old home markers
+		oldHomePosStack.deleteAll();
+	}
+	homePosStack.push_back_other( &oldHomePosStack );
+
+	lastPlayerID = ourID;
+
+	// we have no measurement yet
+	this->player->lastActionSendStartTime = 0;
+	this->player->lastResponseTimeDelta = 0;
+	remapRandSource.reseed( ourID );
+	mCurrentRemapFraction = 0;
+	mRemapPeak = 0;
+	setRemapFraction( mCurrentRemapFraction );
+	printf( "Got first PLAYER_UPDATE message, our ID = %d\n", ourID );
+	this->player->displayChar = 'A';
+	//}
+	 */
 }
 
 void OneLife::game::WaitingScreen::updateScreen()
@@ -206,257 +245,221 @@ void OneLife::game::WaitingScreen::update0()
 void OneLife::game::WaitingScreen::update1()
 {
 	/******************************************************************************************************************
-	if( mFirstServerMessagesReceived == 3 )
+	if( mStartedLoadingFirstObjectSet && ! mDoneLoadingFirstObjectSet )
 	{
+		mDoneLoadingFirstObjectSet = isLiveObjectSetFullyLoaded( &mFirstObjectSetLoadingProgress );
 
-		if( mStartedLoadingFirstObjectSet && ! mDoneLoadingFirstObjectSet )
-		{
-			mDoneLoadingFirstObjectSet = isLiveObjectSetFullyLoaded( &mFirstObjectSetLoadingProgress );
+		if( mDoneLoadingFirstObjectSet &&
+			game_getCurrentTime() - mStartedLoadingFirstObjectSetStartTime
+			< 1 ) {
+			// always show loading progress for at least 1 second
+			//mDoneLoadingFirstObjectSet = false;
+		}
 
-			if( mDoneLoadingFirstObjectSet &&
-				game_getCurrentTime() - mStartedLoadingFirstObjectSetStartTime
-				< 1 ) {
-				// always show loading progress for at least 1 second
-				//mDoneLoadingFirstObjectSet = false;
+
+		if( mDoneLoadingFirstObjectSet ) {
+			mPlayerInFlight = false;
+
+			printf( "First map load done\n" );
+
+			int loaded, total;
+			countLoadedSprites( &loaded, &total );
+
+			printf( "%d/%d sprites loaded\n", loaded, total );
+
+
+			restartMusic( computeCurrentAge( ourLiveObject ),
+					ourLiveObject->ageRate );
+			setSoundLoudness( 1.0 );
+			resumePlayingSoundSprites();
+			setMusicLoudness( musicLoudness );
+
+			// center view on player's starting position
+			lastScreenViewCenter.x = CELL_D * ourLiveObject->xd;
+			lastScreenViewCenter.y = CELL_D * ourLiveObject->yd;
+
+			setViewCenterPosition( lastScreenViewCenter.x,
+					lastScreenViewCenter.y );
+
+			mapPullMode =
+					SettingsManager::getIntSetting( "mapPullMode", 0 );
+			mapPullStartX =
+					SettingsManager::getIntSetting( "mapPullStartX", -10 );
+			mapPullStartY =
+					SettingsManager::getIntSetting( "mapPullStartY", -10 );
+			mapPullEndX =
+					SettingsManager::getIntSetting( "mapPullEndX", 10 );
+			mapPullEndY =
+					SettingsManager::getIntSetting( "mapPullEndY", 10 );
+
+			mapPullCurrentX = mapPullStartX;
+			mapPullCurrentY = mapPullStartY;
+
+			if( mapPullMode ) {
+				mMapGlobalOffset.x = mapPullCurrentX;
+				mMapGlobalOffset.y = mapPullCurrentY;
+				mMapGlobalOffsetSet = true;
+
+				applyReceiveOffset( &mapPullCurrentX, &mapPullCurrentY );
+				applyReceiveOffset( &mapPullStartX, &mapPullStartY );
+				applyReceiveOffset( &mapPullEndX, &mapPullEndY );
+
+
+				mapPullCurrentSaved = true;
+				mapPullModeFinalImage = false;
+
+				char *message = autoSprintf( "MAP %d %d#",
+						sendX( mapPullCurrentX ),
+						sendY( mapPullCurrentY ) );
+
+				sendToServerSocket( message );
+
+				mapPullCurrentSent = true;
+
+				delete [] message;
+
+				int screenWidth, screenHeight;
+				getScreenDimensions( &screenWidth, &screenHeight );
+
+				double scale = screenWidth / (double)screenW;
+
+				mapPullTotalImage =
+						new Image( lrint(
+										( 10 + mapPullEndX - mapPullStartX )
+										* CELL_D * scale ),
+								lrint( ( 6 + mapPullEndY - mapPullStartY )
+									   * CELL_D * scale ),
+								3, false );
+				numScreensWritten = 0;
+			}
+		}
+	}
+	else {
+
+		clearLiveObjectSet();
+
+
+		// push all objects from grid, live players, what they're holding
+		// and wearing into live set
+
+		// any direct-from-death graves
+		// we want these to pop in instantly whenever someone dies
+		SimpleVector<int> *allPossibleDeathMarkerIDs =
+				getAllPossibleDeathIDs();
+
+		for( int i=0; i<allPossibleDeathMarkerIDs->size(); i++ ) {
+			addBaseObjectToLiveObjectSet(
+					allPossibleDeathMarkerIDs->getElementDirect( i ) );
+		}
+
+
+
+		// next, players
+		for( int i=0; i<gameObjects.size(); i++ ) {
+			LiveObject *o = gameObjects.getElement( i );
+
+			addBaseObjectToLiveObjectSet( o->displayID );
+
+
+			if( ! o->allSpritesLoaded ) {
+				// check if they're loaded yet
+
+				int numLoaded = 0;
+
+				ObjectRecord *displayObj = getObject( o->displayID );
+				for( int s=0; s<displayObj->numSprites; s++ ) {
+
+					if( markSpriteLive( displayObj->sprites[s] ) ) {
+						numLoaded ++;
+					}
+				}
+
+				if( numLoaded == displayObj->numSprites ) {
+					o->allSpritesLoaded = true;
+				}
 			}
 
 
-			if( mDoneLoadingFirstObjectSet ) {
-				mPlayerInFlight = false;
+			// and what they're holding
+			if( o->holdingID > 0 ) {
+				addBaseObjectToLiveObjectSet( o->holdingID );
 
-				printf( "First map load done\n" );
+				// and what it contains
+				for( int j=0; j<o->numContained; j++ ) {
+					addBaseObjectToLiveObjectSet(
+							o->containedIDs[j] );
 
-				int loaded, total;
-				countLoadedSprites( &loaded, &total );
+					for( int s=0; s<o->subContainedIDs[j].size(); s++ ) {
+						addBaseObjectToLiveObjectSet(
+								o->subContainedIDs[j].getElementDirect( s ) );
+					}
+				}
+			}
 
-				printf( "%d/%d sprites loaded\n", loaded, total );
+			// and their clothing
+			for( int c=0; c<NUM_CLOTHING_PIECES; c++ ) {
+				ObjectRecord *cObj = clothingByIndex( o->clothing, c );
 
+				if( cObj != NULL ) {
+					addBaseObjectToLiveObjectSet( cObj->id );
 
-				restartMusic( computeCurrentAge( ourLiveObject ),
-						ourLiveObject->ageRate );
-				setSoundLoudness( 1.0 );
-				resumePlayingSoundSprites();
-				setMusicLoudness( musicLoudness );
-
-				// center view on player's starting position
-				lastScreenViewCenter.x = CELL_D * ourLiveObject->xd;
-				lastScreenViewCenter.y = CELL_D * ourLiveObject->yd;
-
-				setViewCenterPosition( lastScreenViewCenter.x,
-						lastScreenViewCenter.y );
-
-				mapPullMode =
-						SettingsManager::getIntSetting( "mapPullMode", 0 );
-				mapPullStartX =
-						SettingsManager::getIntSetting( "mapPullStartX", -10 );
-				mapPullStartY =
-						SettingsManager::getIntSetting( "mapPullStartY", -10 );
-				mapPullEndX =
-						SettingsManager::getIntSetting( "mapPullEndX", 10 );
-				mapPullEndY =
-						SettingsManager::getIntSetting( "mapPullEndY", 10 );
-
-				mapPullCurrentX = mapPullStartX;
-				mapPullCurrentY = mapPullStartY;
-
-				if( mapPullMode ) {
-					mMapGlobalOffset.x = mapPullCurrentX;
-					mMapGlobalOffset.y = mapPullCurrentY;
-					mMapGlobalOffsetSet = true;
-
-					applyReceiveOffset( &mapPullCurrentX, &mapPullCurrentY );
-					applyReceiveOffset( &mapPullStartX, &mapPullStartY );
-					applyReceiveOffset( &mapPullEndX, &mapPullEndY );
-
-
-					mapPullCurrentSaved = true;
-					mapPullModeFinalImage = false;
-
-					char *message = autoSprintf( "MAP %d %d#",
-							sendX( mapPullCurrentX ),
-							sendY( mapPullCurrentY ) );
-
-					sendToServerSocket( message );
-
-					mapPullCurrentSent = true;
-
-					delete [] message;
-
-					int screenWidth, screenHeight;
-					getScreenDimensions( &screenWidth, &screenHeight );
-
-					double scale = screenWidth / (double)screenW;
-
-					mapPullTotalImage =
-							new Image( lrint(
-											( 10 + mapPullEndX - mapPullStartX )
-											* CELL_D * scale ),
-									lrint( ( 6 + mapPullEndY - mapPullStartY )
-										   * CELL_D * scale ),
-									3, false );
-					numScreensWritten = 0;
+					// and what it containes
+					for( int cc=0;
+						 cc< o->clothingContained[c].size(); cc++ ) {
+						int ccID =
+								o->clothingContained[c].getElementDirect( cc );
+						addBaseObjectToLiveObjectSet( ccID );
+					}
 				}
 			}
 		}
-		else {
-
-			clearLiveObjectSet();
 
 
-			// push all objects from grid, live players, what they're holding
-			// and wearing into live set
+		// next all objects in grid
+		int numMapCells = mMapD * mMapD;
 
-			// any direct-from-death graves
-			// we want these to pop in instantly whenever someone dies
-			SimpleVector<int> *allPossibleDeathMarkerIDs =
-					getAllPossibleDeathIDs();
-
-			for( int i=0; i<allPossibleDeathMarkerIDs->size(); i++ ) {
-				addBaseObjectToLiveObjectSet(
-						allPossibleDeathMarkerIDs->getElementDirect( i ) );
+		for( int i=0; i<numMapCells; i++ ) {
+			if( mMapFloors[i] > 0 ) {
+				addBaseObjectToLiveObjectSet( mMapFloors[i] );
 			}
 
+			if( mMap[i] > 0 ) {
 
+				addBaseObjectToLiveObjectSet( mMap[i] );
 
-			// next, players
-			for( int i=0; i<gameObjects.size(); i++ ) {
-				LiveObject *o = gameObjects.getElement( i );
+				// and what is contained in each object
+				int numCont = mMapContainedStacks[i].size();
 
-				addBaseObjectToLiveObjectSet( o->displayID );
+				for( int j=0; j<numCont; j++ ) {
+					addBaseObjectToLiveObjectSet(
+							mMapContainedStacks[i].getElementDirect( j ) );
 
+					SimpleVector<int> *subVec =
+							mMapSubContainedStacks[i].getElement( j );
 
-				if( ! o->allSpritesLoaded ) {
-					// check if they're loaded yet
-
-					int numLoaded = 0;
-
-					ObjectRecord *displayObj = getObject( o->displayID );
-					for( int s=0; s<displayObj->numSprites; s++ ) {
-
-						if( markSpriteLive( displayObj->sprites[s] ) ) {
-							numLoaded ++;
-						}
-					}
-
-					if( numLoaded == displayObj->numSprites ) {
-						o->allSpritesLoaded = true;
-					}
-				}
-
-
-				// and what they're holding
-				if( o->holdingID > 0 ) {
-					addBaseObjectToLiveObjectSet( o->holdingID );
-
-					// and what it contains
-					for( int j=0; j<o->numContained; j++ ) {
+					int numSub = subVec->size();
+					for( int s=0; s<numSub; s++ ) {
 						addBaseObjectToLiveObjectSet(
-								o->containedIDs[j] );
-
-						for( int s=0; s<o->subContainedIDs[j].size(); s++ ) {
-							addBaseObjectToLiveObjectSet(
-									o->subContainedIDs[j].getElementDirect( s ) );
-						}
-					}
-				}
-
-				// and their clothing
-				for( int c=0; c<NUM_CLOTHING_PIECES; c++ ) {
-					ObjectRecord *cObj = clothingByIndex( o->clothing, c );
-
-					if( cObj != NULL ) {
-						addBaseObjectToLiveObjectSet( cObj->id );
-
-						// and what it containes
-						for( int cc=0;
-							 cc< o->clothingContained[c].size(); cc++ ) {
-							int ccID =
-									o->clothingContained[c].getElementDirect( cc );
-							addBaseObjectToLiveObjectSet( ccID );
-						}
+								subVec->getElementDirect( s ) );
 					}
 				}
 			}
-
-
-			// next all objects in grid
-			int numMapCells = mMapD * mMapD;
-
-			for( int i=0; i<numMapCells; i++ ) {
-				if( mMapFloors[i] > 0 ) {
-					addBaseObjectToLiveObjectSet( mMapFloors[i] );
-				}
-
-				if( mMap[i] > 0 ) {
-
-					addBaseObjectToLiveObjectSet( mMap[i] );
-
-					// and what is contained in each object
-					int numCont = mMapContainedStacks[i].size();
-
-					for( int j=0; j<numCont; j++ ) {
-						addBaseObjectToLiveObjectSet(
-								mMapContainedStacks[i].getElementDirect( j ) );
-
-						SimpleVector<int> *subVec =
-								mMapSubContainedStacks[i].getElement( j );
-
-						int numSub = subVec->size();
-						for( int s=0; s<numSub; s++ ) {
-							addBaseObjectToLiveObjectSet(
-									subVec->getElementDirect( s ) );
-						}
-					}
-				}
-			}
-
-
-			markEmotionsLive();
-
-			finalizeLiveObjectSet();
-
-			mStartedLoadingFirstObjectSet = true;
-			mStartedLoadingFirstObjectSetStartTime = game_getCurrentTime();
 		}
+
+
+		markEmotionsLive();
+
+		finalizeLiveObjectSet();
+
+		mStartedLoadingFirstObjectSet = true;
+		mStartedLoadingFirstObjectSetStartTime = game_getCurrentTime();
 	}
 	/******************************************************************************************************************/
 }
 
-void OneLife::game::WaitingScreen::update2()
-{
-	//if( ( mFirstServerMessagesReceived & 2 ) == 0 ) { //legacy
-	/*
-	LiveObject *ourObject = gameObjects.getElement( recentInsertedGameObjectIndex );
-	ourID = ourObject->id;
-
-	/*
-	if( ourID != lastPlayerID )
-	{
-		minitech::initOnBirth();
-		// different ID than last time, delete old home markers
-		oldHomePosStack.deleteAll();
-	}
-	homePosStack.push_back_other( &oldHomePosStack );
-
-	lastPlayerID = ourID;
-
-	// we have no measurement yet
-	ourObject->lastActionSendStartTime = 0;
-	ourObject->lastResponseTimeDelta = 0;
-	remapRandSource.reseed( ourID );
-	mCurrentRemapFraction = 0;
-	mRemapPeak = 0;
-	setRemapFraction( mCurrentRemapFraction );
-	printf( "Got first PLAYER_UPDATE message, our ID = %d\n", ourID );
-	ourObject->displayChar = 'A';
-	//} //legacy
-	mFirstServerMessagesReceived |= 2;//TODO: call loadingLocalMap ?
- 	*/
-}
-
 void OneLife::game::WaitingScreen::update3()
 {
-	/*
+	/******************************************************************************************************************
 	if( !( mFirstServerMessagesReceived & 1 ) )
 	{
 		// first map chunk just recieved
@@ -526,5 +529,5 @@ void OneLife::game::WaitingScreen::update3()
 		}
 	}
 	mFirstServerMessagesReceived |= 1;
-	*/
+	/******************************************************************************************************************/
 }

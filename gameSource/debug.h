@@ -14,6 +14,9 @@ namespace OneLife::game
 	{
 		public:
 			static void writeAppInfo(const char* message, ...);
+			static void writeControllerInfo(const char* message, ...);
+			static void writeControllerStepInfo(const char* message, ...);
+			static void write(const char* message, ...);
 	};
 }
 

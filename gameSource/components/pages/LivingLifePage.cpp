@@ -59,6 +59,7 @@
 #include "OneLife/gameSource/components/soundPlayer.h"
 #include "OneLife/gameSource/procedures/graphics/components.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
+#include "OneLife/gameSource/debug.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -654,7 +655,232 @@ LivingLifePage::LivingLifePage()
 		mMapSubContainedStacks);
 
 	this->feature.debugMessageEnabled = false;
+	this->casting = nullptr;
 }
+
+LivingLifePage::~LivingLifePage()
+{
+	printf( "Total received = %d bytes (+%d in headers), "
+			"total sent = %d bytes (+%d in headers)\n",
+			this->socket->getTotalServerBytesRead(),
+			this->socket->getTotalServerOverheadBytesRead(),
+			numServerBytesSent,
+			this->socket->getTotalServerOverheadBytesSent() );
+
+	mGlobalMessagesToDestroy.deallocateStringElements();
+
+	freeLiveTriggers();
+
+	readyPendingReceivedMessages.deallocateStringElements();
+
+	serverFrameMessages.deallocateStringElements();
+
+	if( pendingMapChunkMessage != NULL )
+	{
+		delete [] pendingMapChunkMessage;
+		pendingMapChunkMessage = NULL;
+	}
+
+	clearLiveObjects();
+
+	mOldDesStrings.deallocateStringElements();
+	if( mCurrentDes != NULL )
+	{
+		delete [] mCurrentDes;
+	}
+
+	mOldLastAteStrings.deallocateStringElements();
+	if( mCurrentLastAteString != NULL )
+	{
+		delete [] mCurrentLastAteString;
+	}
+
+	mSentChatPhrases.deallocateStringElements();
+
+	if( !this->socket->isClosed()) this->socket->close();
+
+	mPreviousHomeDistStrings.deallocateStringElements();
+	mPreviousHomeDistFades.deleteAll();
+
+
+	delete [] mMapAnimationFrameCount;
+	delete [] mMapAnimationLastFrameCount;
+	delete [] mMapAnimationFrozenRotFrameCount;
+
+	delete [] mMapAnimationFrozenRotFrameCountUsed;
+
+	delete [] mMapFloorAnimationFrameCount;
+
+	delete [] mMapCurAnimType;
+	delete [] mMapLastAnimType;
+	delete [] mMapLastAnimFade;
+
+	delete [] mMapDropOffsets;
+	delete [] mMapDropRot;
+	delete [] mMapDropSounds;
+
+	delete [] mMapMoveOffsets;
+	delete [] mMapMoveSpeeds;
+
+	delete [] mMapTileFlips;
+
+	delete [] mMapContainedStacks;
+	delete [] mMapSubContainedStacks;
+
+	delete [] mMap;
+	delete [] mMapBiomes;
+	delete [] mMapFloors;
+
+	delete [] mMapCellDrawnFlags;
+
+	delete [] mMapPlayerPlacedFlags;
+
+	if( nextActionMessageToSend != NULL ) {
+		delete [] nextActionMessageToSend;
+		nextActionMessageToSend = NULL;
+	}
+
+	if( lastMessageSentToServer != NULL ) {
+		delete [] lastMessageSentToServer;
+		lastMessageSentToServer = NULL;
+	}
+
+	if( mHungerSound != NULL ) {
+		freeSoundSprite( mHungerSound );
+	}
+
+	if( mTutorialSound != NULL ) {
+		freeSoundSprite( mTutorialSound );
+	}
+
+	if( mCurseSound != NULL ) {
+		freeSoundSprite( mCurseSound );
+	}
+
+	for( int i=0; i<3; i++ ) {
+		freeSprite( mHungerSlipSprites[i] );
+	}
+
+	for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
+		freeSprite( mYumSlipSprites[i] );
+	}
+
+	freeSprite( mGuiPanelSprite );
+	freeSprite( mGuiBloodSprite );
+
+	//FOV
+	freeSprite( guiPanelLeftSprite );
+	freeSprite( guiPanelTileSprite );
+	freeSprite( guiPanelRightSprite );
+
+	freeSprite( mFloorSplitSprite );
+
+	freeSprite( mCellBorderSprite );
+	freeSprite( mCellFillSprite );
+
+	freeSprite( mNotePaperSprite );
+	freeSprite( mChalkBlotSprite );
+	freeSprite( mPathMarkSprite );
+	freeSprite( mHomeSlipSprite );
+
+	if( teaserVideo ) {
+		freeSprite( mTeaserArrowLongSprite );
+		freeSprite( mTeaserArrowMedSprite );
+		freeSprite( mTeaserArrowShortSprite );
+		freeSprite( mTeaserArrowVeryShortSprite );
+		freeSprite( mLineSegmentSprite );
+	}
+
+	for( int i=0; i<4; i++ ) {
+		freeSprite( mGroundOverlaySprite[i] );
+	}
+
+
+	for( int i=0; i<NUM_HUNGER_BOX_SPRITES; i++ ) {
+		freeSprite( mHungerBoxSprites[i] );
+		freeSprite( mHungerBoxFillSprites[i] );
+
+		freeSprite( mHungerBoxErasedSprites[i] );
+		freeSprite( mHungerBoxFillErasedSprites[i] );
+	}
+
+	for( int i=0; i<NUM_TEMP_ARROWS; i++ ) {
+		freeSprite( mTempArrowSprites[i] );
+		freeSprite( mTempArrowErasedSprites[i] );
+	}
+
+	for( int i=0; i<NUM_HUNGER_DASHES; i++ ) {
+		freeSprite( mHungerDashSprites[i] );
+		freeSprite( mHungerDashErasedSprites[i] );
+		freeSprite( mHungerBarSprites[i] );
+		freeSprite( mHungerBarErasedSprites[i] );
+	}
+
+	for( int i=0; i<NUM_HOME_ARROWS; i++ ) {
+		freeSprite( mHomeArrowSprites[i] );
+		freeSprite( mHomeArrowErasedSprites[i] );
+	}
+
+	for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+		freeSprite( mHintSheetSprites[i] );
+
+		if( mHintMessage[i] != NULL ) {
+			delete [] mHintMessage[i];
+		}
+		if( mCravingMessage[i] != NULL ) {
+			delete [] mCravingMessage[i];
+		}
+	}
+
+	delete [] mHintBookmarks;
+
+	if( mHintFilterString != NULL ) {
+		delete [] mHintFilterString;
+		mHintFilterString = NULL;
+	}
+
+	if( mLastHintFilterString != NULL ) {
+		delete [] mLastHintFilterString;
+		mLastHintFilterString = NULL;
+	}
+
+	if( mPendingFilterString != NULL ) {
+		delete [] mPendingFilterString;
+		mPendingFilterString = NULL;
+	}
+
+	if( mDeathReason != NULL ) {
+		delete [] mDeathReason;
+	}
+
+	for( int i=0; i<mGraveInfo.size(); i++ ) {
+		delete [] mGraveInfo.getElement(i)->relationName;
+	}
+	mGraveInfo.deleteAll();
+
+	clearOwnerInfo();
+
+	clearLocationSpeech();
+
+	if( photoSig != NULL ) {
+		delete [] photoSig;
+		photoSig = NULL;
+	}
+}
+
+/**********************************************************************************************************************/
+
+void LivingLifePage::setCasting(OneLife::game::Casting* inCasting)
+{
+	this->casting = inCasting;
+}
+
+OneLife::game::Casting* LivingLifePage::getCasting()
+{
+	return this->casting;
+}
+
+/**********************************************************************************************************************/
 
 void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 {
@@ -1020,216 +1246,6 @@ void LivingLifePage::clearLiveObjects()
     gameObjects.deleteAll();
 }
 
-LivingLifePage::~LivingLifePage()
-{
-    printf( "Total received = %d bytes (+%d in headers), "
-            "total sent = %d bytes (+%d in headers)\n",
-            this->socket->getTotalServerBytesRead(),
-			this->socket->getTotalServerOverheadBytesRead(),
-            numServerBytesSent,
-			this->socket->getTotalServerOverheadBytesSent() );
-    
-    mGlobalMessagesToDestroy.deallocateStringElements();
-
-    freeLiveTriggers();
-
-    readyPendingReceivedMessages.deallocateStringElements();
-
-    serverFrameMessages.deallocateStringElements();
-    
-    if( pendingMapChunkMessage != NULL )
-	{
-        delete [] pendingMapChunkMessage;
-        pendingMapChunkMessage = NULL;
-	}
-
-    clearLiveObjects();
-
-    mOldDesStrings.deallocateStringElements();
-    if( mCurrentDes != NULL )
-	{
-        delete [] mCurrentDes;
-	}
-
-    mOldLastAteStrings.deallocateStringElements();
-    if( mCurrentLastAteString != NULL )
-	{
-        delete [] mCurrentLastAteString;
-	}
-
-    mSentChatPhrases.deallocateStringElements();
-    
-    if( !this->socket->isClosed()) this->socket->close();
-    
-    mPreviousHomeDistStrings.deallocateStringElements();
-    mPreviousHomeDistFades.deleteAll();
-
-    
-    delete [] mMapAnimationFrameCount;
-    delete [] mMapAnimationLastFrameCount;
-    delete [] mMapAnimationFrozenRotFrameCount;
-    
-    delete [] mMapAnimationFrozenRotFrameCountUsed;
-
-    delete [] mMapFloorAnimationFrameCount;
-
-    delete [] mMapCurAnimType;
-    delete [] mMapLastAnimType;
-    delete [] mMapLastAnimFade;
-    
-    delete [] mMapDropOffsets;
-    delete [] mMapDropRot;
-    delete [] mMapDropSounds;
-
-    delete [] mMapMoveOffsets;
-    delete [] mMapMoveSpeeds;
-
-    delete [] mMapTileFlips;
-    
-    delete [] mMapContainedStacks;
-    delete [] mMapSubContainedStacks;
-    
-    delete [] mMap;
-    delete [] mMapBiomes;
-    delete [] mMapFloors;
-
-    delete [] mMapCellDrawnFlags;
-
-    delete [] mMapPlayerPlacedFlags;
-
-    if( nextActionMessageToSend != NULL ) {
-        delete [] nextActionMessageToSend;
-        nextActionMessageToSend = NULL;
-        }
-
-    if( lastMessageSentToServer != NULL ) {
-        delete [] lastMessageSentToServer;
-        lastMessageSentToServer = NULL;
-        }
-    
-    if( mHungerSound != NULL ) {    
-        freeSoundSprite( mHungerSound );
-        }
-
-    if( mTutorialSound != NULL ) {    
-        freeSoundSprite( mTutorialSound );
-        }
-
-    if( mCurseSound != NULL ) {    
-        freeSoundSprite( mCurseSound );
-        }
-    
-    for( int i=0; i<3; i++ ) {
-        freeSprite( mHungerSlipSprites[i] );
-        }
-
-    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
-        freeSprite( mYumSlipSprites[i] );
-        }
-
-    freeSprite( mGuiPanelSprite );
-    freeSprite( mGuiBloodSprite );
-
-	//FOV
-	freeSprite( guiPanelLeftSprite );
-	freeSprite( guiPanelTileSprite );
-	freeSprite( guiPanelRightSprite );
-    
-    freeSprite( mFloorSplitSprite );
-    
-    freeSprite( mCellBorderSprite );
-    freeSprite( mCellFillSprite );
-    
-    freeSprite( mNotePaperSprite );
-    freeSprite( mChalkBlotSprite );
-    freeSprite( mPathMarkSprite );
-    freeSprite( mHomeSlipSprite );
-    
-    if( teaserVideo ) {
-        freeSprite( mTeaserArrowLongSprite );
-        freeSprite( mTeaserArrowMedSprite );
-        freeSprite( mTeaserArrowShortSprite );
-        freeSprite( mTeaserArrowVeryShortSprite );
-        freeSprite( mLineSegmentSprite );
-        }
-    
-    for( int i=0; i<4; i++ ) {
-        freeSprite( mGroundOverlaySprite[i] );
-        }
-    
-
-    for( int i=0; i<NUM_HUNGER_BOX_SPRITES; i++ ) {
-        freeSprite( mHungerBoxSprites[i] );
-        freeSprite( mHungerBoxFillSprites[i] );
-        
-        freeSprite( mHungerBoxErasedSprites[i] );
-        freeSprite( mHungerBoxFillErasedSprites[i] );
-        }
-
-    for( int i=0; i<NUM_TEMP_ARROWS; i++ ) {
-        freeSprite( mTempArrowSprites[i] );
-        freeSprite( mTempArrowErasedSprites[i] );
-        }
-
-    for( int i=0; i<NUM_HUNGER_DASHES; i++ ) {
-        freeSprite( mHungerDashSprites[i] );
-        freeSprite( mHungerDashErasedSprites[i] );
-        freeSprite( mHungerBarSprites[i] );
-        freeSprite( mHungerBarErasedSprites[i] );
-        }
-    
-    for( int i=0; i<NUM_HOME_ARROWS; i++ ) {
-        freeSprite( mHomeArrowSprites[i] );
-        freeSprite( mHomeArrowErasedSprites[i] );
-        }
-
-    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
-        freeSprite( mHintSheetSprites[i] );
-        
-        if( mHintMessage[i] != NULL ) {
-            delete [] mHintMessage[i];
-            }
-        if( mCravingMessage[i] != NULL ) {
-            delete [] mCravingMessage[i];
-            }
-        }
-    
-    delete [] mHintBookmarks;
-
-    if( mHintFilterString != NULL ) {
-        delete [] mHintFilterString;
-        mHintFilterString = NULL;
-        }
-
-    if( mLastHintFilterString != NULL ) {
-        delete [] mLastHintFilterString;
-        mLastHintFilterString = NULL;
-        }
-
-    if( mPendingFilterString != NULL ) {
-        delete [] mPendingFilterString;
-        mPendingFilterString = NULL;
-        }
-
-    if( mDeathReason != NULL ) {
-        delete [] mDeathReason;
-        }
-
-    for( int i=0; i<mGraveInfo.size(); i++ ) {
-        delete [] mGraveInfo.getElement(i)->relationName;
-        }
-    mGraveInfo.deleteAll();
-
-    clearOwnerInfo();
-
-    clearLocationSpeech();
-
-    if( photoSig != NULL ) {
-        delete [] photoSig;
-        photoSig = NULL;
-        }
-}
-
 
 void LivingLifePage::clearOwnerInfo()
 {
@@ -1514,7 +1530,6 @@ void LivingLifePage::handleAnimSound( int inObjectID, double inAge,
         }
     }
 
-
 void LivingLifePage::drawMapCell( int inMapI, 
                                   int inScreenX, int inScreenY,
                                   char inHighlightOnly,
@@ -1556,8 +1571,6 @@ void LivingLifePage::drawMapCell( int inMapI,
 		mMapOffsetX,
 		mMapOffsetY);
 }
-
-
 
 double pathStepDistFactor = 0.2;
 
@@ -2423,8 +2436,6 @@ void LivingLifePage::sendBugReport( int inBugNumber ) {
     
     }
 
-
-
 void LivingLifePage::endExtraObjectMove( int inExtraIndex ) {
     int i = inExtraIndex;
 
@@ -2460,8 +2471,6 @@ void LivingLifePage::endExtraObjectMove( int inExtraIndex ) {
     mMapExtraMovingObjectsDestWorldPos.deleteElement( i );
     mMapExtraMovingObjectsDestObjectIDs.deleteElement( i );
     }
-
-
 
 void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     char *foodDescription = 
@@ -2505,7 +2514,6 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     mCravingExtraOffset[ mLiveCravingSheetIndex ].x = longestLine;
     }
 
-        
 void LivingLifePage::step() {
     
     if( isAnySignalSet() ) {
@@ -2808,7 +2816,7 @@ void LivingLifePage::step() {
             }
         }
     
-    
+    OneLife::game::Debug::write("(%i,%i) (%i,%i)", mNotePaperPosOffset.x, mNotePaperPosOffset.y, mNotePaperPosTargetOffset.x, mNotePaperPosTargetOffset.y);
     if( ! equal( mNotePaperPosOffset, mNotePaperPosTargetOffset ) ) {
         doublePair delta = 
             sub( mNotePaperPosTargetOffset, mNotePaperPosOffset );
@@ -4632,7 +4640,6 @@ void LivingLifePage::step() {
         }
 }
 
-
 char LivingLifePage::isSameFloor( int inFloor, GridPos inFloorPos, 
                                   int inDX, int inDY ) {    
     GridPos nextStep = inFloorPos;
@@ -4652,11 +4659,10 @@ char LivingLifePage::isSameFloor( int inFloor, GridPos inFloorPos,
         }
     return false;
     }
-
-
-
   
-void LivingLifePage::makeActive( char inFresh ) {
+void LivingLifePage::makeActive( char inFresh )
+{
+	printf("\n#######>Make livingLifePage active");
     // unhold E key
     mEKeyDown = false;
     mZKeyDown = false;
@@ -5452,15 +5458,6 @@ void LivingLifePage::checkForPointerHit(
         }
     }
 
-    
-
-
-        
-
-
-
-
-
 void LivingLifePage::pointerMove( float inX, float inY ) {
     lastMouseX = inX;
     lastMouseY = inY;
@@ -5681,12 +5678,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             ourLiveObject->lastHeldAnimFade = 1;
             }
         }
-    
-    
     }
-
-
-
 
 char LivingLifePage::getCellBlocksWalking( int inMapX, int inMapY ) {
     
@@ -5735,9 +5727,6 @@ char LivingLifePage::getCellBlocksWalking( int inMapX, int inMapY ) {
         return true;
         }
     }
-
-
-
 
 void LivingLifePage::pointerDown( float inX, float inY ) {
 	if (minitech::livingLifePageMouseDown( inX, inY )) return;
@@ -7324,9 +7313,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         }    
     }
 
-
-
-
 void LivingLifePage::pointerDrag( float inX, float inY ) {
     lastMouseX = inX;
     lastMouseY = inY;
@@ -7336,7 +7322,6 @@ void LivingLifePage::pointerDrag( float inX, float inY ) {
         return;
         }
     }
-
 
 void LivingLifePage::pointerUp( float inX, float inY ) {
     lastMouseX = inX;
@@ -7391,7 +7376,6 @@ void LivingLifePage::pointerUp( float inX, float inY ) {
     mCurMouseOverCell.x = -1;
     mCurMouseOverCell.y = -1;
     }
-
 
 void LivingLifePage::keyDown( unsigned char inASCII ) {
     
@@ -7955,8 +7939,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         }
     }
 
-
-
 void LivingLifePage::specialKeyDown( int inKeyCode ) {
     if( showBugMessage ) {
         return;
@@ -8162,8 +8144,6 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         }
     }
 
-
-            
 void LivingLifePage::keyUp( unsigned char inASCII ) {
 
 	bool commandKey = isCommandKeyDown();
@@ -8223,9 +8203,6 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
 
     }
 
-
-
-
 void LivingLifePage::actionPerformed( GUIComponent *inTarget ) {
     if( vogMode && inTarget == &mObjectPicker ) {
 
@@ -8243,10 +8220,6 @@ void LivingLifePage::actionPerformed( GUIComponent *inTarget ) {
             }
         }
     }
-
-
-
-
 
 ExtraMapObject LivingLifePage::copyFromMap( int inMapI ) {
     ExtraMapObject o = {
@@ -8266,7 +8239,6 @@ ExtraMapObject LivingLifePage::copyFromMap( int inMapI ) {
     return o;
     }
 
-        
 void LivingLifePage::putInMap( int inMapI, ExtraMapObject *inObj ) {
     mMap[ inMapI ] = inObj->objectID;
     
@@ -8285,8 +8257,6 @@ void LivingLifePage::putInMap( int inMapI, ExtraMapObject *inObj ) {
     mMapContainedStacks[ inMapI ] = inObj->containedStack;
     mMapSubContainedStacks[ inMapI ] = inObj->subContainedStack;
     }
-
-
 
 //FIELD OF VIEW
 void LivingLifePage::calcFontScale( float newScale, Font *font ) {
@@ -8375,8 +8345,6 @@ void LivingLifePage::calcOffsetHUD() {
     gui_fov_offset_x = (int)(((1280 * gui_fov_target_scale_hud) - 1280)/2);
     gui_fov_offset_y = (int)(((720 * gui_fov_target_scale_hud) - 720)/2);
     }
-
-
 
 //KEYBOARD ACTIONS
 void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {

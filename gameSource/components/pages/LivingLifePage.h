@@ -19,6 +19,7 @@
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/components/pages/menu/playerStatus.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
+#include "OneLife/gameSource/scenes1/casting.h"
 
 class LivingLifePage : public GamePage, public ActionListener {
         
@@ -26,6 +27,9 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         LivingLifePage();
         ~LivingLifePage();
+
+		void setCasting(OneLife::game::Casting* inCasting);
+		OneLife::game::Casting* getCasting();
 
 		void setServerSocket(OneLife::game::component::Socket* socket);
 
@@ -604,6 +608,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
 	private:
 		const char* screenName = "LivingLifePage";
+
+		OneLife::game::Casting* casting;
     };
 
 
