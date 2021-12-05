@@ -52,6 +52,7 @@ int main( int inArgCount, char **inArgs )
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "minorGems/util/random/CustomRandomSource.h"
+#include "OneLife/gameSource/debug.h"
 #include "OneLife/gameSource/components/engines/audioRenderer.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
@@ -437,6 +438,8 @@ int mainFunction( int inNumArgs, char **inArgs )
         delete [] appDirectoryPath;
 #endif
 
+	//!
+	OneLife::game::Debug::writeAppInfo("Launching TwoHourOneLife game application...");
 
 	//!
 	OneLife::game::Settings gameSettings;

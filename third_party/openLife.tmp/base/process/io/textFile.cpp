@@ -6,7 +6,7 @@
 
 #include <cstdlib>
 #include <cstring>
-#include "../../../base/entity/exception.h"
+#include "OneLife/third_party/openlife/object/carrier/exception.h"
 
 openLife::io::TextFile::TextFile()
 {

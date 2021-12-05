@@ -18,6 +18,7 @@ minitech.cpp \
 game.cpp \
 misc.cpp \
 application.cpp \
+debug.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
 components/banks/spriteBank.cpp \
@@ -125,7 +126,7 @@ PickableStatics.cpp \
 photos.cpp \
 lifeTokens.cpp \
 fitnessScore.cpp \
-
+../third_party/openlife/system/trace.cpp \
 
 
 GAME_GRAPHICS = \
