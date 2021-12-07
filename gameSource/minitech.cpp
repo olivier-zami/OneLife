@@ -6,7 +6,7 @@
 #include <cmath> //pow and sqrt
 #include <algorithm> //vector sort
 
-#include "components/pages/LivingLifePage.h"
+#include "controllers/LivingLifePage.h"
 #include "groundSprites.h"
 #include "objectBank.h"
 #include "categoryBank.h"

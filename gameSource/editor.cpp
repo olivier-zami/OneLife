@@ -70,7 +70,7 @@ int accountHmacVersionNumber = 0;
 #include "EditorCategoryPage.h"
 #include "EditorScenePage.h"
 
-#include "components/pages/LoadingPage.h"
+#include "controllers/LoadingPage.h"
 
 #include "components/banks/spriteBank.h"
 #include "objectBank.h"

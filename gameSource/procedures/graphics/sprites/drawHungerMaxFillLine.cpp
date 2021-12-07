@@ -6,7 +6,7 @@
 
 #include "minorGems/util/random/JenkinsRandomSource.h"
 #include "OneLife/gameSource/procedures/maths/misc.h"
-#include "OneLife/gameSource/components/pages/menu/playerStatus.h"
+#include "OneLife/gameSource/controllers/menu/playerStatus.h"
 
 extern doublePair lastScreenViewCenter;
 extern float gui_fov_scale;

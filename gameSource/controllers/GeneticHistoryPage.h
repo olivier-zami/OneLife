@@ -1,7 +1,7 @@
-#include "../GamePage.h"
+#include "OneLife/gameSource/components/GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
-#include "../../TextButton.h"
+#include "OneLife/gameSource/TextButton.h"
 
 class GeneticHistoryPage : public GamePage, public ActionListener {
 

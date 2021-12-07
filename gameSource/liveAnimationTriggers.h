@@ -1,5 +1,5 @@
 #include "animationBank.h"
-#include "components/pages/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 
 // live triggers for video-making
 

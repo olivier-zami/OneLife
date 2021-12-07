@@ -7,8 +7,8 @@
 
 #include "minorGems/system/Time.h"
 #include "OneLife/gameSource/components/GamePage.h"
-#include "OneLife/gameSource/components/pages/initOutdoorSceneScreen.h"
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/initOutdoorSceneScreen.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 

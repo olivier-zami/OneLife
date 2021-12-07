@@ -16,7 +16,7 @@
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/util/MinPriorityQueue.h"
-//#include "OneLife/gameSource/components/pages/LivingLifePage.h"//TODO: put LiveObject, DrawOrderRecord, ExtraMapObject in another file
+//#include "OneLife/gameSource/controllers/LivingLifePage.h"//TODO: put LiveObject, DrawOrderRecord, ExtraMapObject in another file
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/GridPos.h"
 #include "OneLife/gameSource/dataTypes/animation.h"

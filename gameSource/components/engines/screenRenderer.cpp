@@ -446,9 +446,9 @@ void drawFrameNoUpdate( char inUpdate ) {
 /**********************************************************************************************************************/
 
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
-#include "OneLife/gameSource/components/pages/ExtendedMessagePage.h"
+#include "OneLife/gameSource/controllers/ExtendedMessagePage.h"
 extern ExtendedMessagePage *extendedMessagePage;
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 extern char userReconnect;

@@ -14,7 +14,7 @@
 
 #include "OneLife/gameSource/components/GamePage.h"
 extern GamePage *currentGamePage;
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
 #include "OneLife/gameSource/misc.h"
 

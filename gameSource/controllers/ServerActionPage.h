@@ -2,7 +2,7 @@
 #define SERVER_ACTION_PAGE_INCLUDED
 
 
-#include "../GamePage.h"
+#include "OneLife/gameSource/components/GamePage.h"
 
 #include "OneLife/gameSource/TextButton.h"
 #include "OneLife/gameSource/TextField.h"

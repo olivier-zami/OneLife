@@ -8,7 +8,7 @@
 #include "minorGems/game/doublePair.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/components/socket.h"
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 
 namespace OneLife::game::graphic
 {

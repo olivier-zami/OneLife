@@ -1,8 +1,8 @@
-#include "../GamePage.h"
+#include "OneLife/gameSource/components/GamePage.h"
 
 #include "minorGems/ui/event/ActionListener.h"
-#include "../../TextButton.h"
-#include "../../RadioButtonSet.h"
+#include "OneLife/gameSource/TextButton.h"
+#include "OneLife/gameSource/RadioButtonSet.h"
 
 class PollPage : public GamePage, public ActionListener
 {

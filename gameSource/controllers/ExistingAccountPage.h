@@ -1,4 +1,4 @@
-#include "../GamePage.h"
+#include "OneLife/gameSource/components/GamePage.h"
 
 #include "OneLife/gameSource/TextField.h"
 #include "OneLife/gameSource/TextButton.h"

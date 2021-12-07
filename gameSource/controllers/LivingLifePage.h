@@ -14,10 +14,10 @@
 #include "OneLife/gameSource/animationBank.h"
 #include "OneLife/gameSource/emotion.h"
 #include "OneLife/gameSource/TextField.h"
-#include "../../components/socket.h"
+#include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/dataTypes/misc.h"
 #include "OneLife/gameSource/dataTypes/game.h"
-#include "OneLife/gameSource/components/pages/menu/playerStatus.h"
+#include "OneLife/gameSource/controllers/menu/playerStatus.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 #include "OneLife/gameSource/scenes1/casting.h"
 

@@ -7,7 +7,7 @@
 
 #include "minorGems/game/doublePair.h"
 #include "minorGems/util/SimpleVector.h"
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 
 typedef void (LivingLifePage::*PtrDrawMapCell)(int, int, int, char, char);
 typedef void (LivingLifePage::*PtrPutInMap)(int, ExtraMapObject*);

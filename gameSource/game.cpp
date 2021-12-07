@@ -83,7 +83,7 @@ void showWriteFailedPanel( ScreenGL *inScreen, const char *inFontTGAFileName,
 void freeWriteFailedPanel() {
     }
 #else
-#include "OneLife/gameSource/components/pages/demoPanelPage.h"
+#include "OneLife/gameSource/controllers/demoPanelPage.h"
 #endif
 
 #ifdef __mac__

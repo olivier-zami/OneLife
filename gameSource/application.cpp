@@ -52,7 +52,7 @@ extern unsigned char keyMap[256];
 extern char keyMapOn;
 extern GameSceneHandler *sceneHandler;
 extern GamePage *currentGamePage;
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
 
 //!globals screen selection
@@ -110,19 +110,19 @@ char rightKey = 'd';
 /**********************************************************************************************************************/
 #include "minorGems/game/doublePair.h"
 #include "OneLife/gameSource/procedures/graphics/modalObjects/drawPausePanel.h"
-#include "OneLife/gameSource/components/pages/AutoUpdatePage.h"
-#include "OneLife/gameSource/components/pages/ExistingAccountPage.h"
-#include "OneLife/gameSource/components/pages/ExtendedMessagePage.h"
-#include "OneLife/gameSource/components/pages/FinalMessagePage.h"
-#include "OneLife/gameSource/components/pages/GeneticHistoryPage.h"
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
-#include "OneLife/gameSource/components/pages/LoadingPage.h"
-#include "OneLife/gameSource/components/pages/PollPage.h"
-#include "OneLife/gameSource/components/pages/RebirthChoicePage.h"
-#include "OneLife/gameSource/components/pages/ReviewPage.h"
-#include "OneLife/gameSource/components/pages/ServerActionPage.h"
-#include "OneLife/gameSource/components/pages/SettingsPage.h"
-#include "OneLife/gameSource/components/pages/TwinPage.h"
+#include "OneLife/gameSource/controllers/AutoUpdatePage.h"
+#include "OneLife/gameSource/controllers/ExistingAccountPage.h"
+#include "OneLife/gameSource/controllers/ExtendedMessagePage.h"
+#include "OneLife/gameSource/controllers/FinalMessagePage.h"
+#include "OneLife/gameSource/controllers/GeneticHistoryPage.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LoadingPage.h"
+#include "OneLife/gameSource/controllers/PollPage.h"
+#include "OneLife/gameSource/controllers/RebirthChoicePage.h"
+#include "OneLife/gameSource/controllers/ReviewPage.h"
+#include "OneLife/gameSource/controllers/ServerActionPage.h"
+#include "OneLife/gameSource/controllers/SettingsPage.h"
+#include "OneLife/gameSource/controllers/TwinPage.h"
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/musicPlayer.h"
 #include "OneLife/gameSource/components/banks/spriteBank.h"

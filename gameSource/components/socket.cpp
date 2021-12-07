@@ -814,9 +814,9 @@ char usingCustomServer = false;
 char *serverIP = nullptr;
 int serverPort = 0;
 extern GamePage *currentGamePage;
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
-#include "OneLife/gameSource/components/pages/ServerActionPage.h"
+#include "OneLife/gameSource/controllers/ServerActionPage.h"
 extern ServerActionPage *getServerAddressPage;
 extern char *reflectorURL;
 extern char *userEmail;
