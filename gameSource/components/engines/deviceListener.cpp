@@ -19,7 +19,6 @@ OneLife::game::DeviceListener::DeviceListener()
 	this->keyboard.size = KEY::TOTAL_NUMBER * sizeof(char);
 	this->keyboard.key = (char*)malloc(this->keyboard.size);
 	memset(this->keyboard.key, 0, this->keyboard.size);
-	printf("\n=====>keyboard.size nbr element: %i => %li", KEY::TOTAL_NUMBER, this->keyboard.size);
 }
 
 OneLife::game::DeviceListener::~DeviceListener()

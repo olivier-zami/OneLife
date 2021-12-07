@@ -358,11 +358,8 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
 
 	updateDataVersionNumber();
 
-
 	AppLog::printOutNextMessage();
-	AppLog::infoF( "OneLife client v%d (binV=%d, dataV=%d) starting up",
-			versionNumber, binVersionNumber, dataVersionNumber );
-
+	//AppLog::infoF( "OneLife client v%d (binV=%d, dataV=%d) starting up", versionNumber, binVersionNumber, dataVersionNumber );
 
 	toggleLinearMagFilter( true );
 	toggleMipMapGeneration( true );

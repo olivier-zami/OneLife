@@ -658,9 +658,6 @@ LivingLifePage::LivingLifePage()
 	this->feature.debugMessageEnabled = false;
 
 	/******************************************************************************************************************/
-
-	this->casting = new OneLife::game::Casting();
-	OneLife::game::Debug::write("instantiate this->casting : %p", this->casting);
 }
 
 LivingLifePage::~LivingLifePage()
@@ -875,10 +872,10 @@ LivingLifePage::~LivingLifePage()
 
 /**********************************************************************************************************************/
 
-OneLife::game::Casting* LivingLifePage::getCasting()
+
+int LivingLifePage::getIndexRecentlyInsertedGameObject()
 {
-	//return this->casting;
-	return nullptr;
+	return recentInsertedGameObjectIndex;
 }
 
 /**********************************************************************************************************************/

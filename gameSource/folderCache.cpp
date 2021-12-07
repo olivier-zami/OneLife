@@ -8,11 +8,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <cstring>
 
 
-
-
-FolderCache initFolderCache( const char *inFolderName, 
+FolderCache initFolderCache( const char *inFolderName,
                              char *outRebuildingCache ) {
     *outRebuildingCache = false;
     
@@ -56,8 +55,7 @@ FolderCache initFolderCache( const char *inFolderName,
             unsigned char *rawData = zipDecompress( compData,
                                                     compSize,
                                                     rawSize );
-            printf( "Decompressing took %f seconds\n", 
-                    Time::getCurrentTime() - startTime );
+            //printf( "Decompressing took %f seconds\n", Time::getCurrentTime() - startTime );
 
 
             if( rawData != NULL ) {

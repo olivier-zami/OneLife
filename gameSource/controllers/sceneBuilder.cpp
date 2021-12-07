@@ -28,8 +28,8 @@ OneLife::game::SceneBuilder::SceneBuilder()
 	this->status.isConnected = false;
 	this->status.isPlayerAgentSet = false;
 	this->status.isObjectsDownloaded = false;
+	this->gameScene = nullptr;
 	this->player = nullptr;
-	this->casting = nullptr;
 	this->socket = nullptr;
 	this->screen = {0};
 	this->screen.center = {0,0};
@@ -81,10 +81,16 @@ void OneLife::game::SceneBuilder::handle(LiveObject* player)
 	this->player = player;
 }
 
-void OneLife::game::SceneBuilder::handle(OneLife::game::Casting* casting)
+void OneLife::game::SceneBuilder::handle(LivingLifePage* gameSceneController)
 {
-	OneLife::game::Debug::write("set casting: %p", casting);
-	this->casting = casting;
+	OneLife::game::Debug::writeMethodInfo("OneLife::game::SceneBuilder::handle(%p)", gameSceneController);
+	if(!gameSceneController)
+	{
+		OneLife::game::Debug::write("Trying to instantiate gameSceneController");
+		gameSceneController = new LivingLifePage();
+	}
+	OneLife::game::Debug::write("instantiate gameSceneController(%p)", gameSceneController);
+	this->gameScene = gameSceneController;
 }
 
 void OneLife::game::SceneBuilder::handle(OneLife::game::component::Socket* socket)
@@ -142,7 +148,7 @@ void OneLife::game::SceneBuilder::downloadObjects()
 void OneLife::game::SceneBuilder::initPlayerAgent()
 {
 	//TODO: test for this->casting != nullptr
-	this->player = gameObjects.getElement(this->casting->getIndexRecentlyInsertedGameObject());//LECAGY: recentInsertedGameObjectIndex
+	this->player = gameObjects.getElement(this->gameScene->getIndexRecentlyInsertedGameObject());//LECAGY: recentInsertedGameObjectIndex
 	ourID = this->player->id;
 
 	/*

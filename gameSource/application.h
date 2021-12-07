@@ -47,7 +47,6 @@ namespace OneLife::game
 			~Application();
 
 			void init(OneLife::game::Settings settings);
-			void bindGlobalCurrentController(GamePage **currentGamePage);
 
 			void setConnection(const char* ip, int port);
 			OneLife::game::component::Socket* getConnection();
@@ -593,7 +592,7 @@ namespace OneLife::game
 
 
 			//!
-			GamePage **currentController;
+			GamePage *currentController;
 			unsigned lastSignalValue;
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			bool useCustomServer;

@@ -1,0 +1,10 @@
+//
+// Created by olivier on 07/12/2021.
+//
+
+#ifndef ONELIFE_PROCEDURE_GRAPHIC_DRAWFRAME_H
+#define ONELIFE_PROCEDURE_GRAPHIC_DRAWFRAME_H
+
+void drawFrame( char inUpdate );
+
+#endif //ONELIFE_PROCEDURE_GRAPHIC_DRAWFRAME_H

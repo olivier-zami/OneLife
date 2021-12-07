@@ -57,6 +57,7 @@ features/homeland.cpp \
 procedures/ai/pathFind.cpp \
 procedures/animations/special.cpp \
 procedures/graphics/drawAgent.cpp \
+procedures/graphics/drawFrame.cpp \
 procedures/graphics/drawGround.cpp \
 procedures/graphics/drawInitializingScreen.cpp \
 procedures/graphics/drawGameScreen.cpp \
@@ -83,7 +84,6 @@ procedures/misc.cpp \
 procedures/socket/message.cpp \
 procedures/string.cpp \
 scenes1/agent.cpp \
-scenes1/casting.cpp \
 scenes1/intangibles/text.cpp \
 scenes1/maps/outsideMap.cpp \
 settings.cpp \

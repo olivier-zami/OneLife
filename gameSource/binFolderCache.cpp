@@ -126,22 +126,17 @@ BinFolderCache initBinFolderCache( const char *inFolderName,
         int numRead = fscanf( c.cacheFile, "%d#", &( c.numFiles ) );
 
         if( numRead != 1 ) {
-            printf( "Reading num files from %s failed, rebuilding\n",
-                    curCacheName );
+            //printf( "Reading num files from %s failed, rebuilding\n", curCacheName );
             fclose( c.cacheFile );
             }
         else {
 
-            printf( "Opened a %s from the %s folder with %d files\n",
-                    curCacheName, inFolderName, c.numFiles );
+            //printf( "Opened a %s from the %s folder with %d files\n", curCacheName, inFolderName, c.numFiles );
             
             int failNumber = 0;
 
             if( ! verifyCacheFile( c.cacheFile, c.numFiles, &failNumber ) ) {
-                printf( "Cache file verification for %s failed on file %d/%d, "
-                        "rebuilding\n",
-                        curCacheName,
-                        failNumber, c.numFiles );
+                //printf( "Cache file verification for %s failed on file %d/%d, rebuilding\n", curCacheName, failNumber, c.numFiles );
                 fclose( c.cacheFile );
                 }
             else {

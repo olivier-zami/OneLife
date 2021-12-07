@@ -6,10 +6,10 @@
 #define ONELIFE_COMPONENT_SCREEN_WAITINGBIRTHSCREEN_H
 
 #include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/socket.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 #include "OneLife/gameSource/dataTypes/game.h" //LiveObject
-#include "OneLife/gameSource/scenes1/casting.h"
-#include "OneLife/gameSource/components/socket.h"
 
 namespace OneLife::game
 {
@@ -22,7 +22,7 @@ namespace OneLife::game
 
 			void handle(OneLife::dataType::UiComponent* screen);
 			void handle(LiveObject* player);
-			void handle(OneLife::game::Casting* casting);
+			void handle(LivingLifePage* gameScene);
 			void handle(OneLife::game::component::Socket* socket);
 
 		private:
@@ -44,7 +44,7 @@ namespace OneLife::game
 			static const char* screenName;
 			bool isScreenInited;
 			LiveObject* player;
-			OneLife::game::Casting* casting;
+			LivingLifePage* gameScene;
 			OneLife::dataType::uiComponent::SceneBuilder screen{};
 			OneLife::game::component::Socket* socket;
 	};

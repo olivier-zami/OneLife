@@ -1217,7 +1217,6 @@ int mainFunction( int inNumArgs, char **inArgs )
 
 	//!
 	gameApplication->init(gameSettings);
-	//gameApplication->bindGlobalCurrentController(&currentGamePage);
 
 	gameApplication->start();
 

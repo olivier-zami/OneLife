@@ -31,9 +31,9 @@
 #include "OneLife/gameSource/components/messageChannel.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
+#include "OneLife/gameSource/procedures/graphics/drawFrame.h"
 #include "OneLife/gameSource/components/trace.h"
 #include "OneLife/gameSource/dataTypes/feature.h"
-#include "OneLife/gameSource/scenes1/casting.h"
 #include "OneLife/gameSource/debug.h"
 
 using signal = OneLife::dataType::Signal;
@@ -51,8 +51,8 @@ using namespace OneLife::dataType::hardware::keyboard;
 extern unsigned char keyMap[256];
 extern char keyMapOn;
 extern GameSceneHandler *sceneHandler;
-extern GamePage *currentGamePage;
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
+extern GamePage *currentGamePage;
 extern LivingLifePage *livingLifePage;
 
 //!globals screen selection
@@ -532,11 +532,6 @@ void OneLife::game::Application::init(OneLife::game::Settings settings)
 	memset(this->serverMessage, 0, bufferSize);
 }
 
-void OneLife::game::Application::bindGlobalCurrentController(GamePage** inController)
-{
-	this->currentController = inController;
-}
-
 void OneLife::game::Application::setConnection(const char* ip, int port)
 {
 	OneLife::game::Debug::writeMethodInfo("OneLife::game::Application::setConnection(\"%s\", %i)", ip, port);
@@ -581,7 +576,7 @@ void OneLife::game::Application::start()
 			pixelZoomFactor * 200,
 			targetFrameRate,
 			this->getCustomRecordedGameData(),
-			this->isPlayingBack() );//!currentGamePage initialized inside
+			this->isPlayingBack() );//!this->currentController initialized inside
 
 	//!
 	if(!this->controller.initializationScreen) this->controller.initializationScreen = new OneLife::game::InitializationScreen();
@@ -4839,7 +4834,7 @@ other->lineage.push_back( cousinNum );
 
 void OneLife::game::Application::selectScreen()
 {
-	if((void*)currentGamePage == (void*)this->controller.initializationScreen)
+	if((void*)this->currentController == (void*)this->controller.initializationScreen)
 	{
 		if(this->isControllerRecentlySet)
 		{
@@ -5083,13 +5078,13 @@ void OneLife::game::Application::selectScreen()
 			postUpdate();
 
 		}//step2
-		else if(((OneLife::game::InitializationScreen*)currentGamePage)->isTaskComplete())
+		else if(((OneLife::game::InitializationScreen*)this->currentController)->isTaskComplete())
 		{
 			this->setController(loadingPage);
 		}
 	}
 	//!SEARCH LEG000001 for legacy place
-	else if(currentGamePage == loadingPage)
+	else if(this->currentController == loadingPage)
 	{
 		if(this->isControllerRecentlySet)
 		{
@@ -5097,7 +5092,7 @@ void OneLife::game::Application::selectScreen()
 			this->isControllerRecentlySet = false;
 		}
 		this->status.connectedMode = false;
-		currentGamePage->base_step();
+		this->currentController->base_step();
 		switch( loadingPhase )
 		{
 			case 0: {
@@ -5370,10 +5365,10 @@ void OneLife::game::Application::selectScreen()
 				autoLogIn = SettingsManager::getIntSetting( "autoLogIn", 0 );
 				if( userEmail == NULL || accountKey == NULL ){autoLogIn = false;}
 				this->setController(existingAccountPage);
-				currentGamePage->base_makeActive( true );
+				this->currentController->base_makeActive( true );
 		}
 	}
-	else if(currentGamePage == getServerAddressPage)
+	else if(this->currentController == getServerAddressPage)
 	{
 		if(this->isControllerRecentlySet)
 		{
@@ -5381,7 +5376,7 @@ void OneLife::game::Application::selectScreen()
 			this->isControllerRecentlySet = false;
 		}
 		this->status.connectedMode = false;
-		currentGamePage->base_step();
+		this->currentController->base_step();
 		if( getServerAddressPage->isResponseReady() )
 		{
 
@@ -5396,7 +5391,7 @@ void OneLife::game::Application::selectScreen()
 			{
 				this->setController(finalMessagePage);
 				finalMessagePage->setMessageKey( "serverShutdownMessage" );
-				currentGamePage->base_makeActive( true );
+				this->currentController->base_makeActive( true );
 			}
 			else
 			{
@@ -5422,12 +5417,12 @@ void OneLife::game::Application::selectScreen()
 
 
 
-						currentGamePage = finalMessagePage;
+						this->currentController = finalMessagePage;
 
 						finalMessagePage->setMessageKey(
 								"upgradeMessageSteam" );
 
-						currentGamePage->base_makeActive( true );
+						this->currentController->base_makeActive( true );
 					}
 					else
 					{
@@ -5441,16 +5436,16 @@ void OneLife::game::Application::selectScreen()
 						delete [] autoUpdateURL;
 
 						if( ! updateStarted ) {
-							currentGamePage = finalMessagePage;
+							this->currentController = finalMessagePage;
 
 							finalMessagePage->setMessageKey(
 									"upgradeMessage" );
 
-							currentGamePage->base_makeActive( true );
+							this->currentController->base_makeActive( true );
 						}
 						else {
-							currentGamePage = autoUpdatePage;
-							currentGamePage->base_makeActive( true );
+							this->currentController = autoUpdatePage;
+							this->currentController->base_makeActive( true );
 						}
 					}
 				}
@@ -5458,12 +5453,12 @@ void OneLife::game::Application::selectScreen()
 				{
 					// up to date, okay to connect
 					this->setController(livingLifePage);
-					currentGamePage->base_makeActive( true );
+					this->currentController->base_makeActive( true );
 				}
 			}
 		}
 	}
-	else if(currentGamePage == existingAccountPage)
+	else if(this->currentController == existingAccountPage)
 	{
 		if(this->isControllerRecentlySet)
 		{
@@ -5471,34 +5466,34 @@ void OneLife::game::Application::selectScreen()
 			this->isControllerRecentlySet = false;
 		}
 		this->status.connectedMode = false;
-		currentGamePage->base_step();
+		this->currentController->base_step();
 		if( existingAccountPage->checkSignal( "quit" ) ) {
 			quitGame();
 		}
 		else if( existingAccountPage->checkSignal( "poll" ) )
 		{
 			this->setController(pollPage);
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( existingAccountPage->checkSignal( "genes" ) )
 		{
 			this->setController(geneticHistoryPage);
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( existingAccountPage->checkSignal( "settings" ) )
 		{
 			this->setController(settingsPage);
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( existingAccountPage->checkSignal( "review" ) )
 		{
 			this->setController(reviewPage);
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( existingAccountPage->checkSignal( "friends" ) )
 		{
 			this->setController(twinPage);
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( existingAccountPage->checkSignal( "done" )||mapPullMode || autoLogIn )
 		{
@@ -5532,16 +5527,18 @@ void OneLife::game::Application::selectScreen()
 		{
 			this->setController(finalMessagePage);
 			finalMessagePage->setMessageKey( "manualRestartMessage" );
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 	}
-	else if(currentGamePage == (void*)this->controller.mapGenerationScreen)
+	else if(this->currentController == (void*)this->controller.mapGenerationScreen)
 	{
 		if(this->isControllerRecentlySet)
 		{
 			OneLife::game::Debug::writeControllerInfo("Generating environment...");
 			this->isControllerRecentlySet = false;
-			this->controller.mapGenerationScreen->handle(livingLifePage->getCasting());
+			OneLife::game::Debug::write("living life before handle : %p", livingLifePage);
+			this->controller.mapGenerationScreen->handle(livingLifePage);
+			OneLife::game::Debug::write("living life after handle : %p", livingLifePage);
 		}
 		this->status.connectedMode = false;
 		switch(this->lastSignalValue)
@@ -5552,7 +5549,7 @@ void OneLife::game::Application::selectScreen()
 				break;
 		}
 	}
-	else if(currentGamePage == livingLifePage)
+	else if(this->currentController == livingLifePage)
 	{
 		if(this->isControllerRecentlySet)
 		{
@@ -5560,7 +5557,7 @@ void OneLife::game::Application::selectScreen()
 			this->isControllerRecentlySet = false;
 		}
 		this->status.connectedMode = true;
-		currentGamePage->base_step();
+		this->currentController->base_step();
 		if( livingLifePage->checkSignal( "loginFailed" ) )
 		{
 			lastScreenViewCenter.x = 0;
@@ -5569,7 +5566,7 @@ void OneLife::game::Application::selectScreen()
 			this->setController(existingAccountPage);
 			existingAccountPage->setStatus( "loginFailed", true );
 			existingAccountPage->setStatusPositiion( true );
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "noLifeTokens" ) )
 		{
@@ -5579,7 +5576,7 @@ void OneLife::game::Application::selectScreen()
 			this->setController(existingAccountPage);
 			existingAccountPage->setStatus( "noLifeTokens", true );
 			existingAccountPage->setStatusPositiion( true );
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "connectionFailed" ) )
 		{
@@ -5589,7 +5586,7 @@ void OneLife::game::Application::selectScreen()
 			this->setController(existingAccountPage);
 			existingAccountPage->setStatus( "connectionFailed", true );
 			existingAccountPage->setStatusPositiion( true );
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "versionMismatch" ) )
 		{
@@ -5614,7 +5611,7 @@ void OneLife::game::Application::selectScreen()
 
 			existingAccountPage->setStatusPositiion( true );
 
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "twinCancel" ) ) {
 
@@ -5626,9 +5623,9 @@ void OneLife::game::Application::selectScreen()
 			setViewCenterPosition( lastScreenViewCenter.x,
 					lastScreenViewCenter.y );
 
-			currentGamePage = existingAccountPage;
+			this->currentController = existingAccountPage;
 
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "serverShutdown" ) ) {
 			lastScreenViewCenter.x = 0;
@@ -5637,13 +5634,13 @@ void OneLife::game::Application::selectScreen()
 			setViewCenterPosition( lastScreenViewCenter.x,
 					lastScreenViewCenter.y );
 
-			currentGamePage = existingAccountPage;
+			this->currentController = existingAccountPage;
 
 			existingAccountPage->setStatus( "serverShutdown", true );
 
 			existingAccountPage->setStatusPositiion( true );
 
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "serverUpdate" ) ) {
 			lastScreenViewCenter.x = 0;
@@ -5652,7 +5649,7 @@ void OneLife::game::Application::selectScreen()
 			this->setController(existingAccountPage);
 			existingAccountPage->setStatus( "serverUpdate", true );
 			existingAccountPage->setStatusPositiion( true );
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "serverFull" ) ) {
 			lastScreenViewCenter.x = 0;
@@ -5661,13 +5658,13 @@ void OneLife::game::Application::selectScreen()
 			setViewCenterPosition( lastScreenViewCenter.x,
 					lastScreenViewCenter.y );
 
-			currentGamePage = existingAccountPage;
+			this->currentController = existingAccountPage;
 
 			existingAccountPage->setStatus( "serverFull", true );
 
 			existingAccountPage->setStatusPositiion( true );
 
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "died" ) ) {
 			showDiedPage();
@@ -5676,7 +5673,7 @@ void OneLife::game::Application::selectScreen()
 			showReconnectPage();
 		}
 		else if( livingLifePage->checkSignal( "loadFailure" ) ) {
-			currentGamePage = finalMessagePage;
+			this->currentController = finalMessagePage;
 
 			finalMessagePage->setMessageKey( "loadingMapFailedMessage" );
 
@@ -5694,7 +5691,7 @@ void OneLife::game::Application::selectScreen()
 				delete [] detailMessage;
 			}
 
-			currentGamePage->base_makeActive( true );
+			this->currentController->base_makeActive( true );
 		}
 	}
 	else if( !writeFailed && !loadingFailedFlag  )//step3 (demo mode done or was never enabled )
@@ -5702,14 +5699,14 @@ void OneLife::game::Application::selectScreen()
 		this->status.connectedMode = false;
 		if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}
 
-		if( currentGamePage != NULL )
+		if( this->currentController != NULL )
 		{
-			currentGamePage->base_step();
-			if( currentGamePage == settingsPage ) {
+			this->currentController->base_step();
+			if( this->currentController == settingsPage ) {
 				if( settingsPage->checkSignal( "back" ) ) {
 					existingAccountPage->setStatus( NULL, false );
-					currentGamePage = existingAccountPage;
-					currentGamePage->base_makeActive( true );
+					this->currentController = existingAccountPage;
+					this->currentController->base_makeActive( true );
 				}
 				else if( settingsPage->checkSignal( "editAccount" ) ) {
 					loginEditOverride = true;
@@ -5717,93 +5714,93 @@ void OneLife::game::Application::selectScreen()
 					existingAccountPage->setStatus( "editAccountWarning", false );
 					existingAccountPage->setStatusPositiion( true );
 
-					currentGamePage = existingAccountPage;
-					currentGamePage->base_makeActive( true );
+					this->currentController = existingAccountPage;
+					this->currentController->base_makeActive( true );
 				}
 				else if( settingsPage->checkSignal( "relaunchFailed" ) ) {
-					currentGamePage = finalMessagePage;
+					this->currentController = finalMessagePage;
 
 					finalMessagePage->setMessageKey( "manualRestartMessage" );
 
-					currentGamePage->base_makeActive( true );
+					this->currentController->base_makeActive( true );
 				}
 
 			}
-			else if( currentGamePage == reviewPage ) {
+			else if( this->currentController == reviewPage ) {
 				if( reviewPage->checkSignal( "back" ) ) {
 					existingAccountPage->setStatus( NULL, false );
-					currentGamePage = existingAccountPage;
-					currentGamePage->base_makeActive( true );
+					this->currentController = existingAccountPage;
+					this->currentController->base_makeActive( true );
 				}
 			}
-			else if( currentGamePage == twinPage ) {
+			else if( this->currentController == twinPage ) {
 				if( twinPage->checkSignal( "cancel" ) ) {
 					existingAccountPage->setStatus( NULL, false );
-					currentGamePage = existingAccountPage;
-					currentGamePage->base_makeActive( true );
+					this->currentController = existingAccountPage;
+					this->currentController->base_makeActive( true );
 				}
 				else if( twinPage->checkSignal( "done" ) ) {
 					printf("\n=====>startConnecting() livingLifePage done");
 					startConnecting();
 				}
 			}
-			else  if( currentGamePage == autoUpdatePage ) {
+			else  if( this->currentController == autoUpdatePage ) {
 				if( autoUpdatePage->checkSignal( "failed" ) ) {
-					currentGamePage = finalMessagePage;
+					this->currentController = finalMessagePage;
 
 					finalMessagePage->setMessageKey( "upgradeMessage" );
 
-					currentGamePage->base_makeActive( true );
+					this->currentController->base_makeActive( true );
 				}
 				else if( autoUpdatePage->checkSignal( "writeError" ) ) {
-					currentGamePage = finalMessagePage;
+					this->currentController = finalMessagePage;
 
 					finalMessagePage->setMessageKey(
 							"updateWritePermissionMessage" );
 
-					currentGamePage->base_makeActive( true );
+					this->currentController->base_makeActive( true );
 				}
 				else if( autoUpdatePage->checkSignal( "relaunchFailed" ) ) {
-					currentGamePage = finalMessagePage;
+					this->currentController = finalMessagePage;
 
 					finalMessagePage->setMessageKey( "manualRestartMessage" );
 
-					currentGamePage->base_makeActive( true );
+					this->currentController->base_makeActive( true );
 				}
 			}
-			else if( currentGamePage == extendedMessagePage ) {
+			else if( this->currentController == extendedMessagePage ) {
 				if( extendedMessagePage->checkSignal( "done" ) ) {
 
 					extendedMessagePage->setSubMessage( "" );
 
 					if( userReconnect ) {
-						printf("\n===>setting currentGamePage to livingLifePage (extendedMessagePage)");
-						currentGamePage = livingLifePage;
+						printf("\n===>setting this->currentController to livingLifePage (extendedMessagePage)");
+						this->currentController = livingLifePage;
 					}
 					else {
-						currentGamePage = pollPage;
+						this->currentController = pollPage;
 					}
-					currentGamePage->base_makeActive( true );
+					this->currentController->base_makeActive( true );
 				}
 			}
-			else if( currentGamePage == pollPage ) {
+			else if( this->currentController == pollPage ) {
 				if( pollPage->checkSignal( "done" ) ) {
-					currentGamePage = rebirthChoicePage;
-					currentGamePage->base_makeActive( true );
+					this->currentController = rebirthChoicePage;
+					this->currentController->base_makeActive( true );
 				}
 			}
-			else if( currentGamePage == geneticHistoryPage ) {
+			else if( this->currentController == geneticHistoryPage ) {
 				if( geneticHistoryPage->checkSignal( "done" ) ) {
 					if( !isHardToQuitMode() ) {
-						currentGamePage = existingAccountPage;
+						this->currentController = existingAccountPage;
 					}
 					else {
-						currentGamePage = rebirthChoicePage;
+						this->currentController = rebirthChoicePage;
 					}
-					currentGamePage->base_makeActive( true );
+					this->currentController->base_makeActive( true );
 				}
 			}
-			else if( currentGamePage == rebirthChoicePage ) {
+			else if( this->currentController == rebirthChoicePage ) {
 				if( rebirthChoicePage->checkSignal( "reborn" ) ) {
 					// get server address again from scratch, in case
 					// the server we were on just crashed
@@ -5819,22 +5816,22 @@ void OneLife::game::Application::selectScreen()
 					startConnecting();
 				}
 				else if( rebirthChoicePage->checkSignal( "review" ) ) {
-					currentGamePage = reviewPage;
-					currentGamePage->base_makeActive( true );
+					this->currentController = reviewPage;
+					this->currentController->base_makeActive( true );
 				}
 				else if( rebirthChoicePage->checkSignal( "menu" ) ) {
-					currentGamePage = existingAccountPage;
-					currentGamePage->base_makeActive( true );
+					this->currentController = existingAccountPage;
+					this->currentController->base_makeActive( true );
 				}
 				else if( rebirthChoicePage->checkSignal( "genes" ) ) {
-					currentGamePage = geneticHistoryPage;
-					currentGamePage->base_makeActive( true );
+					this->currentController = geneticHistoryPage;
+					this->currentController->base_makeActive( true );
 				}
 				else if( rebirthChoicePage->checkSignal( "quit" ) ) {
 					quitGame();
 				}
 			}
-			else if( currentGamePage == finalMessagePage ) {
+			else if( this->currentController == finalMessagePage ) {
 				if( finalMessagePage->checkSignal( "quit" ) ) {
 					quitGame();
 				}
@@ -5846,9 +5843,9 @@ void OneLife::game::Application::selectScreen()
 
 void OneLife::game::Application::update(OneLife::dataType::UiComponent* dataScreen)
 {
-	if(!currentGamePage) return;
+	if(!this->currentController) return;
 	if( pauseOnMinimize && this->isMinimized() ) sceneHandler->setPause(true);// auto-pause when minimized
-	currentGamePage->handle(dataScreen);
+	this->currentController->handle(dataScreen);
 }
 
 /**
@@ -6397,7 +6394,8 @@ void OneLife::game::Application::sendClientMessage()
 
 void OneLife::game::Application::setController(void* controller)
 {
-	currentGamePage = (GamePage*)controller;
+	this->currentController = (GamePage*)controller;
+	currentGamePage = this->currentController;
 	this->isControllerRecentlySet = true;
 }
 
@@ -8552,148 +8550,4 @@ int computeAspectRatio( int inW, int inH ) {
 	int intRatio = (100 * inW ) / inH;
 
 	return intRatio;
-}
-
-/**********************************************************************************************************************/
-
-void drawFrame( char inUpdate )
-{
-	if( !inUpdate )//paused
-	{
-
-// because this is a networked game, we can't actually pause
-		stepSpriteBank();
-
-		stepSoundBank();
-
-		stepMusicPlayer();
-
-		if( currentGamePage != NULL )
-		{
-			currentGamePage->base_step();
-		}
-		wakeUpPauseFrameRate();
-
-		drawFrameNoUpdate( true );//seem to be useless
-
-		//drawPauseScreen();
-
-// handle delete key repeat
-		if( holdDeleteKeySteps > -1 )
-		{
-			holdDeleteKeySteps ++;
-
-			if( holdDeleteKeySteps > stepsBetweenDeleteRepeat ) {
-// delete repeat
-
-// platform layer doesn't receive event for key held down
-// tell it we are still active so that it doesn't
-// reduce the framerate during long, held deletes
-				wakeUpPauseFrameRate();
-
-
-
-// subtract from messsage
-				deleteCharFromUserTypedMessage();
-
-
-
-// shorter delay for subsequent repeats
-				stepsBetweenDeleteRepeat = (int)( 2/ frameRateFactor );
-				holdDeleteKeySteps = 0;
-			}
-		}
-
-// fade in pause screen
-		if( pauseScreenFade < 1 ) {
-			pauseScreenFade += ( 1.0 / 30 ) * frameRateFactor;
-
-			if( pauseScreenFade > 1 ) {
-				pauseScreenFade = 1;
-			}
-		}
-
-
-// keep checking for this signal even if paused
-		if( currentGamePage == livingLifePage && livingLifePage->checkSignal( "died" ) )
-		{
-			showDiedPage();
-		}
-		if( currentGamePage == livingLifePage && livingLifePage->checkSignal( "disconnect" ) )
-		{
-			showReconnectPage();
-		}
-
-		return;
-	}
-
-	// not paused
-	// fade pause screen out
-	if( pauseScreenFade > 0 )
-	{
-		pauseScreenFade -= ( 1.0 / 30 ) * frameRateFactor;
-
-		if( pauseScreenFade < 0 )
-		{
-			pauseScreenFade = 0;
-
-			if( currentUserTypedMessage != NULL ) {
-
-				// make sure it doesn't already end with a file separator
-				// (never insert two in a row, even when player closes
-				//  pause screen without typing anything)
-				int lengthCurrent = strlen( currentUserTypedMessage );
-
-				if( lengthCurrent < 2 || currentUserTypedMessage[ lengthCurrent - 2 ] != 28 )
-				{
-					// insert at file separator (ascii 28)
-					char *oldMessage = currentUserTypedMessage;
-					currentUserTypedMessage = autoSprintf( "%s %c ",oldMessage,28 );
-					delete [] oldMessage;
-				}
-			}
-		}
-	}
-
-	if( !firstDrawFrameCalled ) {
-
-		// do final init step... stuff that shouldn't be done until
-		// we have control of screen
-
-		char *moveKeyMapping = SettingsManager::getStringSetting( "upLeftDownRightKeys" );
-
-		if( moveKeyMapping != NULL ) {
-			char *temp = stringToLowerCase( moveKeyMapping );
-			delete [] moveKeyMapping;
-			moveKeyMapping = temp;
-
-			if( strlen( moveKeyMapping ) == 4 &&
-				strcmp( moveKeyMapping, "wasd" ) != 0 ) {
-				// different assignment
-
-				upKey = moveKeyMapping[0];
-				leftKey = moveKeyMapping[1];
-				downKey = moveKeyMapping[2];
-				rightKey = moveKeyMapping[3];
-			}
-			delete [] moveKeyMapping;
-		}
-
-
-
-
-		firstDrawFrameCalled = true;
-	}
-
-
-	// updates here
-	stepSpriteBank();
-
-	stepSoundBank();
-
-	stepMusicPlayer();
-
-	stepPhotos();
-
-	if( pauseScreenFade > 0 ) drawPauseScreen(); // draw tail end of pause screen, if it is still visible
 }

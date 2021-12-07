@@ -30,7 +30,7 @@ char isClipboardSupported() {
 
         if( system( "which xclip > /dev/null 2>&1" ) ) {
             // xclip not installed
-            AppLog::error( "xclip must be installed for clipboard to work" );
+            //AppLog::error( "xclip must be installed for clipboard to work" );
             clipboardSupport = false;
             }
         else {
