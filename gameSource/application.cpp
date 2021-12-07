@@ -9,6 +9,7 @@
 #include <climits>
 #include <cstdlib>
 #include <cctype>
+#include <cstring>
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/graphics/openGL/SingleTextureGL.h"
 #include "minorGems/graphics/openGL/glInclude.h"
@@ -21,6 +22,7 @@
 #include "minorGems/crypto/hashes/sha1.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
+#include "OneLife/gameSource/misc_plateformspecific.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/components/keyboard.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
@@ -84,6 +86,7 @@ long timeSinceLastFrameMS = 0;// FOVMOD NOTE:  Change 1/3 - Take these lines dur
 //char screenGLStencilBufferSupported = false; //TODO: check if not used somewhere =>delete
 char measureRecorded = false;
 char loadingMessageShown = false;
+
 static int numFramesSkippedBeforeMeasure = 0;
 static int numFramesToSkipBeforeMeasure = 30;
 static char startMeasureTimeRecorded = false;
@@ -135,7 +138,6 @@ extern FinalMessagePage *finalMessagePage;
 extern ServerActionPage *getServerAddressPage;
 extern LoadingPage *loadingPage;
 extern AutoUpdatePage *autoUpdatePage;
-extern LivingLifePage *livingLifePage;
 extern ExistingAccountPage *existingAccountPage;
 extern ExtendedMessagePage *extendedMessagePage;
 extern RebirthChoicePage *rebirthChoicePage;
@@ -144,7 +146,6 @@ extern ReviewPage *reviewPage;
 extern TwinPage *twinPage;
 extern PollPage *pollPage;
 extern GeneticHistoryPage *geneticHistoryPage;
-extern GamePage *currentGamePage;
 extern float pauseScreenFade;
 extern char userReconnect;
 extern doublePair lastScreenViewCenter;
@@ -201,7 +202,7 @@ OneLife::game::Application::Application(
 	this->isNewSystemEnable = false;
 
 	//!gameScreens declaration
-	this->initializationScreen = nullptr;
+	this->controller.initializationScreen = nullptr;
 
 	//!init SDL context ...
 	Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
@@ -433,11 +434,22 @@ OneLife::game::Application::Application(
 	}
 
 	/******************************************************************************************************************/
-
+	//!set status
 	this->status.connectedMode = false;
 
+	//!set data
+	memset(&(this->data.socket.ip), 0, sizeof(this->data.socket.ip));
+	this->data.socket.port = 0;
+
+	//!set components
 	this->connection = nullptr;
+
+	//!set controllers
+	this->controller.gameSceneController = nullptr;
+
+	//!
 	this->lastSignalValue = signal::NONE;
+	this->currentController = nullptr;
 	this->useCustomServer = false;
 	this->serverMessage = nullptr;
 
@@ -458,9 +470,6 @@ OneLife::game::Application::Application(
 
 	this->isControllerRecentlySet = false;
 	this->player = nullptr;
-
-	this->controller.mapGenerationScreen = new OneLife::game::WaitingScreen();
-	this->controller.mapGenerationScreen->handle(this->player);
 
 	this->quit = false;
 }
@@ -523,15 +532,16 @@ void OneLife::game::Application::init(OneLife::game::Settings settings)
 	memset(this->serverMessage, 0, bufferSize);
 }
 
+void OneLife::game::Application::bindGlobalCurrentController(GamePage** inController)
+{
+	this->currentController = inController;
+}
+
 void OneLife::game::Application::setConnection(const char* ip, int port)
 {
-	OneLife::dataType::socket::Address serverAddress;
-	memset(serverAddress.ip, 0, sizeof(serverAddress.ip));
-	strcpy(serverAddress.ip, ip);
-	serverAddress.port = port;
-	this->connection = new OneLife::game::component::Socket();
-	this->connection->setAddress(serverAddress);
-	GamePage::setSocket(this->connection);
+	OneLife::game::Debug::writeMethodInfo("OneLife::game::Application::setConnection(\"%s\", %i)", ip, port);
+	strcpy(this->data.socket.ip, ip);
+	this->data.socket.port = port;
 }
 
 OneLife::game::component::Socket* OneLife::game::Application::getConnection()
@@ -554,6 +564,8 @@ void OneLife::game::Application::addFeature(void* feature)
 	this->registeredFeature.push_back((OneLife::game::Feature*) feature);
 }
 
+/**********************************************************************************************************************/
+
 /**
 * Starts the GLUT main loop.
 *
@@ -563,20 +575,7 @@ void OneLife::game::Application::start()
 {
 	currentScreenGL = this;
 
-	// call our resize callback (GLUT used to do this for us when the
-	// window was created)
-	callbackResize( mWide, mHigh );
-
-
-	// oversleep on last loop (discount it from next sleep)
-	// can be negative (add to next sleep)
-	int oversleepMSec = 0;
-
-
-	// FOVMOD NOTE:  Change 2/3 - Take these lines during the merge process
-	timeSec_t frameStartSec;
-	unsigned long frameStartMSec;
-	unsigned long oldFrameStart;
+	callbackResize( mWide, mHigh );// call our resize callback (GLUT used to do this for us when the window was created)
 
 	initFrameDrawer( pixelZoomFactor * 320,
 			pixelZoomFactor * 200,
@@ -584,16 +583,21 @@ void OneLife::game::Application::start()
 			this->getCustomRecordedGameData(),
 			this->isPlayingBack() );//!currentGamePage initialized inside
 
+	//!
+	if(!this->controller.initializationScreen) this->controller.initializationScreen = new OneLife::game::InitializationScreen();
+	this->controller.initializationScreen->setServerSocketAddress(this->data.socket);
+	this->controller.initializationScreen->handle(this->controller.gameSceneController);
+	this->setController(this->controller.initializationScreen);
+
+
+	unsigned long oldFrameStart;
+	timeSec_t frameStartSec;// FOVMOD NOTE:  Change 2/3 - Take these lines during the merge process
+	unsigned long frameStartMSec;
 	Time::getCurrentTime( &frameStartSec, &frameStartMSec );
-
-	if(!this->initializationScreen) this->initializationScreen = new OneLife::game::InitializationScreen();
-	currentGamePage = this->initializationScreen;
-	this->isControllerRecentlySet = true;
-
-	OneLife::dataType::UiComponent dataScreen;
-
+	int oversleepMSec = 0;// oversleep on last loop (discount it from next sleep) can be negative (add to next sleep)
 
 	// main loop
+	OneLife::dataType::UiComponent dataScreen = {nullptr, nullptr, nullptr};
 	while( !this->quit )
 	{
 		oldFrameStart = frameStartMSec;
@@ -1178,7 +1182,7 @@ void OneLife::game::Application::readMessages()
 			 */
 		}
 
-		 /**
+/**********************************************************************************************************************
 
 		if( mapPullMode && type != MAP_CHUNK ) {
 // ignore it---map is a frozen snapshot in time
@@ -3301,6 +3305,7 @@ void OneLife::game::Application::readMessages()
 		}
 		else if( type == PLAYER_UPDATE )
 		{
+		  //TODO search for message
 #include "OneLife/gameSource/procedures/socket/player_update.cpp"
 		}
 		else if( type == PLAYER_MOVES_START ) {
@@ -4812,7 +4817,7 @@ other->lineage.push_back( cousinNum );
 
 // process next message if there is one
 		message = getNextServerMessage();
-		*/
+/**********************************************************************************************************************/
 		message = nullptr;
 	}
 
@@ -4834,7 +4839,7 @@ other->lineage.push_back( cousinNum );
 
 void OneLife::game::Application::selectScreen()
 {
-	if((void*)currentGamePage == (void*)this->initializationScreen)
+	if((void*)currentGamePage == (void*)this->controller.initializationScreen)
 	{
 		if(this->isControllerRecentlySet)
 		{
@@ -5347,11 +5352,6 @@ void OneLife::game::Application::selectScreen()
 					serverIP = SettingsManager::getStringSetting("customServerAddress" );
 					if( serverIP == NULL ) { serverIP = stringDuplicate( "127.0.0.1" ); }
 					serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
-
-					OneLife::game::Debug::write("livingLifePage instantiation");
-					livingLifePage = new LivingLifePage();
-					livingLifePage->setServerSocket(this->connection);
-					livingLifePage->setCasting(new OneLife::game::Casting());
 
 					loadingPhase ++;
 				}

@@ -209,6 +209,7 @@ extern char userReconnect;
 extern char *serverIP;//from socket.cpp
 extern int serverPort;//from socket.cpp
 
+GamePage *currentGamePage = nullptr;//TestPage *testPage = NULL;
 CustomRandomSource randSource( 34957197 );// static seed
 int cursorMode = 0;
 double emulatedCursorScale = 1.0;
@@ -751,14 +752,12 @@ int mainFunction( int inNumArgs, char **inArgs )
 			serverIP = SettingsManager::getStringSetting("customServerAddress");
 			if( serverIP == nullptr ) { serverIP = stringDuplicate( "127.0.0.1" ); }
 			serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
-			printf( "\n===>Using custom server address: %s:%d", serverIP, serverPort );
 		}
 		else
 		{
 			gameApplication->setUseCustomServerStatus(false);
 		}
 		gameApplication->setConnection(serverIP, serverPort);
-		if(serverIP) free(serverIP);
 	}
 	catch(OneLife::game::Exception* e)
 	{
@@ -1218,6 +1217,7 @@ int mainFunction( int inNumArgs, char **inArgs )
 
 	//!
 	gameApplication->init(gameSettings);
+	//gameApplication->bindGlobalCurrentController(&currentGamePage);
 
 	gameApplication->start();
 

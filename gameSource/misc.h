@@ -5,7 +5,7 @@
 #ifndef ONELIFE_MISC_H
 #define ONELIFE_MISC_H
 
-#include <stdint.h>
+
 
 #include "OneLife/gameSource/dataTypes/socket.h"
 
@@ -61,15 +61,6 @@ const char *getAppName();
 // gets the version number of the binary code
 // On Mac, we name the bundle with the version number.
 int getAppVersion();
-
-
-// depending on directory structure for source builds, Linux app name
-// might be different than Windows or Mac app name (no .exe or .app extension
-// and can't be the same name as a directory).
-// Example:  CastleDoctrineApp
-const char *getLinuxAppName();
-
-
 
 // get data that should be saved in the header of the game that is
 // being recorded

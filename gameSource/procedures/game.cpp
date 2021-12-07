@@ -89,6 +89,7 @@ extern float gui_fov_target_scale_hud;
 extern int gui_fov_offset_x;
 extern int gui_fov_offset_y;
 extern float gui_fov_scale_hud;
+extern GamePage *currentGamePage;
 
 // should we pull the map
 char autoLogIn = 0;
@@ -115,7 +116,6 @@ ReviewPage *reviewPage;
 TwinPage *twinPage;
 PollPage *pollPage;
 GeneticHistoryPage *geneticHistoryPage;
-GamePage *currentGamePage = NULL;//TestPage *testPage = NULL;
 int loadingStepBatchSize = 1;
 int numLoadingSteps = 20;
 SpriteHandle instructionsSprite;

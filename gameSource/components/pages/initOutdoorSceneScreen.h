@@ -9,6 +9,7 @@
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 #include "OneLife/gameSource/dataTypes/game.h" //LiveObject
 #include "OneLife/gameSource/scenes1/casting.h"
+#include "OneLife/gameSource/components/socket.h"
 
 namespace OneLife::game
 {
@@ -22,9 +23,12 @@ namespace OneLife::game
 			void handle(OneLife::dataType::UiComponent* screen);
 			void handle(LiveObject* player);
 			void handle(OneLife::game::Casting* casting);
+			void handle(OneLife::game::component::Socket* socket);
 
 		private:
+			void connect();
 			void initScreen();
+			void downloadObjects();
 			void initPlayerAgent();
 			void updateScreen();
 			void update0();
@@ -32,7 +36,9 @@ namespace OneLife::game
 			void update3();
 
 			struct{
+				bool isConnected;
 				bool isPlayerAgentSet;
+				bool isObjectsDownloaded;
 			}status;
 
 			static const char* screenName;
@@ -40,6 +46,7 @@ namespace OneLife::game
 			LiveObject* player;
 			OneLife::game::Casting* casting;
 			OneLife::dataType::uiComponent::WaitingScreen screen{};
+			OneLife::game::component::Socket* socket;
 	};
 }
 

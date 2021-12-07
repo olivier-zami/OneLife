@@ -149,7 +149,7 @@ void initAgeScaling() {
                                   &serverAge, &displayAge );
             if( numRead == 2 ) {
                 doublePair point = { serverAge, displayAge };
-                printf("age scale %lf %lf\n", point.x, point.y);
+                //printf("age scale %lf %lf\n", point.x, point.y);//TODO: uncomment to debug age scale
                 ageScaling.push_back( point );
                 }
             }

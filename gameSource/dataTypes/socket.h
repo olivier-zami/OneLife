@@ -19,15 +19,6 @@ namespace OneLife::dataType::socket
 	}Message;
 }
 
-namespace OneLife::dataType
-{
-	typedef struct serverSocket
-	{
-		char* ip;
-		int port;
-	}ServerSocket;
-}
-
 typedef struct WebRequestRecord {
 	int handle;
 	WebRequest *request;

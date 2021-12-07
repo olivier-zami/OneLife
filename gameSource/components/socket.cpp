@@ -14,6 +14,7 @@
 #include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/application.h"
+#include "OneLife/gameSource/debug.h"
 
 
 extern OneLife::game::Application *gameApplication;
@@ -62,7 +63,7 @@ void OneLife::game::component::Socket::handle(
 
 void OneLife::game::component::Socket::setAddress(OneLife::dataType::socket::Address address)
 {
-	printf("\n===>OneLife::game::component::Socket::setAddress({%s:%i})", address.ip, address.port);
+	OneLife::game::Debug::writeMethodInfo("OneLife::game::component::Socket::setAddress({%s:%i})", address.ip, address.port);
 	strcpy(this->address.ip, address.ip);
 	this->address.port = address.port;
 }
@@ -74,7 +75,7 @@ OneLife::dataType::socket::Address OneLife::game::component::Socket::getAddress(
 
 void OneLife::game::component::Socket::connect()
 {
-	printf("\n===>OneLife::game::component::Socket::connect() :: %s:%i", this->address.ip, this->address.port);
+	OneLife::game::Debug::writeMethodInfo("OneLife::game::component::Socket::connect() : %s:%i", this->address.ip, this->address.port);
 	SocketConnectionRecord r;
 	r.handle = nextSocketConnectionHandle;
 	nextSocketConnectionHandle++;
@@ -810,7 +811,7 @@ void replaceLastMessageSent( char *inNewMessage ) {
 #include "minorGems/util/SettingsManager.h"
 extern char userReconnect;
 char usingCustomServer = false;
-char *serverIP = NULL;
+char *serverIP = nullptr;
 int serverPort = 0;
 extern GamePage *currentGamePage;
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
@@ -839,7 +840,6 @@ void startConnecting()
 		serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
 		printf( "Using custom server address: %s:%d\n", serverIP, serverPort );
 
-		printf("\n===>setting currentGamePage to livingLifePage (startConnecting)");
 		currentGamePage = livingLifePage;
 		currentGamePage->base_makeActive( true );
 	}

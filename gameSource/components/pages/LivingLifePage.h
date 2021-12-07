@@ -28,12 +28,10 @@ class LivingLifePage : public GamePage, public ActionListener {
         LivingLifePage();
         ~LivingLifePage();
 
-		void setCasting(OneLife::game::Casting* inCasting);
-		OneLife::game::Casting* getCasting();
-
 		void setServerSocket(OneLife::game::component::Socket* socket);
-
 		void handle(OneLife::dataType::UiComponent* screen);
+
+		OneLife::game::Casting* getCasting();
         
         void clearMap();
         

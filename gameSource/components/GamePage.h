@@ -17,8 +17,6 @@ class GamePage :
         virtual ~GamePage();
 		virtual void handle(OneLife::dataType::UiComponent* screen);
 
-		static void setSocket(OneLife::game::component::Socket* socket);
-		OneLife::game::component::Socket* getSocket();
 		static void setMessageChannel(OneLife::game::component::MessageChannel* messageChannel);
 		OneLife::game::component::MessageChannel* getMessageChannel();
 
@@ -197,7 +195,6 @@ class GamePage :
         GamePage();
 
 		/**************************************************************************************************************/
-		static OneLife::game::component::Socket* socket;
 		static OneLife::game::component::MessageChannel* messageChannel;
         
 

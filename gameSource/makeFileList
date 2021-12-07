@@ -18,6 +18,7 @@ minitech.cpp \
 game.cpp \
 misc.cpp \
 application.cpp \
+misc_plateformspecific.cpp \
 debug.cpp \
 components/asyncFileRecord.cpp \
 components/asyncFileThread.cpp \
@@ -80,6 +81,7 @@ procedures/maths/gridPos.cpp \
 procedures/maths/misc.cpp \
 procedures/misc.cpp \
 procedures/socket/message.cpp \
+procedures/string.cpp \
 scenes1/agent.cpp \
 scenes1/casting.cpp \
 scenes1/intangibles/text.cpp \

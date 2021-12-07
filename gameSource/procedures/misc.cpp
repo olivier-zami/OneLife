@@ -5,14 +5,12 @@
 #include "misc.h"
 
 #include "minorGems/util/SimpleVector.h"
-#include "minorGems/util/stringUtils.h"
-#include "minorGems/game/Font.h"
+//#include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/objectBank.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/categoryBank.h"
 
 extern SimpleVector<LocationSpeech> locationSpeech;
-extern Font *handwritingFont;
 extern float gui_fov_scale_hud;
 extern int historyGraphLength;
 
@@ -43,24 +41,6 @@ void dummyFunctionA() {
 	if( false ) {
 		dummyFunctionA();
 	}
-}
-
-double getLongestLine( char *inMessage )
-{
-	double longestLine = 0;
-
-	int numLines;
-	char **lines = split( inMessage, "#", &numLines );
-
-	for( int l=0; l<numLines; l++ )
-	{
-		double len = handwritingFont->measureString( lines[l] ) / gui_fov_scale_hud;
-		if( len > longestLine ) {longestLine = len;}
-		delete [] lines[l];
-	}
-	delete [] lines;
-
-	return longestLine;
 }
 
 // inNewID > 0

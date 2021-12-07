@@ -10,7 +10,6 @@
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 #include "OneLife/gameSource/components/messageChannel.h"
 
-OneLife::game::component::Socket* GamePage::socket = nullptr;
 OneLife::game::component::MessageChannel* GamePage::messageChannel = nullptr;
 
 int GamePage::sPageCount = 0;
@@ -96,16 +95,6 @@ void GamePage::handle(OneLife::dataType::UiComponent* screen)
 	screen->draw = OneLife::game::graphic::drawUnimplementedScreen;
 	OneLife::dataType::uiComponent::UnimplementedScreen* dataScreen = {0};
 	screen->body = dataScreen;
-}
-
-void GamePage::setSocket(OneLife::game::component::Socket* socket)
-{
-	GamePage::socket = socket;
-}
-
-OneLife::game::component::Socket* GamePage::getSocket()
-{
-	return GamePage::socket;
 }
 
 void GamePage::setMessageChannel(OneLife::game::component::MessageChannel* messageChannel)

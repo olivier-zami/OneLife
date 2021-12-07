@@ -10,6 +10,7 @@
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/debug.h"
+#include "OneLife/gameSource/dataTypes/exception/exception.h"
 
 using signal = OneLife::dataType::Signal;
 
@@ -24,9 +25,12 @@ const char* OneLife::game::WaitingScreen::screenName = "Waiting birth";
 
 OneLife::game::WaitingScreen::WaitingScreen()
 {
+	this->status.isConnected = false;
 	this->status.isPlayerAgentSet = false;
+	this->status.isObjectsDownloaded = false;
 	this->player = nullptr;
 	this->casting = nullptr;
+	this->socket = nullptr;
 	this->screen = {0};
 	this->screen.center = {0,0};
 	this->screen.component.connectingMessage.color = {1,1,1,1};
@@ -51,14 +55,23 @@ void OneLife::game::WaitingScreen::handle(OneLife::dataType::UiComponent* screen
 	screen->draw = OneLife::game::graphic::drawWaitingBirthScreen;
 	screen->body = &(this->screen);
 
-	if(!this->isScreenInited)
+	if(!this->status.isConnected)
+	{
+		this->connect();
+	}
+	else if(!this->isScreenInited)
 	{
 		this->initScreen();
 		this->isScreenInited = true;
 	}
+	else if(!this->status.isObjectsDownloaded)
+	{
+		this->downloadObjects();
+	}
 	else if(!this->status.isPlayerAgentSet)
 	{
-		this->initPlayerAgent();
+		//this->initPlayerAgent();
+		this->status.isPlayerAgentSet = true;//TODO remove and uncomment initPlayer after test done
 	}
 	else this->updateScreen();
 }
@@ -70,12 +83,25 @@ void OneLife::game::WaitingScreen::handle(LiveObject* player)
 
 void OneLife::game::WaitingScreen::handle(OneLife::game::Casting* casting)
 {
+	OneLife::game::Debug::write("set casting: %p", casting);
 	this->casting = casting;
+}
+
+void OneLife::game::WaitingScreen::handle(OneLife::game::component::Socket* socket)
+{
+	this->socket = socket;
+}
+
+/**********************************************************************************************************************/
+
+void OneLife::game::WaitingScreen::connect()
+{
+	if(!this->socket)throw new OneLife::game::Exception("Socket object is not set before call OneLife::game::WaitingScreen::connect()");
+	OneLife::game::Debug::write("Socket: %s:%i", this->socket->getAddress().ip, this->socket->getAddress().port);
 }
 
 void OneLife::game::WaitingScreen::initScreen()
 {
-	printf("\n===>call waiting screen");
 	int bufferSize;
 
 	this->screen.component.statusMessage.position = this->screen.center;
@@ -100,6 +126,17 @@ void OneLife::game::WaitingScreen::initScreen()
 
 	this->screen.component.cancelMessage.position.x = this->screen.center.x;
 	this->screen.component.cancelMessage.position.y = this->screen.center.y - 200;
+}
+
+void OneLife::game::WaitingScreen::downloadObjects()
+{
+	OneLife::game::Debug::writeMethodInfo("OneLife::game::WaitingScreen::downloadObjects()");
+	//TODO: check if this->socket is set
+	if(!this->socket->isConnected())
+	{
+		this->socket->connect();
+	}
+
 }
 
 void OneLife::game::WaitingScreen::initPlayerAgent()
@@ -138,14 +175,14 @@ void OneLife::game::WaitingScreen::updateScreen()
 
 	if(this->screen.component.connectingMessage.color.alpha > 0)
 	{
-		if(this->getSocket()->isConnected() )
+		if(this->socket->isConnected() )
 		{
 			this->screen.component.connectingMessage.color.alpha -= 0.05 * frameRateFactor;
 			if(this->screen.component.connectingMessage.color.alpha < 0) this->screen.component.connectingMessage.color.alpha = 0;
 		}
 	}
 
-	if(!this->getSocket()->isConnected())
+	if(!this->socket->isConnected())
 	{
 		if(userReconnect)// don't draw waiting message, not connected yet
 		{

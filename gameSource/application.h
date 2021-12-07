@@ -16,9 +16,6 @@
 #include "minorGems/math/geometry/Angle3D.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/system/Time.h"
-#include "OneLife/gameSource/dataTypes/ui.h"
-#include "OneLife/gameSource/dataTypes/socket.h"
-#include "OneLife/gameSource/dataTypes/hardware.h"
 #include "OneLife/gameSource/components/engines/deviceListener.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/socket.h"
@@ -26,6 +23,9 @@
 #include "OneLife/gameSource/components/pages/initializationScreen.h"
 #include "OneLife/gameSource/components/pages/initOutdoorSceneScreen.h"
 #include "OneLife/gameSource/feature.h"
+#include "OneLife/gameSource/dataTypes/ui.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
+#include "OneLife/gameSource/dataTypes/hardware.h"
 
 namespace OneLife::game
 {
@@ -47,6 +47,7 @@ namespace OneLife::game
 			~Application();
 
 			void init(OneLife::game::Settings settings);
+			void bindGlobalCurrentController(GamePage **currentGamePage);
 
 			void setConnection(const char* ip, int port);
 			OneLife::game::component::Socket* getConnection();
@@ -560,13 +561,39 @@ namespace OneLife::game
 
 			void setController(void* controller);
 
+			//!
 			struct{
 				bool connectedMode;
 			}status;
 
+			//!
 			struct{
 				bool pauseOnMinimize;
 			}option;
+
+			//!
+			struct
+			{
+				OneLife::dataType::socket::Address socket;
+			}data;
+
+			//!
+			struct{
+
+			}component;
+			OneLife::game::component::Socket* connection;//TODO rename component.socket
+
+			//!
+			struct{
+				OneLife::game::InitializationScreen* initializationScreen;
+				OneLife::game::WaitingScreen* mapGenerationScreen;
+				LivingLifePage* gameSceneController;
+			}controller;
+
+
+
+			//!
+			GamePage **currentController;
 			unsigned lastSignalValue;
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			bool useCustomServer;
@@ -576,16 +603,12 @@ namespace OneLife::game
 			char* serverMessage;
 
 			unsigned int idScreen;
-			struct{
-				OneLife::game::WaitingScreen* mapGenerationScreen;
-			}controller;
-			OneLife::game::InitializationScreen* initializationScreen;
 
 			OneLife::dataType::ui::Screen currentScreen;//TODO: rename this screenData and make var GameScreen* currentScreen
 			OneLife::game::DeviceListener* deviceListener;
 			OneLife::game::ScreenRenderer* screenRenderer;
 
-			OneLife::game::component::Socket* connection;
+
 			OneLife::game::component::MessageChannel* messageChannel;
 
 			std::vector<OneLife::game::Feature*> registeredFeature;

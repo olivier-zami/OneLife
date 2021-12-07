@@ -10,7 +10,6 @@
 void clearLocationSpeech();
 void stripDescriptionComment( char *inString );
 void dummyFunctionA();
-double getLongestLine( char *inMessage );
 char shouldCreationSoundPlay( int inOldID, int inNewID );
 char isFood( int inID );//TODO: put this in inquire
 char isCategory( int inID );//TODO: put this in inquire

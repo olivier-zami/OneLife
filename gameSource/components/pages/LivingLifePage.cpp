@@ -51,6 +51,7 @@
 #include "OneLife/gameSource/procedures/graphics/sprites/grounds.h"
 #include "OneLife/gameSource/procedures/graphics/sprites/agents.h"
 #include "OneLife/gameSource/procedures/graphics/sprites/misc.h"
+#include "OneLife/gameSource/procedures/string.h"
 #include "OneLife/gameSource/components/camera.h"
 #include "OneLife/gameSource/procedures/graphics/base.h"
 #include "OneLife/gameSource/minitech.h"
@@ -190,6 +191,7 @@ double multAmount = 0.15;
 double addAmount = 0.25;
 char blackBorder = false;
 char whiteBorder = true;
+int bytesInCount = 0;
 
 /**********************************************************************************************************************/
 
@@ -230,7 +232,6 @@ static int messagesOutPerSec = -1;
 static int bytesInPerSec = -1;
 static int bytesOutPerSec = -1;
 static int messagesOutCount = 0;
-static int bytesInCount = 0;
 static int bytesOutCount = 0;
 static SimpleVector<double> messagesInHistoryGraph;
 static SimpleVector<double> messagesOutHistoryGraph;
@@ -655,7 +656,11 @@ LivingLifePage::LivingLifePage()
 		mMapSubContainedStacks);
 
 	this->feature.debugMessageEnabled = false;
-	this->casting = nullptr;
+
+	/******************************************************************************************************************/
+
+	this->casting = new OneLife::game::Casting();
+	OneLife::game::Debug::write("instantiate this->casting : %p", this->casting);
 }
 
 LivingLifePage::~LivingLifePage()
@@ -870,14 +875,10 @@ LivingLifePage::~LivingLifePage()
 
 /**********************************************************************************************************************/
 
-void LivingLifePage::setCasting(OneLife::game::Casting* inCasting)
-{
-	this->casting = inCasting;
-}
-
 OneLife::game::Casting* LivingLifePage::getCasting()
 {
-	return this->casting;
+	//return this->casting;
+	return nullptr;
 }
 
 /**********************************************************************************************************************/
@@ -892,13 +893,11 @@ void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 void LivingLifePage::setServerSocket(OneLife::game::component::Socket *socket)
 {
 	this->socket = socket;
-	this->socket->handle(
-			&serverSocketBuffer,
-			&bytesInCount);
 }
 
 void LivingLifePage::sendToServerSocket( char *inMessage )
 {
+	OneLife::game::Debug::write("#######>sendToServer : %s", inMessage);
 	OneLife::dataType::socket::Message message;
 	message.body = inMessage;
 	try
@@ -2514,17 +2513,17 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     mCravingExtraOffset[ mLiveCravingSheetIndex ].x = longestLine;
     }
 
-void LivingLifePage::step() {
+void LivingLifePage::step()
+{
+	OneLife::game::Debug::writeMethodInfo("LivingLifePage::step()");
     
-    if( isAnySignalSet() ) {
-        return;
-        }
-    
+    if(isAnySignalSet()) return;
 
-    if( apocalypseInProgress ) {
+    if( apocalypseInProgress )
+	{
         double stepSize = frameRateFactor / ( apocalypseDisplaySeconds * 60.0 );
         apocalypseDisplayProgress += stepSize;
-        }
+	}
     
     if( mRemapPeak > 0 )
 	{
@@ -2558,7 +2557,6 @@ void LivingLifePage::step() {
 			}
 		}
 	}
-    
 
 	if( mouseDown )
 	{
@@ -2567,12 +2565,10 @@ void LivingLifePage::step() {
     
     if( !this->socket->isConnected() )
 	{
-		printf("\n=====>Connect({%s,%i})", serverIP, serverPort);
 		this->socket->connect();
 		connectionMessageFade = 1.0f;
         return;
 	}
-    
 
     double pageLifeTime = game_getCurrentTime() - mPageStartTime;
     
@@ -2580,7 +2576,6 @@ void LivingLifePage::step() {
         // let them see CONNECTING message for a bit
         return;
         }
-    
 
     if( this->socket->isConnected() )
 	{
@@ -2598,11 +2593,9 @@ void LivingLifePage::step() {
             return;
 		}
 	}
-    
 
     // first, read all available data from server
     char readSuccess = this->socket->readMessage();
-    
 
     if( ! readSuccess )
 	{
@@ -2629,16 +2622,17 @@ void LivingLifePage::step() {
         return;
 	}
     
-    if( mLastMouseOverID != 0 ) {
+    if( mLastMouseOverID != 0 )
+	{
         mLastMouseOverFade -= 0.01 * frameRateFactor;
         
         if( mLastMouseOverFade < 0 ) {
             mLastMouseOverID = 0;
             }
-        }
-    
+	}
 
-    if( mGlobalMessageShowing ) {
+    if( mGlobalMessageShowing )
+	{
         
         if( game_getCurrentTime() - mGlobalMessageStartTime > 10 ) {
             mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
@@ -2651,8 +2645,7 @@ void LivingLifePage::step() {
                 mGlobalMessagesToDestroy.deallocateStringElements();
                 }
             }
-        }
-    
+	}
 
     // move moving objects
     int numCells = mMapD * mMapD;
@@ -2699,10 +2692,10 @@ void LivingLifePage::step() {
                 }
             }
         }
-    
-    
+
     // step extra moving objects
-    for( int i=0; i<mMapExtraMovingObjects.size(); i++ ) {
+    for( int i=0; i<mMapExtraMovingObjects.size(); i++ )
+	{
         
         ExtraMapObject *o = mMapExtraMovingObjects.getElement( i );
         
@@ -2724,19 +2717,18 @@ void LivingLifePage::step() {
                 add( o->moveOffset,
                      mult( normalize( delta ), step ) );
             }
-        }
-    
+	}
 
-
-
-    if( mCurMouseOverID > 0 && ! mCurMouseOverSelf ) {
+    if( mCurMouseOverID > 0 && ! mCurMouseOverSelf )
+	{
         mCurMouseOverFade += 0.2 * frameRateFactor;
         if( mCurMouseOverFade >= 1 ) {
             mCurMouseOverFade = 1.0;
             }
         }
     
-    for( int i=0; i<mPrevMouseOverSpotFades.size(); i++ ) {
+    for( int i=0; i<mPrevMouseOverSpotFades.size(); i++ )
+	{
         float f = mPrevMouseOverSpotFades.getElementDirect( i );
         
         f -= 0.1 * frameRateFactor;
@@ -2752,10 +2744,9 @@ void LivingLifePage::step() {
             *( mPrevMouseOverSpotFades.getElement( i ) ) = f;
             }
         }
-    
-    
-    
-    if( mCurMouseOverCell.x != -1 ) {
+
+    if( mCurMouseOverCell.x != -1 )
+	{
         
         LiveObject *ourObject = getOurLiveObject();
 
@@ -2798,7 +2789,6 @@ void LivingLifePage::step() {
             *( mPrevMouseOverCellFades.getElement( i ) ) = f;
             }
         }
-
 
     for( int i=0; i<mPrevMouseClickCellFades.size(); i++ ) {
         float f = mPrevMouseClickCellFades.getElementDirect( i );
@@ -2857,9 +2847,7 @@ void LivingLifePage::step() {
             mErasedNoteCharFades.deleteAll();
             }
         }
-    
-    
-    
+
     LiveObject *ourObject = getOurLiveObject();
 
     if( ourObject != NULL ) {    
