@@ -2,7 +2,7 @@
 // Created by olivier on 23/11/2021.
 //
 
-#include "initOutdoorSceneScreen.h"
+#include "sceneBuilder.h"
 
 #include <cstdio>
 #include <cstdlib>

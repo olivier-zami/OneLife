@@ -21,7 +21,7 @@
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/settings.h"
 #include "OneLife/gameSource/controllers/initializationScreen.h"
-#include "OneLife/gameSource/controllers/initOutdoorSceneScreen.h"
+#include "OneLife/gameSource/controllers/sceneBuilder.h"
 #include "OneLife/gameSource/feature.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/dataTypes/socket.h"

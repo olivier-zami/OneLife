@@ -1,8 +1,8 @@
 #include "PollPage.h"
 
-#include "../../buttonStyle.h"
-#include "../../procedures/graphics/sprites/drawMessage.h"
-#include "../../accountHmac.h"
+#include "OneLife/gameSource/buttonStyle.h"
+#include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
+#include "OneLife/gameSource/accountHmac.h"
 #include "minorGems/game/Font.h"
 #include "OneLife/gameSource/misc.h"
 #include "minorGems/network/web/URLUtils.h"
