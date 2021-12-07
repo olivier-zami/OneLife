@@ -316,7 +316,7 @@ void initTransBankFinish() {
 
     int numRecords = records.size();    
     
-    printf( "Loaded %d transitions from transitions folder\n", numRecords );
+    //printf( "Loaded %d transitions from transitions folder\n", numRecords );
 
     if( autoGenerateCategoryTransitions ) {
         int numObjects;
@@ -512,8 +512,7 @@ void initTransBankFinish() {
         
         delete [] objects;
 
-        printf( "Auto-generated %d transitions based on categories\n", 
-                records.size() - numRecords );
+        //printf( "Auto-generated %d transitions based on categories\n", records.size() - numRecords );
         
         numRecords = records.size();
 
@@ -626,8 +625,7 @@ void initTransBankFinish() {
         
 
         
-        printf( "Auto-generated %d transitions based on pattern categories\n", 
-                records.size() - numRecords );
+        //printf( "Auto-generated %d transitions based on pattern categories\n", records.size() - numRecords );
         
         numRecords = records.size();
         }
@@ -769,13 +767,13 @@ void initTransBankFinish() {
                       tr.newTargetNoChange,
                       true );
             }
-        
 
+		/*
         printf( "Run %d:  "
                 "Auto-modified %d transitions based generic use transitions "
                 "and auto-added %d last use generic transitions "
                 "(%d objects had generic use transitions defined).\n", 
-                r, numChanged, numAdded, numGenerics );
+                r, numChanged, numAdded, numGenerics );*/
         }
     
 
@@ -1348,9 +1346,7 @@ void initTransBankFinish() {
             numGenerated++;
             }
 
-        printf( "Auto-generated %d transitions based on used objects, "
-                "%d removed in the process.\n", 
-                numGenerated, numRemoved );
+        //printf( "Auto-generated %d transitions based on used objects, %d removed in the process.\n", numGenerated, numRemoved );
         }
     
 
@@ -1509,8 +1505,7 @@ void initTransBankFinish() {
             numGenerated++;
             }
         
-        printf( "Auto-generated %d transitions based on variable objects.\n", 
-                numGenerated );
+        //printf( "Auto-generated %d transitions based on variable objects.\n", numGenerated );
         }
 
 

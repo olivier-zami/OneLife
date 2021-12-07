@@ -14,7 +14,7 @@ void OneLife::game::Debug::writeAppInfo(const char* message, ...)
 	va_start (args, message);
 	char buffer[512];
 	memset(buffer, 0, sizeof(buffer));
-	sprintf(buffer, "\n%s\n", message);
+	sprintf(buffer, "%s\n", message);
 	openLife::system::Trace::writeLine(buffer, args);
 }
 
@@ -34,7 +34,7 @@ void OneLife::game::Debug::writeControllerStepInfo(const char* message, ...)
 	va_start (args, message);
 	char buffer[512];
 	memset(buffer, 0, sizeof(buffer));
-	sprintf(buffer, "##CONTROLLER STEP##===>%s", message);
+	sprintf(buffer, "##CTRL STEP##===>%s", message);
 	openLife::system::Trace::writeLine(buffer, args);
 }
 
@@ -44,7 +44,7 @@ void OneLife::game::Debug::writeMethodInfo(const char* message, ...)
 	va_start (args, message);
 	char buffer[512];
 	memset(buffer, 0, sizeof(buffer));
-	sprintf(buffer, "\n##CALL METHOD##===>%s", message);
+	sprintf(buffer, "\n##CALL FUNCTION##===>%s", message);
 	openLife::system::Trace::writeLine(buffer, args);
 }
 
@@ -54,7 +54,7 @@ void OneLife::game::Debug::writeMethodStepInfo(const char* message, ...)
 	va_start (args, message);
 	char buffer[512];
 	memset(buffer, 0, sizeof(buffer));
-	sprintf(buffer, "##METHOD STEP##===>%s", message);
+	sprintf(buffer, "##FUNC STEP##===>%s", message);
 	openLife::system::Trace::writeLine(buffer, args);
 }
 

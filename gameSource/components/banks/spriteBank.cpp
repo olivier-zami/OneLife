@@ -452,8 +452,7 @@ float initSpriteBankStep() {
                     delete [] lower;
                     }
                 }
-            printf( "Loaded %d tagged sprites from sprites folder\n", 
-                    numRecords );
+            //printf( "Loaded %d tagged sprites from sprites folder\n", numRecords );
             }
         }
     else if( currentBinFile < binCache.numFiles ) {

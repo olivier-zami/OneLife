@@ -712,12 +712,12 @@ void OneLife::game::Application::readDevicesStatus()
 
 			if(keyboard[KEY::ALT]&&keyboard[KEY::TAB])
 			{
-				if(keyboard[KEY::ALT_LEFT])printf("\n===>type : ALT(left)+TAB");
-				if(keyboard[KEY::ALT_RIGHT])printf("\n===>type : ALT(right)+TAB");
+				//if(keyboard[KEY::ALT_LEFT])printf("\n===>type : ALT(left)+TAB");
+				//if(keyboard[KEY::ALT_RIGHT])printf("\n===>type : ALT(right)+TAB");
 			}
 			else if(keyboard[KEY::TAB])
 			{
-				printf("\n===>type : TAB");
+				//printf("\n===>type : TAB");
 			}
 		}
 	}
@@ -746,7 +746,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 		// mHeight changes mid-game)
 		if( mStartedFullScreen && event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN && ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) )
 		{
-			printf( "Toggling fullscreen\n" );
+			//printf( "Toggling fullscreen\n" );
 
 			this->currentScreen.status.fullScreen = !this->currentScreen.status.fullScreen;
 
@@ -795,7 +795,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 				 event.key.keysym.sym == SDLK_TAB &&
 				 ( ( mods & KMOD_META ) || ( mods & KMOD_ALT ) ) ) {
 
-			printf( "Minimizing from fullscreen on Alt-tab\n" );
+			//printf( "Minimizing from fullscreen on Alt-tab\n" );
 
 			this->currentScreen.status.fullScreen = false;
 
@@ -839,7 +839,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 			// window becoming active out of minimization, needs
 			// to return to full-screen mode
 
-			printf( "Restoring to window after Alt-tab\n" );
+			//printf( "Restoring to window after Alt-tab\n" );
 
 			mWantToMimimize = false;
 			mWasFullScreenBeforeMinimize = false;
@@ -858,7 +858,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 			// window becoming active out of minimization, needs
 			// to return to full-screen mode
 
-			printf( "Restoring to fullscreen after Alt-tab\n" );
+			//printf( "Restoring to fullscreen after Alt-tab\n" );
 
 			this->currentScreen.status.fullScreen = true;
 
@@ -1035,8 +1035,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 				int mouseX, mouseY;
 				SDL_GetMouseState( &mouseX, &mouseY );
 
-				printf( "User terminated recorded event playback "
-						"with ESC\n" );
+				//printf( "User terminated recorded event playback with ESC\n" );
 
 				// stop playback
 				mPlaybackEvents = false;
@@ -1076,7 +1075,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 							int mouseX, mouseY;
 							SDL_GetMouseState( &mouseX, &mouseY );
 
-							printf("User terminated recorded event playback " "with ESC\n" );
+							//printf("User terminated recorded event playback " "with ESC\n" );
 
 							// stop playback
 							mPlaybackEvents = false;
@@ -1155,10 +1154,10 @@ void OneLife::game::Application::readMessages()
 	while(message = getNextServerMessage())
 	{
 		OneLife::game::Trace::log(message);
-		printf("\n===>receive message length %d message\n%s\n", (int)strlen( message ), message );
+		//printf("\n===>receive message length %d message\n%s\n", (int)strlen( message ), message );
 
 		messageType type = getMessageType( message );
-		printf("\n===>messageType : %i", type);
+		//printf("\n===>messageType : %i", type);
 
 		for(auto & feature : this->registeredFeature)
 		{
@@ -1166,7 +1165,7 @@ void OneLife::game::Application::readMessages()
 			OneLife::dataType::Message gameMessage = feature->getGameMessage();
 			if(gameMessage.type != OneLife::dataType::message::TYPE::NONE)
 			{
-				printf("\n===>insert message in gameMessageQueue");
+				//printf("\n===>insert message in gameMessageQueue");
 			}
 			/*
 			switch(feature->getType())
@@ -5181,9 +5180,7 @@ void OneLife::game::Application::selectScreen()
 
 				if( progress == 1.0 ) {
 					initAnimationBankFinish();
-					printf( "Finished loading animation bank in %f sec\n",
-							Time::getCurrentTime() -
-							loadingPhaseStartTime );
+					//printf( "Finished loading animation bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
 					loadingPhaseStartTime = Time::getCurrentTime();
 
 					char rebuilding;
@@ -5221,9 +5218,7 @@ void OneLife::game::Application::selectScreen()
 
 				if( progress == 1.0 ) {
 					initObjectBankFinish();
-					printf( "Finished loading object bank in %f sec\n",
-							Time::getCurrentTime() -
-							loadingPhaseStartTime );
+					//printf( "Finished loading object bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
 					loadingPhaseStartTime = Time::getCurrentTime();
 
 					char rebuilding;
@@ -5261,9 +5256,7 @@ void OneLife::game::Application::selectScreen()
 
 				if( progress == 1.0 ) {
 					initCategoryBankFinish();
-					printf( "Finished loading category bank in %f sec\n",
-							Time::getCurrentTime() -
-							loadingPhaseStartTime );
+					//printf( "Finished loading category bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
 					loadingPhaseStartTime = Time::getCurrentTime();
 
 					char rebuilding;
@@ -5304,9 +5297,7 @@ void OneLife::game::Application::selectScreen()
 
 				if( progress == 1.0 ) {
 					initTransBankFinish();
-					printf( "Finished loading transition bank in %f sec\n",
-							Time::getCurrentTime() -
-							loadingPhaseStartTime );
+					//printf( "Finished loading transition bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
 
 					loadingPhaseStartTime = Time::getCurrentTime();
 
@@ -5333,9 +5324,7 @@ void OneLife::game::Application::selectScreen()
 
 				if( progress == 1.0 ) {
 					initGroundSpritesFinish();
-					printf( "Finished loading ground sprites in %f sec\n",
-							Time::getCurrentTime() -
-							loadingPhaseStartTime );
+					//printf( "Finished loading ground sprites in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
 
 					loadingPhaseStartTime = Time::getCurrentTime();
 
@@ -5395,7 +5384,7 @@ void OneLife::game::Application::selectScreen()
 			}
 			else
 			{
-				printf( "Got server address: %s:%d\n", serverIP, serverPort );
+				//printf( "Got server address: %s:%d\n", serverIP, serverPort );
 				int requiredVersion = getServerAddressPage->getResponseInt("requiredVersionNumber" );
 				if( versionNumber < requiredVersion )
 				{
@@ -5740,7 +5729,7 @@ void OneLife::game::Application::selectScreen()
 					this->currentController->base_makeActive( true );
 				}
 				else if( twinPage->checkSignal( "done" ) ) {
-					printf("\n=====>startConnecting() livingLifePage done");
+					//printf("\n=====>startConnecting() livingLifePage done");
 					startConnecting();
 				}
 			}
@@ -5774,7 +5763,7 @@ void OneLife::game::Application::selectScreen()
 					extendedMessagePage->setSubMessage( "" );
 
 					if( userReconnect ) {
-						printf("\n===>setting this->currentController to livingLifePage (extendedMessagePage)");
+						//printf("\n===>setting this->currentController to livingLifePage (extendedMessagePage)");
 						this->currentController = livingLifePage;
 					}
 					else {
@@ -5806,13 +5795,13 @@ void OneLife::game::Application::selectScreen()
 					// the server we were on just crashed
 
 					// but keep twin status, if set
-					printf("\n=====>startConnecting() geneticHistoryPage reborn");
+					//printf("\n=====>startConnecting() geneticHistoryPage reborn");
 					startConnecting();
 				}
 				else if( rebirthChoicePage->checkSignal( "tutorial" ) ) {
 					livingLifePage->runTutorial();
 					// heck, allow twins in tutorial too, for now, it's funny
-					printf("\n=====>startConnecting() geneticHistoryPage tutorial");
+					//printf("\n=====>startConnecting() geneticHistoryPage tutorial");
 					startConnecting();
 				}
 				else if( rebirthChoicePage->checkSignal( "review" ) ) {
@@ -6126,7 +6115,7 @@ void OneLife::game::Application::render(OneLife::dataType::UiComponent* dataScre
 		if((mStartedFullScreen && keyboard[KEY::ALT] && keyboard[KEY::RETURN])
 			|| (mStartedFullScreen && keyboard[KEY::META] && keyboard[KEY::RETURN]))
 		{
-			printf( "\nToggling fullscreen" );
+			//printf( "\nToggling fullscreen" );
 			this->currentScreen.status.fullScreen = !this->currentScreen.status.fullScreen;
 			this->screenRenderer->switchFullScreenMode();
 		}
@@ -7078,8 +7067,7 @@ void OneLife::game::Application::writeEventBatchToFile( SimpleVector<char*> *inB
 					mEventFile );
 
 			if( numWritten != eventStringLength ) {
-				printf( "Failed to write %d-event batch of length %d "
-						"to recording file\n", numInBatch, eventStringLength );
+				//printf( "Failed to write %d-event batch of length %d to recording file\n", numInBatch, eventStringLength );
 			}
 
 			delete [] allEvents;
@@ -7107,7 +7095,7 @@ void OneLife::game::Application::playNextEventBatch() {
 	int numRead = fscanf( mEventFile, "%d", &batchSize );
 
 	if( numRead == 0 || numRead == EOF ) {
-		printf( "Reached end of recorded event file during playback\n" );
+		//printf( "Reached end of recorded event file during playback\n" );
 		// stop playback
 		mPlaybackEvents = false;
 	}
@@ -8061,10 +8049,7 @@ void OneLife::game::Application::setupSurface() {
 
 
 	if ( screen == NULL ) {
-		printf( "Couldn't set %dx%d GL video mode: %s\n",
-				mWide,
-				mHigh,
-				SDL_GetError() );
+		//printf( "Couldn't set %dx%d GL video mode: %s\n", mWide, mHigh, SDL_GetError() );
 	}
 
 #ifdef RASPBIAN
@@ -8506,7 +8491,7 @@ void callbackMouse( int inButton, int inState, int inX, int inY ) {
 				handler->mouseReleased( inX, inY );
 			}
 			else {
-				printf( "Error:  Unknown mouse state received from SDL\n" );
+				//printf( "Error:  Unknown mouse state received from SDL\n" );
 			}
 		}
 	}

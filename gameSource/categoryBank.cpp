@@ -202,10 +202,8 @@ void initCategoryBankFinish() {
             }
         
         }
-    
 
-    
-    printf( "Loaded %d categories from categories folder\n", numRecords );
+    //printf( "Loaded %d categories from categories folder\n", numRecords );
     }
 
 

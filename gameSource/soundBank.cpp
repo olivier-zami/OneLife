@@ -292,7 +292,7 @@ static void generateReverb( SoundRecord *inRecord,
     if( ! cacheFile->exists() ) {
         
         if( printSteps ) {
-            printf( "Regenerating reverb cache file %s\n", cacheFileName );
+            //printf( "Regenerating reverb cache file %s\n", cacheFileName );
             }
 
         int numSamples;
@@ -324,8 +324,7 @@ static void generateReverb( SoundRecord *inRecord,
             delete [] wetSamples;
             }
         else {
-            printf( "Failed to read file from sounds folder %s\n", 
-                    cacheFileName );
+            //printf( "Failed to read file from sounds folder %s\n", cacheFileName );
             }
         }
     delete cacheFile;
@@ -575,7 +574,7 @@ float initSoundBankStep() {
                 idMap[ r->id ] = r;
                 }
 
-            printf( "Loaded %d sound IDs from sounds folder\n", numRecords );
+            //printf( "Loaded %d sound IDs from sounds folder\n", numRecords );
             }
         }
     else if( nextReverbToRegenerate < reverbsToRegenerate.size() ) {
@@ -642,8 +641,7 @@ float initSoundBankStep() {
         currentReverbFile ++;
 
         if( currentReverbFile == reverbCache.numFiles ) {
-            printf( "Loaded %d reverbs from reverbCache folder\n", 
-                    currentReverbFile );
+            //printf( "Loaded %d reverbs from reverbCache folder\n", currentReverbFile );
             }
         }
 
@@ -1549,13 +1547,13 @@ void printOrphanedSoundReport() {
                 if( ! isSoundUsedByObject( i ) && 
                     ! isSoundUsedByAnim( i ) ) {
                     
-                    printf( "Sound %d orphaned\n", i );
+                    //printf( "Sound %d orphaned\n", i );
                     num++;
                     }
                 }    
             }
         }
-    printf( "%d sounds found orphaned\n", num );
+    //printf( "%d sounds found orphaned\n", num );
     }
 
 

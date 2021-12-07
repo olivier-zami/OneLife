@@ -482,7 +482,7 @@ void initAnimationBankFinish() {
             }
         }
 
-    printf( "Loaded %d animations from animations folder\n", numRecords );
+    //printf( "Loaded %d animations from animations folder\n", numRecords );
     }
 
 
