@@ -21,9 +21,9 @@ extern int userTwinCount;
 extern SimpleVector<LiveObject> gameObjects;
 extern int ourID;
 
-const char* OneLife::game::WaitingScreen::screenName = "Waiting birth";
+const char* OneLife::game::SceneBuilder::screenName = "Waiting birth";
 
-OneLife::game::WaitingScreen::WaitingScreen()
+OneLife::game::SceneBuilder::SceneBuilder()
 {
 	this->status.isConnected = false;
 	this->status.isPlayerAgentSet = false;
@@ -41,7 +41,7 @@ OneLife::game::WaitingScreen::WaitingScreen()
 	this->isScreenInited = false;
 }
 
-OneLife::game::WaitingScreen::~WaitingScreen()
+OneLife::game::SceneBuilder::~SceneBuilder()
 {
 	if(this->screen.component.statusMessage.value)free(this->screen.component.statusMessage.value);
 	if(this->screen.component.connectingMessage.value)free(this->screen.component.connectingMessage.value);
@@ -49,7 +49,7 @@ OneLife::game::WaitingScreen::~WaitingScreen()
 	if(this->screen.component.cancelMessage.value)free(this->screen.component.cancelMessage.value);
 }
 
-void OneLife::game::WaitingScreen::handle(OneLife::dataType::UiComponent* screen)
+void OneLife::game::SceneBuilder::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = this->screenName;
 	screen->draw = OneLife::game::graphic::drawWaitingBirthScreen;
@@ -76,31 +76,31 @@ void OneLife::game::WaitingScreen::handle(OneLife::dataType::UiComponent* screen
 	else this->updateScreen();
 }
 
-void OneLife::game::WaitingScreen::handle(LiveObject* player)
+void OneLife::game::SceneBuilder::handle(LiveObject* player)
 {
 	this->player = player;
 }
 
-void OneLife::game::WaitingScreen::handle(OneLife::game::Casting* casting)
+void OneLife::game::SceneBuilder::handle(OneLife::game::Casting* casting)
 {
 	OneLife::game::Debug::write("set casting: %p", casting);
 	this->casting = casting;
 }
 
-void OneLife::game::WaitingScreen::handle(OneLife::game::component::Socket* socket)
+void OneLife::game::SceneBuilder::handle(OneLife::game::component::Socket* socket)
 {
 	this->socket = socket;
 }
 
 /**********************************************************************************************************************/
 
-void OneLife::game::WaitingScreen::connect()
+void OneLife::game::SceneBuilder::connect()
 {
-	if(!this->socket)throw new OneLife::game::Exception("Socket object is not set before call OneLife::game::WaitingScreen::connect()");
+	if(!this->socket)throw new OneLife::game::Exception("Socket object is not set before call OneLife::game::SceneBuilder::connect()");
 	OneLife::game::Debug::write("Socket: %s:%i", this->socket->getAddress().ip, this->socket->getAddress().port);
 }
 
-void OneLife::game::WaitingScreen::initScreen()
+void OneLife::game::SceneBuilder::initScreen()
 {
 	int bufferSize;
 
@@ -128,9 +128,9 @@ void OneLife::game::WaitingScreen::initScreen()
 	this->screen.component.cancelMessage.position.y = this->screen.center.y - 200;
 }
 
-void OneLife::game::WaitingScreen::downloadObjects()
+void OneLife::game::SceneBuilder::downloadObjects()
 {
-	OneLife::game::Debug::writeMethodInfo("OneLife::game::WaitingScreen::downloadObjects()");
+	OneLife::game::Debug::writeMethodInfo("OneLife::game::SceneBuilder::downloadObjects()");
 	//TODO: check if this->socket is set
 	if(!this->socket->isConnected())
 	{
@@ -139,7 +139,7 @@ void OneLife::game::WaitingScreen::downloadObjects()
 
 }
 
-void OneLife::game::WaitingScreen::initPlayerAgent()
+void OneLife::game::SceneBuilder::initPlayerAgent()
 {
 	//TODO: test for this->casting != nullptr
 	this->player = gameObjects.getElement(this->casting->getIndexRecentlyInsertedGameObject());//LECAGY: recentInsertedGameObjectIndex
@@ -169,7 +169,7 @@ void OneLife::game::WaitingScreen::initPlayerAgent()
 	 */
 }
 
-void OneLife::game::WaitingScreen::updateScreen()
+void OneLife::game::SceneBuilder::updateScreen()
 {
 	int bufferSize = 32*sizeof(char);
 
@@ -233,7 +233,7 @@ void OneLife::game::WaitingScreen::updateScreen()
 	this->sendSignal(signal::DONE);
 }
 
-void OneLife::game::WaitingScreen::update0()
+void OneLife::game::SceneBuilder::update0()
 {
 	/*
 	//!
@@ -279,7 +279,7 @@ void OneLife::game::WaitingScreen::update0()
 	*/
 }
 
-void OneLife::game::WaitingScreen::update1()
+void OneLife::game::SceneBuilder::update1()
 {
 	/******************************************************************************************************************
 	if( mStartedLoadingFirstObjectSet && ! mDoneLoadingFirstObjectSet )
@@ -494,7 +494,7 @@ void OneLife::game::WaitingScreen::update1()
 	/******************************************************************************************************************/
 }
 
-void OneLife::game::WaitingScreen::update3()
+void OneLife::game::SceneBuilder::update3()
 {
 	/******************************************************************************************************************
 	if( !( mFirstServerMessagesReceived & 1 ) )

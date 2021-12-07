@@ -72,7 +72,7 @@ void OneLife::game::InitializationScreen::handle(OneLife::game::component::Socke
 	this->socket = socket;
 }
 
-void OneLife::game::InitializationScreen::handle(OneLife::game::WaitingScreen* controller)
+void OneLife::game::InitializationScreen::handle(OneLife::game::SceneBuilder* controller)
 {
 	this->controller.sceneGeneratorController = controller;
 }
@@ -113,7 +113,7 @@ void OneLife::game::InitializationScreen::initSceneGeneratorController()
 	if(!this->controller.sceneGeneratorController)
 	{
 		OneLife::game::Debug::writeControllerStepInfo("generate sceneLoaderController");
-		this->controller.sceneGeneratorController = new OneLife::game::WaitingScreen();
+		this->controller.sceneGeneratorController = new OneLife::game::SceneBuilder();
 		this->controller.sceneGeneratorController->handle(this->socket);
 	}
 	this->status.isInitSceneGeneratorController = true;

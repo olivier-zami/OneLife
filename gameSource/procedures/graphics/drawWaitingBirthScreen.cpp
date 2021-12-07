@@ -19,7 +19,7 @@
 
 void OneLife::game::graphic::drawWaitingBirthScreen(void* dataScreen)
 {
-	OneLife::dataType::uiComponent::WaitingScreen* screen = (OneLife::dataType::uiComponent::WaitingScreen*)dataScreen;
+	OneLife::dataType::uiComponent::SceneBuilder* screen = (OneLife::dataType::uiComponent::SceneBuilder*)dataScreen;
 	if(!screen) return;
 
 	setViewCenterPosition( screen->center.x, screen->center.y );

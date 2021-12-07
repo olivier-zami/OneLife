@@ -586,7 +586,7 @@ namespace OneLife::game
 			//!
 			struct{
 				OneLife::game::InitializationScreen* initializationScreen;
-				OneLife::game::WaitingScreen* mapGenerationScreen;
+				OneLife::game::SceneBuilder* mapGenerationScreen;
 				LivingLifePage* gameSceneController;
 			}controller;
 

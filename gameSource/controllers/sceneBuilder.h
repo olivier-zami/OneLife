@@ -13,12 +13,12 @@
 
 namespace OneLife::game
 {
-	class WaitingScreen//TODO rename LoadingLocalMapScreen
+	class SceneBuilder//TODO rename LoadingLocalMapScreen
 			: public GamePage
 	{
 		public:
-			WaitingScreen();
-			~WaitingScreen();
+			SceneBuilder();
+			~SceneBuilder();
 
 			void handle(OneLife::dataType::UiComponent* screen);
 			void handle(LiveObject* player);
@@ -45,7 +45,7 @@ namespace OneLife::game
 			bool isScreenInited;
 			LiveObject* player;
 			OneLife::game::Casting* casting;
-			OneLife::dataType::uiComponent::WaitingScreen screen{};
+			OneLife::dataType::uiComponent::SceneBuilder screen{};
 			OneLife::game::component::Socket* socket;
 	};
 }

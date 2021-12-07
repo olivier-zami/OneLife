@@ -49,7 +49,7 @@ namespace OneLife::dataType::uiComponent
 				char* value;
 			}cancelMessage;
 		}component;
-	}WaitingScreen;
+	}SceneBuilder;
 }
 
 #endif //ONELIFE_DATATYPE_UICOMPONENT_SCREENS_H

@@ -23,7 +23,7 @@ namespace OneLife::game
 
 			void handle(OneLife::dataType::UiComponent* screen);
 			void handle(OneLife::game::component::Socket* socket);
-			void handle(OneLife::game::WaitingScreen* controller);
+			void handle(OneLife::game::SceneBuilder* controller);
 			void handle(LivingLifePage* controller);
 
 			void setServerSocketAddress(OneLife::dataType::socket::Address socket);
@@ -46,7 +46,7 @@ namespace OneLife::game
 			}data;
 
 			struct{
-				OneLife::game::WaitingScreen* sceneGeneratorController;
+				OneLife::game::SceneBuilder* sceneGeneratorController;
 				LivingLifePage* gameSceneController;
 			}controller;
 
