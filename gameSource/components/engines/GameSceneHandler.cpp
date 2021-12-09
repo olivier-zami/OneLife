@@ -395,7 +395,6 @@ void GameSceneHandler::doFeatureComputeFrame()
 	}
 }
 
-
 void GameSceneHandler::mouseMoved( int inX, int inY ) {
 	if( ignoreNextMouseEvent ) {
 		if( inX == xCoordToIgnore && inY == yCoordToIgnore ) {
@@ -440,9 +439,6 @@ void GameSceneHandler::mouseDragged( int inX, int inY ) {
 	lastMouseY = inY;
 }
 
-
-
-
 void GameSceneHandler::mousePressed( int inX, int inY ) {
 	float x, y;
 	screenToWorld( inX, inY, &x, &y );
@@ -456,8 +452,6 @@ void GameSceneHandler::mousePressed( int inX, int inY ) {
 	lastMouseDownX = inX;
 	lastMouseDownY = inY;
 }
-
-
 
 void GameSceneHandler::mouseReleased( int inX, int inY ) {
 	float x, y;
@@ -473,8 +467,6 @@ void GameSceneHandler::mouseReleased( int inX, int inY ) {
 	lastMouseDownX = inX;
 	lastMouseDownY = inY;
 }
-
-
 
 void GameSceneHandler::fireRedraw() {
 
@@ -503,7 +495,6 @@ void GameSceneHandler::fireRedraw() {
 }
 
 static unsigned char lastKeyPressed = '\0';
-
 
 void GameSceneHandler::keyPressed( unsigned char inKey, int inX, int inY )
 {
@@ -607,8 +598,6 @@ void GameSceneHandler::keyPressed( unsigned char inKey, int inX, int inY )
 	keyDown( inKey );
 }
 
-
-
 void GameSceneHandler::keyReleased(
 		unsigned char inKey, int inX, int inY ) {
 
@@ -652,8 +641,6 @@ void GameSceneHandler::specialKeyPressed(
 
 	specialKeyDown( inKey );
 }
-
-
 
 void GameSceneHandler::specialKeyReleased(
 		int inKey, int inX, int inY ) {
@@ -1302,7 +1289,6 @@ Image *getScreenRegionInternal(
 	return screenImage;
 }
 
-
 Image *getScreenRegionRaw(
 		int inStartX, int inStartY, int inWidth, int inHeight ) {
 
@@ -1393,4 +1379,3 @@ void deleteCharFromUserTypedMessage() {
 		}
 	}
 }
-

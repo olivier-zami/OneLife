@@ -36,7 +36,7 @@ controllers/ExistingAccountPage.cpp \
 controllers/ExtendedMessagePage.cpp \
 controllers/FinalMessagePage.cpp \
 controllers/GeneticHistoryPage.cpp \
-controllers/initializationScreen.cpp \
+controllers/initScreen.cpp \
 controllers/sceneBuilder.cpp \
 controllers/LivingLifePage.cpp \
 controllers/LoadingPage.cpp \

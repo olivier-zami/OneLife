@@ -14,31 +14,28 @@
 
 namespace OneLife::game
 {
-	class InitializationScreen :
+	class initScreen :
 			public GamePage
 	{
 		public:
-			InitializationScreen();
-			~InitializationScreen();
+			initScreen();
+			~initScreen();
 
 			void handle(OneLife::dataType::UiComponent* screen);
-			void handle(OneLife::game::component::Socket* socket);
-			void handle(OneLife::game::SceneBuilder* controller);
-			void handle(LivingLifePage* controller);
+			void handle(OneLife::game::component::Socket** socket);
+			void handle(OneLife::game::SceneBuilder** controller);
 
 			void setServerSocketAddress(OneLife::dataType::socket::Address socket);
 
 			void initSocket();
-			void initSceneGeneratorController();
-			void initGameSceneController();
+			void initSceneBuilder();
 			bool isTaskComplete();
 
 		private:
 			struct{
 				bool isConfigurationLoaded;
-				bool isSocketSet;
-				bool isInitSceneGeneratorController;
-				bool isInitGameSceneController;
+				bool isInitSocket;
+				bool isInitSceneBuilder;
 			}status;
 
 			struct{
@@ -46,11 +43,11 @@ namespace OneLife::game
 			}data;
 
 			struct{
-				OneLife::game::SceneBuilder* sceneGeneratorController;
-				LivingLifePage* gameSceneController;
+				OneLife::game::SceneBuilder** sceneBuilder;
+				LivingLifePage* gameScene;
 			}controller;
 
-			OneLife::game::component::Socket* socket;
+			OneLife::game::component::Socket** socket;
 
 			bool taskComplete;
 			bool minDuration;

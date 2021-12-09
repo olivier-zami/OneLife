@@ -202,7 +202,7 @@ OneLife::game::Application::Application(
 	this->isNewSystemEnable = false;
 
 	//!gameScreens declaration
-	this->controller.initializationScreen = nullptr;
+	this->controller.initScreen = nullptr;
 
 	//!init SDL context ...
 	Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
@@ -442,7 +442,7 @@ OneLife::game::Application::Application(
 	this->data.socket.port = 0;
 
 	//!set components
-	this->connection = nullptr;
+	this->component.socket = nullptr;
 
 	//!set controllers
 	this->controller.gameSceneController = nullptr;
@@ -541,7 +541,7 @@ void OneLife::game::Application::setConnection(const char* ip, int port)
 
 OneLife::game::component::Socket* OneLife::game::Application::getConnection()
 {
-	return this->connection;
+	return this->component.socket;
 }
 
 void OneLife::game::Application::setUseCustomServerStatus(bool status)
@@ -579,10 +579,11 @@ void OneLife::game::Application::start()
 			this->isPlayingBack() );//!this->currentController initialized inside
 
 	//!
-	if(!this->controller.initializationScreen) this->controller.initializationScreen = new OneLife::game::InitializationScreen();
-	this->controller.initializationScreen->setServerSocketAddress(this->data.socket);
-	this->controller.initializationScreen->handle(this->controller.gameSceneController);
-	this->setController(this->controller.initializationScreen);
+	if(!this->controller.initScreen) this->controller.initScreen = new OneLife::game::initScreen();
+	this->controller.initScreen->setServerSocketAddress(this->data.socket);
+	this->controller.initScreen->handle(&(this->component.socket));
+	this->controller.initScreen->handle(&(this->controller.sceneBuilder));
+	this->setController(this->controller.initScreen);
 
 
 	unsigned long oldFrameStart;
@@ -1185,7 +1186,7 @@ void OneLife::game::Application::readMessages()
 		}
 		if( type == SHUTDOWN  || type == FORCED_SHUTDOWN )
 		{
-			this->socket->close();
+			this->component.socket->close();
 
 			setWaiting( false );
 			setSignal( "serverShutdown" );
@@ -1195,7 +1196,7 @@ void OneLife::game::Application::readMessages()
 		}
 		else if( type == SERVER_FULL )
 		{
-			this->socket->close();
+			this->component.socket->close();
 
 			setWaiting( false );
 			setSignal( "serverFull" );
@@ -1339,7 +1340,7 @@ void OneLife::game::Application::readMessages()
 
 // if server is using an older version, check that
 // their version is not behind our data version at least
-				this->socket->close();
+				this->component.socket->close();
 
 				setWaiting( false );
 
@@ -1473,7 +1474,7 @@ void OneLife::game::Application::readMessages()
 		}
 		else if( type == REJECTED )
 		{
-			this->socket->close();
+			this->component.socket->close();
 
 			setWaiting( false );
 			setSignal( "loginFailed" );
@@ -1483,7 +1484,7 @@ void OneLife::game::Application::readMessages()
 		}
 		else if( type == NO_LIFE_TOKENS )
 		{
-			this->socket->close();
+			this->component.socket->close();
 
 			setWaiting( false );
 			setSignal( "noLifeTokens" );
@@ -4833,7 +4834,7 @@ other->lineage.push_back( cousinNum );
 
 void OneLife::game::Application::selectScreen()
 {
-	if((void*)this->currentController == (void*)this->controller.initializationScreen)
+	if((void*)this->currentController == (void*)this->controller.initScreen)
 	{
 		if(this->isControllerRecentlySet)
 		{
@@ -5077,12 +5078,11 @@ void OneLife::game::Application::selectScreen()
 			postUpdate();
 
 		}//step2
-		else if(((OneLife::game::InitializationScreen*)this->currentController)->isTaskComplete())
+		else if(((OneLife::game::initScreen*)this->currentController)->isTaskComplete())
 		{
 			this->setController(loadingPage);
 		}
 	}
-	//!SEARCH LEG000001 for legacy place
 	else if(this->currentController == loadingPage)
 	{
 		if(this->isControllerRecentlySet)
@@ -5497,7 +5497,8 @@ void OneLife::game::Application::selectScreen()
 				delete [] userTwinCode;
 				userTwinCode = NULL;
 			}
-			this->setController(this->controller.mapGenerationScreen);
+			OneLife::game::Debug::write("this->controller.sceneBuilder address : %p", this->controller.sceneBuilder);
+			this->setController(this->controller.sceneBuilder);
 		}
 		else if( existingAccountPage->checkSignal( "tutorial" ) )
 		{
@@ -5519,14 +5520,14 @@ void OneLife::game::Application::selectScreen()
 			this->currentController->base_makeActive( true );
 		}
 	}
-	else if(this->currentController == (void*)this->controller.mapGenerationScreen)
+	else if(this->currentController == (void*)this->controller.sceneBuilder)
 	{
 		if(this->isControllerRecentlySet)
 		{
 			OneLife::game::Debug::writeControllerInfo("Generating environment...");
 			this->isControllerRecentlySet = false;
 			OneLife::game::Debug::write("living life before handle : %p", livingLifePage);
-			this->controller.mapGenerationScreen->handle(livingLifePage);
+			this->controller.sceneBuilder->handle(livingLifePage);
 			OneLife::game::Debug::write("living life after handle : %p", livingLifePage);
 		}
 		this->status.connectedMode = false;
@@ -6363,11 +6364,11 @@ void OneLife::game::Application::render(OneLife::dataType::UiComponent* dataScre
 void OneLife::game::Application::sendClientMessage()
 {
 	//more than 15 seconds without client making a move send KA to keep connection open
-	if(this->status.connectedMode && this->connection->isConnected() && this->connection->getTimeLastMessageSent()>15)
+	if(this->status.connectedMode && this->component.socket->isConnected() && this->component.socket->getTimeLastMessageSent()>15)
 	{
 		try
 		{
-			this->connection->sendMessage("KA 0 0#");
+			this->component.socket->sendMessage("KA 0 0#");
 		}
 		catch(OneLife::game::Exception* e)
 		{

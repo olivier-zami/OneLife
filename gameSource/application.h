@@ -20,7 +20,7 @@
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/settings.h"
-#include "OneLife/gameSource/controllers/initializationScreen.h"
+#include "OneLife/gameSource/controllers/initScreen.h"
 #include "OneLife/gameSource/controllers/sceneBuilder.h"
 #include "OneLife/gameSource/feature.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
@@ -578,14 +578,13 @@ namespace OneLife::game
 
 			//!
 			struct{
-
+				OneLife::game::component::Socket* socket;
 			}component;
-			OneLife::game::component::Socket* connection;//TODO rename component.socket
 
 			//!
 			struct{
-				OneLife::game::InitializationScreen* initializationScreen;
-				OneLife::game::SceneBuilder* mapGenerationScreen;
+				OneLife::game::initScreen* initScreen;
+				OneLife::game::SceneBuilder* sceneBuilder;
 				LivingLifePage* gameSceneController;
 			}controller;
 
