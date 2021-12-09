@@ -94,7 +94,9 @@ void OneLife::game::initScreen::initSocket()
 				);
 	}
 
+	(*(this->socket))->setAddress(this->data.socket);
 	//TODO: ping server before set this->status.isInitSocket = true;
+
 	this->status.isInitSocket = true;
 }
 

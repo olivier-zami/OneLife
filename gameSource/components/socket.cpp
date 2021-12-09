@@ -75,7 +75,7 @@ OneLife::dataType::socket::Address OneLife::game::component::Socket::getAddress(
 
 void OneLife::game::component::Socket::connect()
 {
-	OneLife::game::Debug::writeMethodInfo("OneLife::game::component::Socket::connect() : %s:%i", this->address.ip, this->address.port);
+	OneLife::game::Debug::writeControllerStepInfo("OneLife::game::component::Socket::connect() : %s:%i", this->address.ip, this->address.port);
 	SocketConnectionRecord r;
 	r.handle = nextSocketConnectionHandle;
 	nextSocketConnectionHandle++;

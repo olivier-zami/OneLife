@@ -581,23 +581,21 @@ namespace OneLife::game
 				OneLife::game::component::Socket* socket;
 			}component;
 
-			//!
+			//!declaration: controllers
+			GamePage *currentController;
 			struct{
 				OneLife::game::initScreen* initScreen;
 				OneLife::game::SceneBuilder* sceneBuilder;
 				LivingLifePage* gameSceneController;
 			}controller;
 
-
-
 			//!
-			GamePage *currentController;
+			LiveObject* player;
+
 			unsigned lastSignalValue;
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			bool useCustomServer;
 			bool isControllerRecentlySet;
-
-			LiveObject* player;
 			char* serverMessage;
 
 			unsigned int idScreen;
@@ -605,7 +603,6 @@ namespace OneLife::game
 			OneLife::dataType::ui::Screen currentScreen;//TODO: rename this screenData and make var GameScreen* currentScreen
 			OneLife::game::DeviceListener* deviceListener;
 			OneLife::game::ScreenRenderer* screenRenderer;
-
 
 			OneLife::game::component::MessageChannel* messageChannel;
 

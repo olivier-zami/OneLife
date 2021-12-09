@@ -5526,9 +5526,8 @@ void OneLife::game::Application::selectScreen()
 		{
 			OneLife::game::Debug::writeControllerInfo("Generating environment...");
 			this->isControllerRecentlySet = false;
-			OneLife::game::Debug::write("living life before handle : %p", livingLifePage);
-			this->controller.sceneBuilder->handle(livingLifePage);
-			OneLife::game::Debug::write("living life after handle : %p", livingLifePage);
+			this->controller.sceneBuilder->handle(&livingLifePage);
+			this->controller.sceneBuilder->handle(&(this->player));
 		}
 		this->status.connectedMode = false;
 		switch(this->lastSignalValue)

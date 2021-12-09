@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include "minorGems/util/SimpleVector.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
@@ -76,20 +77,17 @@ void OneLife::game::SceneBuilder::handle(OneLife::dataType::UiComponent* screen)
 	else this->updateScreen();
 }
 
-void OneLife::game::SceneBuilder::handle(LiveObject* player)
+void OneLife::game::SceneBuilder::handle(LiveObject** player)
 {
 	this->player = player;
 }
 
-void OneLife::game::SceneBuilder::handle(LivingLifePage* gameSceneController)
+void OneLife::game::SceneBuilder::handle(LivingLifePage** gameSceneController)
 {
-	OneLife::game::Debug::writeMethodInfo("OneLife::game::SceneBuilder::handle(%p)", gameSceneController);
-	if(!gameSceneController)
+	if(!(*gameSceneController))
 	{
-		OneLife::game::Debug::write("Trying to instantiate gameSceneController");
-		gameSceneController = new LivingLifePage();
+		*gameSceneController = new LivingLifePage();
 	}
-	OneLife::game::Debug::write("instantiate gameSceneController(%p)", gameSceneController);
 	this->gameScene = gameSceneController;
 }
 
@@ -102,8 +100,10 @@ void OneLife::game::SceneBuilder::handle(OneLife::game::component::Socket* socke
 
 void OneLife::game::SceneBuilder::connect()
 {
+	OneLife::game::Debug::writeControllerStepInfo("OneLife::game::SceneBuilder::connect()");
 	if(!this->socket)throw new OneLife::game::Exception("Socket object is not set before call OneLife::game::SceneBuilder::connect()");
-	OneLife::game::Debug::write("Socket: %s:%i", this->socket->getAddress().ip, this->socket->getAddress().port);
+	this->socket->connect();
+	if(this->socket->isConnected()) this->status.isConnected = true;
 }
 
 void OneLife::game::SceneBuilder::initScreen()
@@ -136,20 +136,21 @@ void OneLife::game::SceneBuilder::initScreen()
 
 void OneLife::game::SceneBuilder::downloadObjects()
 {
-	OneLife::game::Debug::writeMethodInfo("OneLife::game::SceneBuilder::downloadObjects()");
+	OneLife::game::Debug::writeControllerStepInfo("OneLife::game::SceneBuilder::downloadObjects()");
 	//TODO: check if this->socket is set
 	if(!this->socket->isConnected())
 	{
 		this->socket->connect();
 	}
-
+	this->status.isObjectsDownloaded = true;
 }
 
 void OneLife::game::SceneBuilder::initPlayerAgent()
 {
+	OneLife::game::Debug::writeControllerStepInfo("OneLife::game::SceneBuilder::initPlayerAgent()");
 	//TODO: test for this->casting != nullptr
-	this->player = gameObjects.getElement(this->gameScene->getIndexRecentlyInsertedGameObject());//LECAGY: recentInsertedGameObjectIndex
-	ourID = this->player->id;
+	*(this->player) = gameObjects.getElement((*(this->gameScene))->getIndexRecentlyInsertedGameObject());//LECAGY: recentInsertedGameObjectIndex
+	ourID = (*(this->player))->id;
 
 	/*
 	if( ourID != lastPlayerID )

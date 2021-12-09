@@ -21,8 +21,8 @@ namespace OneLife::game
 			~SceneBuilder();
 
 			void handle(OneLife::dataType::UiComponent* screen);
-			void handle(LiveObject* player);
-			void handle(LivingLifePage* gameScene);
+			void handle(LiveObject** player);
+			void handle(LivingLifePage** gameScene);
 			void handle(OneLife::game::component::Socket* socket);
 
 		private:
@@ -43,8 +43,8 @@ namespace OneLife::game
 
 			static const char* screenName;
 			bool isScreenInited;
-			LiveObject* player;
-			LivingLifePage* gameScene;
+			LiveObject** player;
+			LivingLifePage** gameScene;
 			OneLife::dataType::uiComponent::SceneBuilder screen{};
 			OneLife::game::component::Socket* socket;
 	};
