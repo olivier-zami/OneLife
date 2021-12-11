@@ -1,4 +1,4 @@
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "OneLife/gameSource/TextButton.h"
@@ -9,7 +9,7 @@
 #include "OneLife/gameSource/DropdownList.h"
 
 
-class SettingsPage : public GamePage, public ActionListener {
+class SettingsPage : public OneLife::game::Controller, public ActionListener {
         
     public:
         

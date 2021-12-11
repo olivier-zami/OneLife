@@ -7,7 +7,7 @@
 #include "minorGems/io/file/File.h"
 
 
-#include "components/GamePage.h"
+#include "components/controller.h"
 
 #include "Picker.h"
 #include "TextButton.h"
@@ -84,7 +84,7 @@ typedef struct SceneCell {
 
     
 
-class EditorScenePage : public GamePage, public ActionListener {
+class EditorScenePage : public OneLife::game::Controller, public ActionListener {
         
     public:
         EditorScenePage();

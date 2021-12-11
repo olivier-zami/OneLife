@@ -27,7 +27,7 @@
 #include "OneLife/gameSource/components/keyboard.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 #include "OneLife/gameSource/components/messageChannel.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
@@ -52,7 +52,7 @@ extern unsigned char keyMap[256];
 extern char keyMapOn;
 extern GameSceneHandler *sceneHandler;
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
-extern GamePage *currentGamePage;
+extern OneLife::game::Controller* currentGamePage;
 extern LivingLifePage *livingLifePage;
 
 //!globals screen selection
@@ -456,7 +456,7 @@ OneLife::game::Application::Application(
 	this->deviceListener = new OneLife::game::DeviceListener();
 
 	this->messageChannel = new OneLife::game::component::MessageChannel();
-	GamePage::setMessageChannel(this->messageChannel);
+	OneLife::game::Controller::setMessageChannel(this->messageChannel);
 
 	this->screenRenderer = new OneLife::game::ScreenRenderer(this->currentScreen);
 	this->screenRenderer->setDefault(
@@ -6161,7 +6161,7 @@ void OneLife::game::Application::sendClientMessage()
 
 void OneLife::game::Application::setController(void* controller)
 {
-	this->currentController = (GamePage*)controller;
+	this->currentController = (OneLife::game::Controller*)controller;
 	currentGamePage = this->currentController;
 	this->status.isNewScreen = true;
 }

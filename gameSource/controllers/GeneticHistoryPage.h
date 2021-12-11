@@ -1,9 +1,9 @@
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "OneLife/gameSource/TextButton.h"
 
-class GeneticHistoryPage : public GamePage, public ActionListener {
+class GeneticHistoryPage : public OneLife::game::Controller, public ActionListener {
 
     public:
         GeneticHistoryPage();

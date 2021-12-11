@@ -1,10 +1,10 @@
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 
 
-class LoadingPage : public GamePage
+class LoadingPage : public OneLife::game::Controller
 {
     public:
         LoadingPage();

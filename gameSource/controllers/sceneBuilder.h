@@ -5,7 +5,7 @@
 #ifndef ONELIFE_COMPONENT_SCREEN_WAITINGBIRTHSCREEN_H
 #define ONELIFE_COMPONENT_SCREEN_WAITINGBIRTHSCREEN_H
 
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
@@ -14,7 +14,7 @@
 namespace OneLife::game
 {
 	class SceneBuilder//TODO rename LoadingLocalMapScreen
-			: public GamePage
+			: public OneLife::game::Controller
 	{
 		public:
 			SceneBuilder();

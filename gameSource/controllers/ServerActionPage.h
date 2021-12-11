@@ -2,7 +2,7 @@
 #define SERVER_ACTION_PAGE_INCLUDED
 
 
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 
 #include "OneLife/gameSource/TextButton.h"
 #include "OneLife/gameSource/TextField.h"
@@ -13,7 +13,7 @@
 // base class for pages that execute a server action and step
 // to wait for and parse a response
 // consolidates server contact and response error-handling code
-class ServerActionPage : public GamePage {
+class ServerActionPage : public OneLife::game::Controller {
     public:
         
         // inResponsePartNames copied internally, destroyed by caller

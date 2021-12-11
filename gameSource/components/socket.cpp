@@ -806,13 +806,13 @@ void replaceLastMessageSent( char *inNewMessage ) {
 }
 
 /**********************************************************************************************************************/
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 #include "minorGems/util/SettingsManager.h"
 extern char userReconnect;
 char usingCustomServer = false;
 char *serverIP = nullptr;
 int serverPort = 0;
-extern GamePage *currentGamePage;
+extern OneLife::game::Controller* currentGamePage;
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
 #include "OneLife/gameSource/controllers/ServerActionPage.h"

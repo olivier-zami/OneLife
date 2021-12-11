@@ -5,13 +5,13 @@
 #ifndef ONELIFE_GAME_CONFIGURATION_SCREEN_H
 #define ONELIFE_GAME_CONFIGURATION_SCREEN_H
 
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 
 namespace OneLife::game
 {
 	class ConfigurationScreen
-			: public GamePage
+			: public OneLife::game::Controller
 	{
 		public:
 			ConfigurationScreen();

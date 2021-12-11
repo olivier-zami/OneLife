@@ -1,11 +1,11 @@
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 
 #include "OneLife/gameSource/TextField.h"
 #include "OneLife/gameSource/TextButton.h"
 #include "OneLife/gameSource/KeyEquivalentTextButton.h"
 #include "minorGems/ui/event/ActionListener.h"
 
-class ExistingAccountPage : public GamePage, public ActionListener {
+class ExistingAccountPage : public OneLife::game::Controller, public ActionListener {
         
     public:
         

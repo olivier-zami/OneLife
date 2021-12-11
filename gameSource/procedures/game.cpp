@@ -89,7 +89,7 @@ extern float gui_fov_target_scale_hud;
 extern int gui_fov_offset_x;
 extern int gui_fov_offset_y;
 extern float gui_fov_scale_hud;
-extern GamePage *currentGamePage;
+extern OneLife::game::Controller* currentGamePage;
 
 // should we pull the map
 char autoLogIn = 0;

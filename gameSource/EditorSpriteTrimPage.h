@@ -5,7 +5,7 @@
 #include "minorGems/ui/event/ActionListener.h"
 
 
-#include "components/GamePage.h"
+#include "components/controller.h"
 
 #include "Picker.h"
 #include "TextButton.h"
@@ -33,7 +33,7 @@ typedef struct PickedRect {
 
     
 
-class EditorSpriteTrimPage : public GamePage, public ActionListener {
+class EditorSpriteTrimPage : public OneLife::game::Controller, public ActionListener {
         
     public:
         EditorSpriteTrimPage();

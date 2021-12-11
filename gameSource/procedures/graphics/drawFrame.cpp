@@ -12,11 +12,11 @@
 #include "OneLife/gameSource/components/banks/spriteBank.h"
 #include "OneLife/gameSource/photos.h"
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 #include "OneLife/gameSource/procedures/graphics/modalObjects/drawPausePanel.h"
 #include "OneLife/gameSource/debug.h"
 
-extern GamePage *currentGamePage;
+extern OneLife::game::Controller* currentGamePage;
 extern LivingLifePage *livingLifePage;
 extern int holdDeleteKeySteps;
 extern int stepsBetweenDeleteRepeat;

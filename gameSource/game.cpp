@@ -209,7 +209,7 @@ extern char userReconnect;
 extern char *serverIP;//from socket.cpp
 extern int serverPort;//from socket.cpp
 
-GamePage *currentGamePage = nullptr;//TestPage *testPage = NULL;
+OneLife::game::Controller *currentGamePage = nullptr;//TestPage *testPage = NULL;
 CustomRandomSource randSource( 34957197 );// static seed
 int cursorMode = 0;
 double emulatedCursorScale = 1.0;

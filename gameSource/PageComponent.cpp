@@ -307,7 +307,7 @@ void PageComponent::removeComponent( PageComponent *inComponent ){
 
 void PageComponent::setWaiting( char inWaiting,
                                 char inWarningOnly ) {
-    // pass up chain (stops at GamePage)
+    // pass up chain (stops at controller)
     if( mParent != NULL ) {
         mParent->setWaiting( inWaiting, inWarningOnly );
         }

@@ -23,7 +23,7 @@
 #include "minorGems/network/web/WebRequest.h"
 #include "minorGems/graphics/Image.h"//bytes
 #include "OneLife/gameSource/misc.h"//Uint8
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 #include "OneLife/gameSource/procedures/graphics/drawString.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/musicPlayer.h"
@@ -72,7 +72,7 @@ static const char *screenShotExtension = "tga";
 #endif
 
 extern int targetFrameRate;
-extern GamePage *currentGamePage;
+extern OneLife::game::Controller* currentGamePage;
 extern char demoMode;
 extern char *loadingFailedMessage;
 extern char writeFailed;

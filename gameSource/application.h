@@ -584,7 +584,7 @@ namespace OneLife::game
 			}component;
 
 			//!declaration: controllers
-			GamePage *currentController;
+			OneLife::game::Controller *currentController;
 			struct{
 				OneLife::game::initScreen* initScreen;
 				OneLife::game::ConfigurationScreen* configurationScreen;

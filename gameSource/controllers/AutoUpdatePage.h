@@ -1,9 +1,9 @@
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 
 
-class AutoUpdatePage : public GamePage {
+class AutoUpdatePage : public OneLife::game::Controller {
         
     public:
 

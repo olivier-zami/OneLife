@@ -140,7 +140,7 @@ class PageComponent : public GUIComponent {
 
 
         // passes a waiting status from this component, up through parents,
-        // to containing GamePage
+        // to containing controller
         // Indicates whether we're in a waiting state (like waiting on 
         // a server response) so that an appropriate indicator can be 
         // displayed.

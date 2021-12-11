@@ -16,7 +16,7 @@ ROOT_PATH = ../..
 LAYER_SOURCE = \
 editor.cpp \
 PageComponent.cpp \
-GamePage.cpp \
+controller.cpp \
 TextField.cpp \
 DropdownList.cpp \
 Button.cpp \

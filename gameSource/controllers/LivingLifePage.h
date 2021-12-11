@@ -8,7 +8,7 @@
 #include "minorGems/util/SettingsManager.h"
 #include "OneLife/gameSource/misc.h"
 #include "OneLife/gameSource/transitionBank.h"
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 #include "OneLife/gameSource/Picker.h"
 #include "OneLife/gameSource/procedures/ai/pathFind.h"
 #include "OneLife/gameSource/animationBank.h"
@@ -20,7 +20,10 @@
 #include "OneLife/gameSource/controllers/menu/playerStatus.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 
-class LivingLifePage : public GamePage, public ActionListener {
+class LivingLifePage :
+		public OneLife::game::Controller,
+		public ActionListener
+{
         
     public:
 

@@ -10,7 +10,7 @@
 #include "OneLife/gameSource/misc.h"
 
 
-#include "components/GamePage.h"
+#include "components/controller.h"
 #include "TextButton.h"
 #include "CheckboxButton.h"
 #include "TextField.h"
@@ -26,7 +26,7 @@
 
 
 
-class EditorImportPage : public GamePage, public ActionListener {
+class EditorImportPage : public OneLife::game::Controller, public ActionListener {
         
     public:
         EditorImportPage();

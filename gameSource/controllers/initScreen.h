@@ -6,7 +6,7 @@
 #define ONELIFE_GAME_INITIALIZATIONSCREEN_H
 
 #include "minorGems/system/Time.h"
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/components/controller.h"
 #include "OneLife/gameSource/controllers/sceneBuilder.h"
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
@@ -15,7 +15,7 @@
 namespace OneLife::game
 {
 	class initScreen :
-			public GamePage
+			public OneLife::game::Controller
 	{
 		public:
 			initScreen();

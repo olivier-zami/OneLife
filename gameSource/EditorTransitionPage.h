@@ -10,7 +10,7 @@
 #include "OneLife/gameSource/misc.h"
 
 
-#include "components/GamePage.h"
+#include "components/controller.h"
 #include "TextButton.h"
 #include "TextField.h"
 #include "SpriteButton.h"
@@ -30,7 +30,7 @@
 
 
 
-class EditorTransitionPage : public GamePage, public ActionListener {
+class EditorTransitionPage : public OneLife::game::Controller, public ActionListener {
         
     public:
         EditorTransitionPage();

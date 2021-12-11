@@ -1,4 +1,4 @@
-#include "GamePage.h"
+#include "controller.h"
 
 #include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/serialWebRequests.h"
@@ -10,34 +10,34 @@
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 #include "OneLife/gameSource/components/messageChannel.h"
 
-OneLife::game::component::MessageChannel* GamePage::messageChannel = nullptr;
+OneLife::game::component::MessageChannel* OneLife::game::Controller::messageChannel = nullptr;
 
-int GamePage::sPageCount = 0;
+int OneLife::game::Controller::sPageCount = 0;
 
-SpriteHandle GamePage::sWaitingSprites[3] = { NULL, NULL, NULL };
-SpriteHandle GamePage::sResponseWarningSprite = NULL;
+SpriteHandle OneLife::game::Controller::sWaitingSprites[3] = { NULL, NULL, NULL };
+SpriteHandle OneLife::game::Controller::sResponseWarningSprite = NULL;
 
-int GamePage::sCurrentWaitingSprite = 0;
-int GamePage::sLastWaitingSprite = -1;
-int GamePage::sWaitingSpriteDirection = 1;
-double GamePage::sCurrentWaitingSpriteFade = 0;
+int OneLife::game::Controller::sCurrentWaitingSprite = 0;
+int OneLife::game::Controller::sLastWaitingSprite = -1;
+int OneLife::game::Controller::sWaitingSpriteDirection = 1;
+double OneLife::game::Controller::sCurrentWaitingSpriteFade = 0;
 
-char GamePage::sResponseWarningShowing = false;
-doublePair GamePage::sResponseWarningPosition = { 0, 0 };
+char OneLife::game::Controller::sResponseWarningShowing = false;
+doublePair OneLife::game::Controller::sResponseWarningPosition = { 0, 0 };
 
 
-double GamePage::sWaitingFade = 0;
-char GamePage::sWaiting = false;
-char GamePage::sShowWaitingWarningOnly = false;
+double OneLife::game::Controller::sWaitingFade = 0;
+char OneLife::game::Controller::sWaiting = false;
+char OneLife::game::Controller::sShowWaitingWarningOnly = false;
 
-char GamePage::sShutdownPendingWarning = false;
+char OneLife::game::Controller::sShutdownPendingWarning = false;
 
 
 extern int currentActiveSerialWebRequest;
 
 
 
-GamePage::GamePage()
+OneLife::game::Controller::Controller()
         : PageComponent( 0, 0 ),
           mStatusError( false ),
           mStatusMessageKey( NULL ),
@@ -61,7 +61,7 @@ GamePage::GamePage()
     sPageCount++;
     }
 
-GamePage::~GamePage() {
+OneLife::game::Controller::~Controller() {
     if( mStatusMessage != NULL ) {
         delete [] mStatusMessage;
         }
@@ -89,7 +89,7 @@ GamePage::~GamePage() {
         }
     }
 
-void GamePage::handle(OneLife::dataType::UiComponent* screen)
+void OneLife::game::Controller::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
 	screen->draw = OneLife::game::graphic::drawUnimplementedScreen;
@@ -97,35 +97,35 @@ void GamePage::handle(OneLife::dataType::UiComponent* screen)
 	screen->body = dataScreen;
 }
 
-void GamePage::setMessageChannel(OneLife::game::component::MessageChannel* messageChannel)
+void OneLife::game::Controller::setMessageChannel(OneLife::game::component::MessageChannel* messageChannel)
 {
-	GamePage::messageChannel = messageChannel;
+	OneLife::game::Controller::messageChannel = messageChannel;
 }
 
-void GamePage::sendSignal(unsigned int signal)
+void OneLife::game::Controller::sendSignal(unsigned int signal)
 {
-	GamePage::messageChannel->setLastSignal(signal);
+	OneLife::game::Controller::messageChannel->setLastSignal(signal);
 }
 
-void GamePage::sendDeathMessage(const char* message)
+void OneLife::game::Controller::sendDeathMessage(const char* message)
 {
-	if(!GamePage::messageChannel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
-	GamePage::messageChannel->setExitMapMessage(message);
+	if(!OneLife::game::Controller::messageChannel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
+	OneLife::game::Controller::messageChannel->setExitMapMessage(message);
 }
 
-void GamePage::sendTripMessage(const char* message)
+void OneLife::game::Controller::sendTripMessage(const char* message)
 {
-	if(!GamePage::messageChannel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
-	GamePage::messageChannel->setInitMapMessage(message);
+	if(!OneLife::game::Controller::messageChannel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
+	OneLife::game::Controller::messageChannel->setInitMapMessage(message);
 }
 
-void GamePage::skipDrawingSubComponents( char inSkip ) {
+void OneLife::game::Controller::skipDrawingSubComponents( char inSkip ) {
     mSkipDrawingSubComponents = inSkip;
     }
 
 
 
-void GamePage::setStatus( const char *inStatusMessageKey, char inError ) {
+void OneLife::game::Controller::setStatus( const char *inStatusMessageKey, char inError ) {
     mStatusMessageKey = inStatusMessageKey;
     mStatusError = inError;
 
@@ -137,7 +137,7 @@ void GamePage::setStatus( const char *inStatusMessageKey, char inError ) {
 
 
 
-void GamePage::setStatusDirect( const char *inStatusMessage, char inError ) {
+void OneLife::game::Controller::setStatusDirect( const char *inStatusMessage, char inError ) {
     if( mStatusMessage != NULL ) {
         delete [] mStatusMessage;
         mStatusMessage = NULL;
@@ -154,13 +154,13 @@ void GamePage::setStatusDirect( const char *inStatusMessage, char inError ) {
 
 
 
-char GamePage::isStatusShowing() {
+char OneLife::game::Controller::isStatusShowing() {
     return ( mStatusMessage != NULL || mStatusMessageKey != NULL );
     }
 
 
 
-void GamePage::setToolTip( const char *inTip ) {
+void OneLife::game::Controller::setToolTip( const char *inTip ) {
     if( mTip != NULL && inTip == NULL ) {
         // tip disappearing, save it as mLastTip
         if( mLastTip != NULL ) {
@@ -185,7 +185,7 @@ void GamePage::setToolTip( const char *inTip ) {
 
 
 
-void GamePage::clearToolTip( const char *inTipToClear ) {
+void OneLife::game::Controller::clearToolTip( const char *inTipToClear ) {
     if( mTip != NULL ) {
         if( strcmp( mTip, inTipToClear ) == 0 ) {
 
@@ -203,18 +203,18 @@ void GamePage::clearToolTip( const char *inTipToClear ) {
 
 
 
-void GamePage::setTipPosition( char inTop ) {
+void OneLife::game::Controller::setTipPosition( char inTop ) {
     mTipAtTopOfScreen = inTop;
     }
 
 
-void GamePage::setStatusPositiion( char inTop ) {
+void OneLife::game::Controller::setStatusPositiion( char inTop ) {
     mStatusAtTopOfScreen = inTop;
     }
 
 
 
-void GamePage::base_draw( doublePair inViewCenter, 
+void OneLife::game::Controller::base_draw( doublePair inViewCenter,
                           double inViewSize ){
 
     if( sShutdownPendingWarning ) {
@@ -349,7 +349,7 @@ void GamePage::base_draw( doublePair inViewCenter,
 extern double frameRateFactor;
 
 
-void GamePage::base_step() {
+void OneLife::game::Controller::base_step() {
     if( sShutdownPendingWarning ) {
         // skip stepping stuff so that game doesn't advance
         // while the user's view is obscured
@@ -424,21 +424,21 @@ void GamePage::base_step() {
 
 
 
-void GamePage::showShutdownPendingWarning() {
+void OneLife::game::Controller::showShutdownPendingWarning() {
     sShutdownPendingWarning = true;
     setIgnoreEvents( true );
     }
 
 
 
-void GamePage::setSignal( const char *inSignalName ) {
+void OneLife::game::Controller::setSignal( const char *inSignalName ) {
     clearSignal();
     mSignal = stringDuplicate( inSignalName );
     }
 
 
 
-void GamePage::clearSignal() {
+void OneLife::game::Controller::clearSignal() {
     if( mSignal != NULL ) {
         delete [] mSignal;
         }
@@ -447,7 +447,7 @@ void GamePage::clearSignal() {
 
 
 
-char GamePage::checkSignal( const char *inSignalName ) {
+char OneLife::game::Controller::checkSignal( const char *inSignalName ) {
     if( mSignal == NULL ) {
         return false;
         }
@@ -461,7 +461,7 @@ char GamePage::checkSignal( const char *inSignalName ) {
 
 
 
-char GamePage::isAnySignalSet() {
+char OneLife::game::Controller::isAnySignalSet() {
     if( mSignal == NULL ) {
         return false;
         }
@@ -472,7 +472,7 @@ char GamePage::isAnySignalSet() {
 
 
 
-void GamePage::base_keyDown( unsigned char inASCII ) {
+void OneLife::game::Controller::base_keyDown( unsigned char inASCII ) {
     PageComponent::base_keyDown( inASCII );
     
     if( sShutdownPendingWarning && inASCII == ' ' ) {
@@ -484,7 +484,7 @@ void GamePage::base_keyDown( unsigned char inASCII ) {
 
 
 
-void GamePage::base_makeActive( char inFresh ){
+void OneLife::game::Controller::base_makeActive( char inFresh ){
     if( inFresh ) {    
         for( int i=0; i<mComponents.size(); i++ ) {
             PageComponent *c = *( mComponents.getElement( i ) );
@@ -508,7 +508,7 @@ void GamePage::base_makeActive( char inFresh ){
 
 
 
-void GamePage::base_makeNotActive(){
+void OneLife::game::Controller::base_makeNotActive(){
     for( int i=0; i<mComponents.size(); i++ ) {
         PageComponent *c = *( mComponents.getElement( i ) );
         
@@ -521,7 +521,7 @@ void GamePage::base_makeNotActive(){
 
 
 
-void GamePage::setWaiting( char inWaiting, char inWarningOnly ) {
+void OneLife::game::Controller::setWaiting( char inWaiting, char inWarningOnly ) {
     sWaiting = inWaiting;
     sShowWaitingWarningOnly = inWarningOnly;
     
@@ -533,7 +533,7 @@ void GamePage::setWaiting( char inWaiting, char inWarningOnly ) {
 
 
 
-void GamePage::pointerMove( float inX, float inY ) {
+void OneLife::game::Controller::pointerMove( float inX, float inY ) {
     if( sResponseWarningShowing && currentActiveSerialWebRequest != -1 ) {
         
         if( fabs( inX - sResponseWarningPosition.x ) < 20 &&
