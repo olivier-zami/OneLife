@@ -132,7 +132,6 @@ void warpMouseToCenter( int *outNewMouseX, int *outNewMouseY );
 double game_getCurrentTime();//defined in game.cpp
 char isPaused();//defined in game.cpp
 void freeDrawString();//defined in gme.cpp
-char isDemoCodePanelShowing();//defined in game.cpp
 void freeFrameDrawer();
 Image *getScreenRegion( double inX, double inY, double inWidth, double inHeight );
 Image *getScreenRegionRaw(int inStartX, int inStartY, int inWidth, int inHeight );

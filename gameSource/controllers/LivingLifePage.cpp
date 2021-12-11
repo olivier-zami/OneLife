@@ -872,14 +872,6 @@ LivingLifePage::~LivingLifePage()
 
 /**********************************************************************************************************************/
 
-
-int LivingLifePage::getIndexRecentlyInsertedGameObject()
-{
-	return recentInsertedGameObjectIndex;
-}
-
-/**********************************************************************************************************************/
-
 void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = this->screenName;
@@ -887,10 +879,25 @@ void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 	screen->body = &(this->screen);
 }
 
-void LivingLifePage::setServerSocket(OneLife::game::component::Socket *socket)
+/**********************************************************************************************************************/
+
+
+int LivingLifePage::getIndexRecentlyInsertedGameObject()
+{
+	return recentInsertedGameObjectIndex;
+}
+
+void LivingLifePage::setSocket(OneLife::game::component::Socket *socket)
 {
 	this->socket = socket;
 }
+
+void LivingLifePage::test()
+{
+	printf("\n#############ok ca marche ...");
+}
+
+/**********************************************************************************************************************/
 
 void LivingLifePage::sendToServerSocket( char *inMessage )
 {

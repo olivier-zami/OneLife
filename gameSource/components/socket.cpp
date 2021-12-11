@@ -63,7 +63,6 @@ void OneLife::game::component::Socket::handle(
 
 void OneLife::game::component::Socket::setAddress(OneLife::dataType::socket::Address address)
 {
-	OneLife::game::Debug::writeMethodInfo("OneLife::game::component::Socket::setAddress({%s:%i})", address.ip, address.port);
 	strcpy(this->address.ip, address.ip);
 	this->address.port = address.port;
 }

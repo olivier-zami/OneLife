@@ -27,14 +27,17 @@ class LivingLifePage : public GamePage, public ActionListener {
         LivingLifePage();
         ~LivingLifePage();
 
-		void setServerSocket(OneLife::game::component::Socket* socket);
-		void setIndexRecentlyInsertedGameObject(unsigned int idx);
-		int getIndexRecentlyInsertedGameObject();
+		void test();
 
 	//private:
 		//unsigned int recentInsertedGameObjectIndex;
 
 		void handle(OneLife::dataType::UiComponent* screen);
+
+		void setSocket(OneLife::game::component::Socket* socket);
+		int getIndexRecentlyInsertedGameObject();
+
+		/**************************************************************************************************************/
         
         void clearMap();
         

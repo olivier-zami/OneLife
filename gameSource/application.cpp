@@ -85,7 +85,6 @@ OneLife::game::Application *currentScreenGL;
 long timeSinceLastFrameMS = 0;// FOVMOD NOTE:  Change 1/3 - Take these lines during the merge process
 //char screenGLStencilBufferSupported = false; //TODO: check if not used somewhere =>delete
 char measureRecorded = false;
-char loadingMessageShown = false;
 
 static int numFramesSkippedBeforeMeasure = 0;
 static int numFramesToSkipBeforeMeasure = 30;
@@ -445,6 +444,7 @@ OneLife::game::Application::Application(
 	this->component.socket = nullptr;
 
 	//!set controllers
+	this->controller.configurationScreen = nullptr;
 	this->controller.gameSceneController = nullptr;
 
 	//!
@@ -468,7 +468,7 @@ OneLife::game::Application::Application(
 			mForceSpecifiedDimensions
 	);
 
-	this->isControllerRecentlySet = false;
+	this->status.isNewScreen = false;
 	this->player = nullptr;
 
 	this->quit = false;
@@ -534,7 +534,6 @@ void OneLife::game::Application::init(OneLife::game::Settings settings)
 
 void OneLife::game::Application::setConnection(const char* ip, int port)
 {
-	OneLife::game::Debug::writeMethodInfo("OneLife::game::Application::setConnection(\"%s\", %i)", ip, port);
 	strcpy(this->data.socket.ip, ip);
 	this->data.socket.port = port;
 }
@@ -577,13 +576,6 @@ void OneLife::game::Application::start()
 			targetFrameRate,
 			this->getCustomRecordedGameData(),
 			this->isPlayingBack() );//!this->currentController initialized inside
-
-	//!
-	if(!this->controller.initScreen) this->controller.initScreen = new OneLife::game::initScreen();
-	this->controller.initScreen->setServerSocketAddress(this->data.socket);
-	this->controller.initScreen->handle(&(this->component.socket));
-	this->controller.initScreen->handle(&(this->controller.sceneBuilder));
-	this->setController(this->controller.initScreen);
 
 
 	unsigned long oldFrameStart;
@@ -4834,261 +4826,41 @@ other->lineage.push_back( cousinNum );
 
 void OneLife::game::Application::selectScreen()
 {
-	if((void*)this->currentController == (void*)this->controller.initScreen)
+	if(!this->currentController)
 	{
-		if(this->isControllerRecentlySet)
+		OneLife::game::Debug::writeControllerInfo("Initialization");
+		if(!this->controller.initScreen) this->controller.initScreen = new OneLife::game::initScreen();
+		this->controller.initScreen->setServerSocketAddress(this->data.socket);
+		this->controller.initScreen->handle(&(this->component.socket));
+		this->controller.initScreen->handle(&(this->controller.sceneBuilder));//TODO remove this and SDL intialization
+		this->setController(this->controller.initScreen);
+	}
+	else if(this->currentController == (void*)this->controller.initScreen)
+	{
+		if(this->status.isNewScreen)
 		{
-			OneLife::game::Debug::writeControllerInfo("Initialization");
-			this->isControllerRecentlySet = false;
+			OneLife::game::Debug::writeControllerInfo("Load Configuration");
+			if(!this->controller.configurationScreen) this->controller.configurationScreen = new OneLife::game::ConfigurationScreen();
+			this->controller.configurationScreen->handleDemoMode(&demoMode);
+			this->controller.configurationScreen->handleWriteFailed(&writeFailed);
+			this->controller.configurationScreen->handleMeasureFrameRate(&measureFrameRate);
+			this->status.isNewScreen = false;
 		}
+		this->controller.configurationScreen->setPlaybackMode(this->isPlayingBack());
 		this->status.connectedMode = false;
-		if(demoMode)
-		{
-			if(this->idScreen !=1){printf("\n===>demoMode");this->idScreen = 1;}
-			if( ! isDemoCodePanelShowing() )
-			{
-				demoMode = false;// stop demo mode when panel done
-				//mScreen->addMouseHandler( this );
-				//mScreen->addKeyboardHandler( this );
-				//screen->startRecordingOrPlayback();
-			}
-		}
-		else if( writeFailed )
-		{
-			if(this->idScreen !=2){printf("\n===>write failed");this->idScreen = 2;}
-			drawString( translate( "writeFailed" ), true );
-		}
-		else if( !this->isPlayingBack() && measureFrameRate )
-		{
-			if(this->idScreen !=3){printf("\n===>!isPlayingBack && measureFrameRate");this->idScreen = 3;}
-			if( !measureRecorded )
-			{
-				this->useFrameSleep( false );
-			}
-
-			if( numFramesSkippedBeforeMeasure < numFramesToSkipBeforeMeasure ) {
-				numFramesSkippedBeforeMeasure++;
-
-				drawString( translate( "measuringFPS" ), true );
-			}
-			else if( ! startMeasureTimeRecorded ) {
-				startMeasureTime = Time::getCurrentTime();
-				startMeasureTimeRecorded = true;
-
-				drawString( translate( "measuringFPS" ), true );
-			}
-			else {
-
-				numFramesMeasured++;
-
-				double totalTime = Time::getCurrentTime() - startMeasureTime;
-
-				double timePerFrame = totalTime / ( numFramesMeasured );
-
-				double frameRate = 1 / timePerFrame;
 
 
-				int closestTargetFrameRate = 0;
-				double closestFPSDiff = 9999999;
-
-				for( int i=0; i<possibleFrameRates.size(); i++ ) {
-
-					int v = possibleFrameRates.getElementDirect( i );
-
-					double diff = fabs( frameRate - v );
-
-					if( diff < closestFPSDiff ) {
-						closestTargetFrameRate = v;
-						closestFPSDiff = diff;
-					}
-				}
-
-				double overAllowFactor = 1.05;
-
-
-
-				if( numFramesMeasured > 10 &&
-					frameRate > overAllowFactor * closestTargetFrameRate ) {
-
-					secondsToMeasure = warningSecondsToMeasure;
-				}
-				else {
-					secondsToMeasure = noWarningSecondsToMeasure;
-				}
-
-				if( totalTime <= secondsToMeasure ) {
-					char *message = autoSprintf( "%s\n%0.2f\nFPS",
-							translate( "measuringFPS" ),
-							frameRate );
-
-
-					drawString( message, true );
-
-					delete [] message;
-				}
-
-				if( totalTime > secondsToMeasure ) {
-
-					if( ! measureRecorded ) {
-
-						if( targetFrameRate == idealTargetFrameRate ) {
-							// not invoking halfFrameRate
-
-							AppLog::infoF( "Measured frame rate = %f fps\n",
-									frameRate );
-							AppLog::infoF(
-									"Closest possible frame rate = %d fps\n",
-									closestTargetFrameRate );
-
-							if( frameRate >
-								overAllowFactor * closestTargetFrameRate ) {
-
-								AppLog::infoF(
-										"Vsync to enforce closested frame rate of "
-										"%d fps doesn't seem to be in effect.\n",
-										closestTargetFrameRate );
-
-								AppLog::infoF(
-										"Will sleep each frame to enforce desired "
-										"frame rate of %d fps\n",
-										idealTargetFrameRate );
-
-								targetFrameRate = idealTargetFrameRate;
-
-								this->useFrameSleep( true );
-								countingOnVsync = false;
-							}
-							else {
-								AppLog::infoF(
-										"Vsync seems to be enforcing an allowed frame "
-										"rate of %d fps.\n", closestTargetFrameRate );
-
-								targetFrameRate = closestTargetFrameRate;
-
-								this->useFrameSleep( false );
-								countingOnVsync = true;
-							}
-						}
-						else {
-							// half frame rate must be set
-
-							AppLog::infoF(
-									"User has halfFrameRate set, so we're going "
-									"to manually sleep to enforce a target "
-									"frame rate of %d fps.\n", targetFrameRate );
-							this->useFrameSleep( true );
-							countingOnVsync = false;
-						}
-
-
-						this->setFullFrameRate( targetFrameRate );
-						measureRecorded = true;
-					}
-
-					if( !countingOnVsync ) {
-						// show warning message
-						char *message =
-								autoSprintf( "%s\n%s\n\n%s\n\n\n%s",
-										translate( "vsyncWarning" ),
-										translate( "vsyncWarning2" ),
-										translate( "vsyncWarning3" ),
-										translate( "vsyncContinueMessage" ) );
-						drawString( message, true );
-
-						delete [] message;
-					}
-					else {
-						// auto-save it now
-						saveFrameRateSettings();
-						this->startRecordingOrPlayback();
-						measureFrameRate = false;
-					}
-				}
-			}
-			//return;
-		}
-		else if( !loadingMessageShown ){
-			if(this->idScreen !=4){printf("\n===>!loadingMessageShown");this->idScreen = 4;}
-			drawString( translate( "loading" ), true );
-			loadingMessageShown = true;
-		}//step1
-		else if( loadingFailedFlag ) {
-			if(this->idScreen !=5){printf("\n===>loadingFailedFlag");this->idScreen = 5;}
-			drawString( loadingFailedMessage, true );
-		}
-		else if( !writeFailed && !loadingFailedFlag && !frameDrawerInited ) {
-			if(this->idScreen !=6){printf("\n===>!writeFailed && !loadingFailedFlag && !frameDrawerInited");this->idScreen = 6;}
-			drawString( translate( "loading" ), true );
-			int readCursorMode = SettingsManager::getIntSetting( "cursorMode", -1 );
-			if( readCursorMode < 0 ) {
-				// never set before
-
-				// check if we are ultrawidescreen
-				char ultraWide = false;
-
-				const SDL_VideoInfo* currentScreenInfo = SDL_GetVideoInfo();
-
-				int currentW = currentScreenInfo->current_w;
-				int currentH = currentScreenInfo->current_h;
-
-				double aspectRatio = (double)currentW / (double)currentH;
-
-				// give a little wiggle room above 16:9
-				// ultrawide starts at 21:9
-				if( aspectRatio > 18.0 / 9.0 ) {
-					ultraWide = true;
-				}
-
-				if( ultraWide ) {
-					// drawn cursor, because system native cursor
-					// is off-target on ultrawide displays
-
-					setCursorMode( 1 );
-
-					double startingScale = 1.0;
-
-					int forceBigPointer =
-							SettingsManager::getIntSetting( "forceBigPointer", 0 );
-					if( forceBigPointer ||
-						screenWidth > 1920 || screenHeight > 1080 ) {
-
-						startingScale *= 2;
-					}
-					setEmulatedCursorScale( startingScale );
-				}
-			}
-			else {
-				setCursorMode( readCursorMode );
-
-				double readCursorScale =
-						SettingsManager::
-						getDoubleSetting( "emulatedCursorScale", -1.0 );
-
-				if( readCursorScale >= 1 ) {
-					setEmulatedCursorScale( readCursorScale );
-				}
-			}
-
-
-
-			frameDrawerInited = true;
-
-			// this is a good time, a while after launch, to do the post
-			// update step
-			postUpdate();
-
-		}//step2
-		else if(((OneLife::game::initScreen*)this->currentController)->isTaskComplete())
+		if(((OneLife::game::initScreen*)this->currentController)->isTaskComplete())
 		{
 			this->setController(loadingPage);
 		}
 	}
 	else if(this->currentController == loadingPage)
 	{
-		if(this->isControllerRecentlySet)
+		if(this->status.isNewScreen)
 		{
 			OneLife::game::Debug::writeControllerInfo("Loading assets");
-			this->isControllerRecentlySet = false;
+			this->status.isNewScreen = false;
 		}
 		this->status.connectedMode = false;
 		this->currentController->base_step();
@@ -5359,10 +5131,10 @@ void OneLife::game::Application::selectScreen()
 	}
 	else if(this->currentController == getServerAddressPage)
 	{
-		if(this->isControllerRecentlySet)
+		if(this->status.isNewScreen)
 		{
 			OneLife::game::Debug::writeControllerInfo("Waiting Server Info settings");
-			this->isControllerRecentlySet = false;
+			this->status.isNewScreen = false;
 		}
 		this->status.connectedMode = false;
 		this->currentController->base_step();
@@ -5449,10 +5221,10 @@ void OneLife::game::Application::selectScreen()
 	}
 	else if(this->currentController == existingAccountPage)
 	{
-		if(this->isControllerRecentlySet)
+		if(this->status.isNewScreen)
 		{
 			OneLife::game::Debug::writeControllerInfo("Checking for existing account ...");
-			this->isControllerRecentlySet = false;
+			this->status.isNewScreen = false;
 		}
 		this->status.connectedMode = false;
 		this->currentController->base_step();
@@ -5522,12 +5294,14 @@ void OneLife::game::Application::selectScreen()
 	}
 	else if(this->currentController == (void*)this->controller.sceneBuilder)
 	{
-		if(this->isControllerRecentlySet)
+		if(this->status.isNewScreen)
 		{
 			OneLife::game::Debug::writeControllerInfo("Generating environment...");
-			this->isControllerRecentlySet = false;
+			this->status.isNewScreen = false;
 			this->controller.sceneBuilder->handle(&livingLifePage);
 			this->controller.sceneBuilder->handle(&(this->player));
+			OneLife::game::Debug::write("this->component.socket : %p", this->component.socket);
+			this->controller.sceneBuilder->handle(this->component.socket);
 		}
 		this->status.connectedMode = false;
 		switch(this->lastSignalValue)
@@ -5540,10 +5314,10 @@ void OneLife::game::Application::selectScreen()
 	}
 	else if(this->currentController == livingLifePage)
 	{
-		if(this->isControllerRecentlySet)
+		if(this->status.isNewScreen)
 		{
 			OneLife::game::Debug::writeControllerInfo("Living Life!");
-			this->isControllerRecentlySet = false;
+			this->status.isNewScreen = false;
 		}
 		this->status.connectedMode = true;
 		this->currentController->base_step();
@@ -5683,7 +5457,7 @@ void OneLife::game::Application::selectScreen()
 			this->currentController->base_makeActive( true );
 		}
 	}
-	else if( !writeFailed && !loadingFailedFlag  )//step3 (demo mode done or was never enabled )
+	else if(/* !writeFailed && !loadingFailedFlag*/ false )//step3 (demo mode done or was never enabled )
 	{
 		this->status.connectedMode = false;
 		if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}
@@ -5827,6 +5601,10 @@ void OneLife::game::Application::selectScreen()
 			}
 		}
 
+	}
+	else
+	{
+		OneLife::game::Debug::write("Current controller unknown. Address : %p", this->currentController);
 	}
 }
 
@@ -6385,7 +6163,7 @@ void OneLife::game::Application::setController(void* controller)
 {
 	this->currentController = (GamePage*)controller;
 	currentGamePage = this->currentController;
-	this->isControllerRecentlySet = true;
+	this->status.isNewScreen = true;
 }
 
 /**********************************************************************************************************************/

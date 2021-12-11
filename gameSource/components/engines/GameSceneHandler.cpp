@@ -816,7 +816,7 @@ void cleanUpAtExit() {
 		SDL_FreeCursor( ourCursor );
 	}
 
-	AppLog::info( "exiting...\n" );
+	//AppLog::info( "exiting...\n" );
 
 	if( soundOpen ) {
 		AppLog::info( "exiting: calling SDL_CloseAudio\n" );

@@ -15,6 +15,7 @@ ROOT_PATH = ../..
 
 LAYER_SOURCE = \
 minitech.cpp \
+configFunctions.cpp \
 game.cpp \
 misc.cpp \
 application.cpp \
@@ -32,6 +33,7 @@ components/GamePage.cpp \
 components/keyboard.cpp \
 components/messageChannel.cpp \
 controllers/AutoUpdatePage.cpp \
+controllers/configurationScreen.cpp \
 controllers/ExistingAccountPage.cpp \
 controllers/ExtendedMessagePage.cpp \
 controllers/FinalMessagePage.cpp \

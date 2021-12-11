@@ -21,6 +21,7 @@
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/settings.h"
 #include "OneLife/gameSource/controllers/initScreen.h"
+#include "OneLife/gameSource/controllers/configurationScreen.h"
 #include "OneLife/gameSource/controllers/sceneBuilder.h"
 #include "OneLife/gameSource/feature.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
@@ -563,6 +564,7 @@ namespace OneLife::game
 			//!
 			struct{
 				bool connectedMode;
+				bool isNewScreen;
 			}status;
 
 			//!
@@ -585,6 +587,7 @@ namespace OneLife::game
 			GamePage *currentController;
 			struct{
 				OneLife::game::initScreen* initScreen;
+				OneLife::game::ConfigurationScreen* configurationScreen;
 				OneLife::game::SceneBuilder* sceneBuilder;
 				LivingLifePage* gameSceneController;
 			}controller;
@@ -595,7 +598,6 @@ namespace OneLife::game
 			unsigned lastSignalValue;
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			bool useCustomServer;
-			bool isControllerRecentlySet;
 			char* serverMessage;
 
 			unsigned int idScreen;
