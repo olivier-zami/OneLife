@@ -8,9 +8,9 @@
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
-#include "OneLife/gameSource/components/messageChannel.h"
+#include "OneLife/gameSource/components/channel.h"
 
-OneLife::game::component::MessageChannel* OneLife::game::Controller::messageChannel = nullptr;
+OneLife::game::Channel* OneLife::game::Controller::channel = nullptr;
 
 int OneLife::game::Controller::sPageCount = 0;
 
@@ -89,6 +89,8 @@ OneLife::game::Controller::~Controller() {
         }
     }
 
+/**********************************************************************************************************************/
+
 void OneLife::game::Controller::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
@@ -97,26 +99,35 @@ void OneLife::game::Controller::handle(OneLife::dataType::UiComponent* screen)
 	screen->body = dataScreen;
 }
 
-void OneLife::game::Controller::setMessageChannel(OneLife::game::component::MessageChannel* messageChannel)
+void OneLife::game::Controller::handle(OneLife::game::Channel* channel)
 {
-	OneLife::game::Controller::messageChannel = messageChannel;
+	OneLife::game::Controller::channel = channel;
 }
+
+/**********************************************************************************************************************/
+
+OneLife::game::Channel* OneLife::game::Controller::getChannel()
+{
+	return OneLife::game::Controller::channel;
+}
+
+/**********************************************************************************************************************/
 
 void OneLife::game::Controller::sendSignal(unsigned int signal)
 {
-	OneLife::game::Controller::messageChannel->setLastSignal(signal);
+	OneLife::game::Controller::channel->setLastSignal(signal);
 }
 
 void OneLife::game::Controller::sendDeathMessage(const char* message)
 {
-	if(!OneLife::game::Controller::messageChannel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
-	OneLife::game::Controller::messageChannel->setExitMapMessage(message);
+	if(!OneLife::game::Controller::channel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
+	OneLife::game::Controller::channel->setExitMapMessage(message);
 }
 
 void OneLife::game::Controller::sendTripMessage(const char* message)
 {
-	if(!OneLife::game::Controller::messageChannel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
-	OneLife::game::Controller::messageChannel->setInitMapMessage(message);
+	if(!OneLife::game::Controller::channel) throw new OneLife::game::Exception("Attempt to send message on an undefined message channel.");
+	OneLife::game::Controller::channel->setInitMapMessage(message);
 }
 
 void OneLife::game::Controller::skipDrawingSubComponents( char inSkip ) {

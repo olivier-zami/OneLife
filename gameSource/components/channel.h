@@ -8,13 +8,13 @@
 #include <queue>
 #include "../dataTypes/message.h"
 
-namespace OneLife::game::component
+namespace OneLife::game
 {
-	class MessageChannel //Extend Pipe
+	class Channel //Extend Pipe
 	{
 		public:
-			MessageChannel();
-			~MessageChannel();
+			Channel();
+			~Channel();
 
 			void setLastSignal(unsigned int lastSignal);
 			unsigned int getLastSignal();

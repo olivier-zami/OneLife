@@ -29,9 +29,9 @@ components/engines/audioRenderer.cpp \
 components/engines/deviceListener.cpp \
 components/engines/GameSceneHandler.cpp \
 components/engines/screenRenderer.cpp \
+components/channel.cpp \
 components/controller.cpp \
 components/keyboard.cpp \
-components/messageChannel.cpp \
 controllers/AutoUpdatePage.cpp \
 controllers/configurationScreen.cpp \
 controllers/ExistingAccountPage.cpp \

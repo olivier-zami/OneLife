@@ -595,7 +595,8 @@ namespace OneLife::game
 			//!
 			LiveObject* player;
 
-			unsigned lastSignalValue;
+			//!messages
+			unsigned lastSignal;
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			bool useCustomServer;
 			char* serverMessage;
@@ -606,7 +607,7 @@ namespace OneLife::game
 			OneLife::game::DeviceListener* deviceListener;
 			OneLife::game::ScreenRenderer* screenRenderer;
 
-			OneLife::game::component::MessageChannel* messageChannel;
+			OneLife::game::Channel* channel;
 
 			std::vector<OneLife::game::Feature*> registeredFeature;
 

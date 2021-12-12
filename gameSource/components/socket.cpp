@@ -837,7 +837,6 @@ void startConnecting()
 		serverIP = SettingsManager::getStringSetting("customServerAddress" );
 		if( serverIP == NULL ) { serverIP = stringDuplicate( "127.0.0.1" ); }
 		serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
-		printf( "Using custom server address: %s:%d\n", serverIP, serverPort );
 
 		currentGamePage = livingLifePage;
 		currentGamePage->base_makeActive( true );

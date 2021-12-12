@@ -7,7 +7,7 @@
 #include "minorGems/game/gameGraphics.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 #include "OneLife/gameSource/components/socket.h"
-#include "OneLife/gameSource/components/messageChannel.h"
+#include "OneLife/gameSource/components/channel.h"
 #include "../dataTypes/message.h"
 
 namespace OneLife::game
@@ -18,16 +18,16 @@ namespace OneLife::game
 		public:
 			Controller();
 			virtual ~Controller();
-			virtual void handle(OneLife::dataType::UiComponent* screen);
 
-			static void setMessageChannel(OneLife::game::component::MessageChannel* messageChannel);
-			OneLife::game::component::MessageChannel* getMessageChannel();
+			virtual void handle(OneLife::dataType::UiComponent* screen);
+			static void handle(OneLife::game::Channel* channel);
+
+			OneLife::game::Channel* getChannel();
 
 			void sendSignal(unsigned int signal);
 
 			void sendDeathMessage(const char* message);
 			void sendTripMessage(const char* message);
-
 
 			void setStatus( const char *inStatusMessageKey, char inError );
 			// inStatusMessage destroyed by caller
@@ -197,7 +197,7 @@ namespace OneLife::game
 
 
 			/**************************************************************************************************************/
-			static OneLife::game::component::MessageChannel* messageChannel;
+			static OneLife::game::Channel* channel;
 
 
 			char mStatusError;

@@ -28,7 +28,7 @@
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/controller.h"
-#include "OneLife/gameSource/components/messageChannel.h"
+#include "OneLife/gameSource/components/channel.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 #include "OneLife/gameSource/procedures/graphics/drawFrame.h"
@@ -448,15 +448,15 @@ OneLife::game::Application::Application(
 	this->controller.gameSceneController = nullptr;
 
 	//!
-	this->lastSignalValue = signal::NONE;
+	this->lastSignal = signal::NONE;
 	this->currentController = nullptr;
 	this->useCustomServer = false;
 	this->serverMessage = nullptr;
 
 	this->deviceListener = new OneLife::game::DeviceListener();
 
-	this->messageChannel = new OneLife::game::component::MessageChannel();
-	OneLife::game::Controller::setMessageChannel(this->messageChannel);
+	this->channel = new OneLife::game::Channel();
+	OneLife::game::Controller::handle(this->channel);
 
 	this->screenRenderer = new OneLife::game::ScreenRenderer(this->currentScreen);
 	this->screenRenderer->setDefault(
@@ -1139,8 +1139,8 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 void OneLife::game::Application::readMessages()
 {
 	//!message from game
-	this->lastSignalValue = this->messageChannel->getLastSignal();
-	this->messageChannel->setLastSignal(signal::NONE);
+	this->lastSignal = this->channel->getLastSignal();
+	this->channel->setLastSignal(signal::NONE);
 
 	//!message from server
 	char *message = nullptr;
@@ -4826,785 +4826,790 @@ other->lineage.push_back( cousinNum );
 
 void OneLife::game::Application::selectScreen()
 {
-	if(!this->currentController)
+	switch(this->lastSignal)
 	{
-		OneLife::game::Debug::writeControllerInfo("Initialization");
-		if(!this->controller.initScreen) this->controller.initScreen = new OneLife::game::initScreen();
-		this->controller.initScreen->setServerSocketAddress(this->data.socket);
-		this->controller.initScreen->handle(&(this->component.socket));
-		this->controller.initScreen->handle(&(this->controller.sceneBuilder));//TODO remove this and SDL intialization
-		this->setController(this->controller.initScreen);
-	}
-	else if(this->currentController == (void*)this->controller.initScreen)
-	{
-		if(this->status.isNewScreen)
-		{
-			OneLife::game::Debug::writeControllerInfo("Load Configuration");
-			if(!this->controller.configurationScreen) this->controller.configurationScreen = new OneLife::game::ConfigurationScreen();
-			this->controller.configurationScreen->handleDemoMode(&demoMode);
-			this->controller.configurationScreen->handleWriteFailed(&writeFailed);
-			this->controller.configurationScreen->handleMeasureFrameRate(&measureFrameRate);
-			this->status.isNewScreen = false;
-		}
-		this->controller.configurationScreen->setPlaybackMode(this->isPlayingBack());
-		this->status.connectedMode = false;
-
-
-		if(((OneLife::game::initScreen*)this->currentController)->isTaskComplete())
-		{
-			this->setController(loadingPage);
-		}
-	}
-	else if(this->currentController == loadingPage)
-	{
-		if(this->status.isNewScreen)
-		{
-			OneLife::game::Debug::writeControllerInfo("Loading assets");
-			this->status.isNewScreen = false;
-		}
-		this->status.connectedMode = false;
-		this->currentController->base_step();
-		switch( loadingPhase )
-		{
-			case 0: {
-				float progress;
-				for( int i=0; i<loadingStepBatchSize; i++ ) {
-					progress = initSpriteBankStep();
-					loadingPage->setCurrentProgress( progress );
-				}
-
-
-				if( progress == 1.0 ) {
-					initSpriteBankFinish();
-
-					loadingPhaseStartTime = Time::getCurrentTime();
-
-					char rebuilding;
-
-					int numSounds = initSoundBankStart( &rebuilding );
-
-					if( rebuilding ) {
-						loadingPage->setCurrentPhase(
-								translate( "soundsRebuild" ) );
-					}
-					else {
-						loadingPage->setCurrentPhase(
-								translate( "sounds" ) );
-					}
-
-					loadingPage->setCurrentProgress( 0 );
-
-
-					loadingStepBatchSize = numSounds / numLoadingSteps;
-
-					if( loadingStepBatchSize < 1 ) {
-						loadingStepBatchSize = 1;
-					}
-
-					loadingPhase ++;
-				}
-				break;
-			}
-			case 1: {
-				float progress;
-				for( int i=0; i<loadingStepBatchSize; i++ ) {
-					progress = initSoundBankStep();
-					loadingPage->setCurrentProgress( progress );
-				}
-
-				if( progress == 1.0 ) {
-					initSoundBankFinish();
-
-					loadingPhaseStartTime = Time::getCurrentTime();
-
-					char rebuilding;
-
-					int numAnimations =
-							initAnimationBankStart( &rebuilding );
-
-					if( rebuilding ) {
-						loadingPage->setCurrentPhase(
-								translate( "animationsRebuild" ) );
-					}
-					else {
-						loadingPage->setCurrentPhase(
-								translate( "animations" ) );
-					}
-					loadingPage->setCurrentProgress( 0 );
-
-
-					loadingStepBatchSize = numAnimations / numLoadingSteps;
-
-					if( loadingStepBatchSize < 1 ) {
-						loadingStepBatchSize = 1;
-					}
-
-					loadingPhase ++;
-				}
-				break;
-			}
-			case 2: {
-				float progress;
-				for( int i=0; i<loadingStepBatchSize; i++ ) {
-					progress = initAnimationBankStep();
-					loadingPage->setCurrentProgress( progress );
-				}
-
-				if( progress == 1.0 ) {
-					initAnimationBankFinish();
-					//printf( "Finished loading animation bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-					loadingPhaseStartTime = Time::getCurrentTime();
-
-					char rebuilding;
-
-					int numObjects =
-							initObjectBankStart( &rebuilding, true, true );
-
-					if( rebuilding ) {
-						loadingPage->setCurrentPhase(
-								translate( "objectsRebuild" ) );
-					}
-					else {
-						loadingPage->setCurrentPhase(
-								translate( "objects" ) );
-					}
-					loadingPage->setCurrentProgress( 0 );
-
-
-					loadingStepBatchSize = numObjects / numLoadingSteps;
-
-					if( loadingStepBatchSize < 1 ) {
-						loadingStepBatchSize = 1;
-					}
-
-					loadingPhase ++;
-				}
-				break;
-			}
-			case 3: {
-				float progress;
-				for( int i=0; i<loadingStepBatchSize; i++ ) {
-					progress = initObjectBankStep();
-					loadingPage->setCurrentProgress( progress );
-				}
-
-				if( progress == 1.0 ) {
-					initObjectBankFinish();
-					//printf( "Finished loading object bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-					loadingPhaseStartTime = Time::getCurrentTime();
-
-					char rebuilding;
-
-					int numCats =
-							initCategoryBankStart( &rebuilding );
-
-					if( rebuilding ) {
-						loadingPage->setCurrentPhase(
-								translate( "categoriesRebuild" ) );
-					}
-					else {
-						loadingPage->setCurrentPhase(
-								translate( "categories" ) );
-					}
-					loadingPage->setCurrentProgress( 0 );
-
-
-					loadingStepBatchSize = numCats / numLoadingSteps;
-
-					if( loadingStepBatchSize < 1 ) {
-						loadingStepBatchSize = 1;
-					}
-
-					loadingPhase ++;
-				}
-				break;
-			}
-			case 4: {
-				float progress;
-				for( int i=0; i<loadingStepBatchSize; i++ ) {
-					progress = initCategoryBankStep();
-					loadingPage->setCurrentProgress( progress );
-				}
-
-				if( progress == 1.0 ) {
-					initCategoryBankFinish();
-					//printf( "Finished loading category bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-					loadingPhaseStartTime = Time::getCurrentTime();
-
-					char rebuilding;
-
-					// true to auto-generate concrete transitions
-					// for all abstract category transitions
-					int numTrans =
-							initTransBankStart( &rebuilding, true, true, true,
-									true );
-
-					if( rebuilding ) {
-						loadingPage->setCurrentPhase(
-								translate( "transitionsRebuild" ) );
-					}
-					else {
-						loadingPage->setCurrentPhase(
-								translate( "transitions" ) );
-					}
-					loadingPage->setCurrentProgress( 0 );
-
-
-					loadingStepBatchSize = numTrans / numLoadingSteps;
-
-					if( loadingStepBatchSize < 1 ) {
-						loadingStepBatchSize = 1;
-					}
-
-					loadingPhase ++;
-				}
-				break;
-			}
-			case 5: {
-				float progress;
-				for( int i=0; i<loadingStepBatchSize; i++ ) {
-					progress = initTransBankStep();
-					loadingPage->setCurrentProgress( progress );
-				}
-
-				if( progress == 1.0 ) {
-					initTransBankFinish();
-					//printf( "Finished loading transition bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-
-					loadingPhaseStartTime = Time::getCurrentTime();
-
-					loadingPage->setCurrentPhase(
-							translate( "groundTextures" ) );
-
-					loadingPage->setCurrentProgress( 0 );
-
-					initGroundSpritesStart();
-
-					loadingStepBatchSize = 1;
-
-
-					loadingPhase ++;
-				}
-				break;
-			}
-			case 6: {
-				float progress;
-				for( int i=0; i<loadingStepBatchSize; i++ ) {
-					progress = initGroundSpritesStep();
-					loadingPage->setCurrentProgress( progress );
-				}
-
-				if( progress == 1.0 ) {
-					initGroundSpritesFinish();
-					//printf( "Finished loading ground sprites in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-
-					loadingPhaseStartTime = Time::getCurrentTime();
-
-
-					initLiveObjectSet();
-
-					loadingPhaseStartTime = Time::getCurrentTime();
-
-					serverIP = SettingsManager::getStringSetting("customServerAddress" );
-					if( serverIP == NULL ) { serverIP = stringDuplicate( "127.0.0.1" ); }
-					serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
-
-					loadingPhase ++;
-				}
-				break;
-			}
-			default:
-				// NOW game engine can start measuring frame rate
-				loadingComplete();
-				initEmotion();
-				initPhotos();
-				initLifeTokens();
-				initFitnessScore();
-				initMusicPlayer();
-				setMusicLoudness( musicLoudness );
-				mapPullMode = SettingsManager::getIntSetting( "mapPullMode", 0 );
-				autoLogIn = SettingsManager::getIntSetting( "autoLogIn", 0 );
-				if( userEmail == NULL || accountKey == NULL ){autoLogIn = false;}
-				this->setController(existingAccountPage);
-				this->currentController->base_makeActive( true );
-		}
-	}
-	else if(this->currentController == getServerAddressPage)
-	{
-		if(this->status.isNewScreen)
-		{
-			OneLife::game::Debug::writeControllerInfo("Waiting Server Info settings");
-			this->status.isNewScreen = false;
-		}
-		this->status.connectedMode = false;
-		this->currentController->base_step();
-		if( getServerAddressPage->isResponseReady() )
-		{
-
-			if( serverIP != NULL ) {
-				delete [] serverIP;
-			}
-
-			serverIP = getServerAddressPage->getResponse( "serverIP" );
-			serverPort = getServerAddressPage->getResponseInt( "serverPort" );
-
-			if( strstr( serverIP, "NONE_FOUND" ) != NULL )
+		case signal::DONE:
+			OneLife::game::Debug::write("==>receive done signal");
+			if(this->currentController == (void*)this->controller.sceneBuilder)
 			{
-				this->setController(finalMessagePage);
-				finalMessagePage->setMessageKey( "serverShutdownMessage" );
-				this->currentController->base_makeActive( true );
-			}
-			else
-			{
-				//printf( "Got server address: %s:%d\n", serverIP, serverPort );
-				int requiredVersion = getServerAddressPage->getResponseInt("requiredVersionNumber" );
-				if( versionNumber < requiredVersion )
+				if(this->status.isNewScreen)
 				{
-					if( SettingsManager::getIntSetting(
-							"useSteamUpdate", 0 ) )
-					{
+					OneLife::game::Debug::writeControllerInfo("Generating environment...");
+					this->status.isNewScreen = false;
+					this->controller.sceneBuilder->handle(&livingLifePage);
+					this->controller.sceneBuilder->handle(&(this->player));
+					OneLife::game::Debug::write("this->component.socket : %p", this->component.socket);
+					this->controller.sceneBuilder->handle(this->component.socket);
+				}
+				this->setController(livingLifePage);
+				startConnecting();
+			}
+			this->status.connectedMode = false;
+			this->setController(livingLifePage);
+			startConnecting();
+			break;
+		default:
+			if(!this->currentController)
+			{
+				OneLife::game::Debug::writeControllerInfo("Initialization");
+				if(!this->controller.initScreen) this->controller.initScreen = new OneLife::game::initScreen();
+				this->controller.initScreen->setServerSocketAddress(this->data.socket);
+				this->controller.initScreen->handle(&(this->component.socket));
+				this->controller.initScreen->handle(&(this->controller.sceneBuilder));//TODO remove this and SDL intialization
+				this->setController(this->controller.initScreen);
+			}
+			else if(this->currentController == (void*)this->controller.initScreen)
+			{
+				if(this->status.isNewScreen)
+				{
+					OneLife::game::Debug::writeControllerInfo("Load Configuration");
+					if(!this->controller.configurationScreen) this->controller.configurationScreen = new OneLife::game::ConfigurationScreen();
+					this->controller.configurationScreen->handleDemoMode(&demoMode);
+					this->controller.configurationScreen->handleWriteFailed(&writeFailed);
+					this->controller.configurationScreen->handleMeasureFrameRate(&measureFrameRate);
+					this->status.isNewScreen = false;
+				}
+				this->controller.configurationScreen->setPlaybackMode(this->isPlayingBack());
+				this->status.connectedMode = false;
 
-						// flag SteamGate that app needs update
-						FILE *f = fopen( "steamGateForceUpdate.txt", "w" );
-						if( f != NULL ) {
-							fprintf( f, "1" );
-							fclose( f );
+
+				if(((OneLife::game::initScreen*)this->currentController)->isTaskComplete())
+				{
+					this->setController(loadingPage);
+				}
+			}
+			else if(this->currentController == loadingPage)
+			{
+				if(this->status.isNewScreen)
+				{
+					OneLife::game::Debug::writeControllerInfo("Loading assets");
+					this->status.isNewScreen = false;
+				}
+				this->status.connectedMode = false;
+				this->currentController->base_step();
+				switch( loadingPhase )
+				{
+					case 0: {
+						float progress;
+						for( int i=0; i<loadingStepBatchSize; i++ ) {
+							progress = initSpriteBankStep();
+							loadingPage->setCurrentProgress( progress );
 						}
 
-						// launch steamGateClient in parallel
-						// it will tell Steam that the app is dirty
-						// and needs to be updated.
-						runSteamGateClient();
+
+						if( progress == 1.0 ) {
+							initSpriteBankFinish();
+
+							loadingPhaseStartTime = Time::getCurrentTime();
+
+							char rebuilding;
+
+							int numSounds = initSoundBankStart( &rebuilding );
+
+							if( rebuilding ) {
+								loadingPage->setCurrentPhase(
+										translate( "soundsRebuild" ) );
+							}
+							else {
+								loadingPage->setCurrentPhase(
+										translate( "sounds" ) );
+							}
+
+							loadingPage->setCurrentProgress( 0 );
 
 
+							loadingStepBatchSize = numSounds / numLoadingSteps;
 
-						this->currentController = finalMessagePage;
+							if( loadingStepBatchSize < 1 ) {
+								loadingStepBatchSize = 1;
+							}
 
-						finalMessagePage->setMessageKey(
-								"upgradeMessageSteam" );
+							loadingPhase ++;
+						}
+						break;
+					}
+					case 1: {
+						float progress;
+						for( int i=0; i<loadingStepBatchSize; i++ ) {
+							progress = initSoundBankStep();
+							loadingPage->setCurrentProgress( progress );
+						}
 
+						if( progress == 1.0 ) {
+							initSoundBankFinish();
+
+							loadingPhaseStartTime = Time::getCurrentTime();
+
+							char rebuilding;
+
+							int numAnimations =
+									initAnimationBankStart( &rebuilding );
+
+							if( rebuilding ) {
+								loadingPage->setCurrentPhase(
+										translate( "animationsRebuild" ) );
+							}
+							else {
+								loadingPage->setCurrentPhase(
+										translate( "animations" ) );
+							}
+							loadingPage->setCurrentProgress( 0 );
+
+
+							loadingStepBatchSize = numAnimations / numLoadingSteps;
+
+							if( loadingStepBatchSize < 1 ) {
+								loadingStepBatchSize = 1;
+							}
+
+							loadingPhase ++;
+						}
+						break;
+					}
+					case 2: {
+						float progress;
+						for( int i=0; i<loadingStepBatchSize; i++ ) {
+							progress = initAnimationBankStep();
+							loadingPage->setCurrentProgress( progress );
+						}
+
+						if( progress == 1.0 ) {
+							initAnimationBankFinish();
+							//printf( "Finished loading animation bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
+							loadingPhaseStartTime = Time::getCurrentTime();
+
+							char rebuilding;
+
+							int numObjects =
+									initObjectBankStart( &rebuilding, true, true );
+
+							if( rebuilding ) {
+								loadingPage->setCurrentPhase(
+										translate( "objectsRebuild" ) );
+							}
+							else {
+								loadingPage->setCurrentPhase(
+										translate( "objects" ) );
+							}
+							loadingPage->setCurrentProgress( 0 );
+
+
+							loadingStepBatchSize = numObjects / numLoadingSteps;
+
+							if( loadingStepBatchSize < 1 ) {
+								loadingStepBatchSize = 1;
+							}
+
+							loadingPhase ++;
+						}
+						break;
+					}
+					case 3: {
+						float progress;
+						for( int i=0; i<loadingStepBatchSize; i++ ) {
+							progress = initObjectBankStep();
+							loadingPage->setCurrentProgress( progress );
+						}
+
+						if( progress == 1.0 ) {
+							initObjectBankFinish();
+							//printf( "Finished loading object bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
+							loadingPhaseStartTime = Time::getCurrentTime();
+
+							char rebuilding;
+
+							int numCats =
+									initCategoryBankStart( &rebuilding );
+
+							if( rebuilding ) {
+								loadingPage->setCurrentPhase(
+										translate( "categoriesRebuild" ) );
+							}
+							else {
+								loadingPage->setCurrentPhase(
+										translate( "categories" ) );
+							}
+							loadingPage->setCurrentProgress( 0 );
+
+
+							loadingStepBatchSize = numCats / numLoadingSteps;
+
+							if( loadingStepBatchSize < 1 ) {
+								loadingStepBatchSize = 1;
+							}
+
+							loadingPhase ++;
+						}
+						break;
+					}
+					case 4: {
+						float progress;
+						for( int i=0; i<loadingStepBatchSize; i++ ) {
+							progress = initCategoryBankStep();
+							loadingPage->setCurrentProgress( progress );
+						}
+
+						if( progress == 1.0 ) {
+							initCategoryBankFinish();
+							//printf( "Finished loading category bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
+							loadingPhaseStartTime = Time::getCurrentTime();
+
+							char rebuilding;
+
+							// true to auto-generate concrete transitions
+							// for all abstract category transitions
+							int numTrans =
+									initTransBankStart( &rebuilding, true, true, true,
+											true );
+
+							if( rebuilding ) {
+								loadingPage->setCurrentPhase(
+										translate( "transitionsRebuild" ) );
+							}
+							else {
+								loadingPage->setCurrentPhase(
+										translate( "transitions" ) );
+							}
+							loadingPage->setCurrentProgress( 0 );
+
+
+							loadingStepBatchSize = numTrans / numLoadingSteps;
+
+							if( loadingStepBatchSize < 1 ) {
+								loadingStepBatchSize = 1;
+							}
+
+							loadingPhase ++;
+						}
+						break;
+					}
+					case 5: {
+						float progress;
+						for( int i=0; i<loadingStepBatchSize; i++ ) {
+							progress = initTransBankStep();
+							loadingPage->setCurrentProgress( progress );
+						}
+
+						if( progress == 1.0 ) {
+							initTransBankFinish();
+							//printf( "Finished loading transition bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
+
+							loadingPhaseStartTime = Time::getCurrentTime();
+
+							loadingPage->setCurrentPhase(
+									translate( "groundTextures" ) );
+
+							loadingPage->setCurrentProgress( 0 );
+
+							initGroundSpritesStart();
+
+							loadingStepBatchSize = 1;
+
+
+							loadingPhase ++;
+						}
+						break;
+					}
+					case 6: {
+						float progress;
+						for( int i=0; i<loadingStepBatchSize; i++ ) {
+							progress = initGroundSpritesStep();
+							loadingPage->setCurrentProgress( progress );
+						}
+
+						if( progress == 1.0 ) {
+							initGroundSpritesFinish();
+							//printf( "Finished loading ground sprites in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
+
+							loadingPhaseStartTime = Time::getCurrentTime();
+
+
+							initLiveObjectSet();
+
+							loadingPhaseStartTime = Time::getCurrentTime();
+
+							serverIP = SettingsManager::getStringSetting("customServerAddress" );
+							if( serverIP == NULL ) { serverIP = stringDuplicate( "127.0.0.1" ); }
+							serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
+
+							loadingPhase ++;
+						}
+						break;
+					}
+					default:
+						// NOW game engine can start measuring frame rate
+						loadingComplete();
+						initEmotion();
+						initPhotos();
+						initLifeTokens();
+						initFitnessScore();
+						initMusicPlayer();
+						setMusicLoudness( musicLoudness );
+						mapPullMode = SettingsManager::getIntSetting( "mapPullMode", 0 );
+						autoLogIn = SettingsManager::getIntSetting( "autoLogIn", 0 );
+						if( userEmail == NULL || accountKey == NULL ){autoLogIn = false;}
+						this->setController(existingAccountPage);
+						this->currentController->base_makeActive( true );
+				}
+			}
+			else if(this->currentController == getServerAddressPage)
+			{
+				if(this->status.isNewScreen)
+				{
+					OneLife::game::Debug::writeControllerInfo("Waiting Server Info settings");
+					this->status.isNewScreen = false;
+				}
+				this->status.connectedMode = false;
+				this->currentController->base_step();
+				if( getServerAddressPage->isResponseReady() )
+				{
+
+					if( serverIP != NULL ) {
+						delete [] serverIP;
+					}
+
+					serverIP = getServerAddressPage->getResponse( "serverIP" );
+					serverPort = getServerAddressPage->getResponseInt( "serverPort" );
+
+					if( strstr( serverIP, "NONE_FOUND" ) != NULL )
+					{
+						this->setController(finalMessagePage);
+						finalMessagePage->setMessageKey( "serverShutdownMessage" );
 						this->currentController->base_makeActive( true );
 					}
 					else
 					{
-						char *autoUpdateURL =
-								getServerAddressPage->getResponse(
-										"autoUpdateURL" );
+						//printf( "Got server address: %s:%d\n", serverIP, serverPort );
+						int requiredVersion = getServerAddressPage->getResponseInt("requiredVersionNumber" );
+						if( versionNumber < requiredVersion )
+						{
+							if( SettingsManager::getIntSetting(
+									"useSteamUpdate", 0 ) )
+							{
 
-						char updateStarted =
-								startUpdate( autoUpdateURL, versionNumber );
+								// flag SteamGate that app needs update
+								FILE *f = fopen( "steamGateForceUpdate.txt", "w" );
+								if( f != NULL ) {
+									fprintf( f, "1" );
+									fclose( f );
+								}
 
-						delete [] autoUpdateURL;
+								// launch steamGateClient in parallel
+								// it will tell Steam that the app is dirty
+								// and needs to be updated.
+								runSteamGateClient();
 
-						if( ! updateStarted ) {
+
+
+								this->currentController = finalMessagePage;
+
+								finalMessagePage->setMessageKey(
+										"upgradeMessageSteam" );
+
+								this->currentController->base_makeActive( true );
+							}
+							else
+							{
+								char *autoUpdateURL =
+										getServerAddressPage->getResponse(
+												"autoUpdateURL" );
+
+								char updateStarted =
+										startUpdate( autoUpdateURL, versionNumber );
+
+								delete [] autoUpdateURL;
+
+								if( ! updateStarted ) {
+									this->currentController = finalMessagePage;
+
+									finalMessagePage->setMessageKey(
+											"upgradeMessage" );
+
+									this->currentController->base_makeActive( true );
+								}
+								else {
+									this->currentController = autoUpdatePage;
+									this->currentController->base_makeActive( true );
+								}
+							}
+						}
+						else
+						{
+							// up to date, okay to connect
+							this->setController(livingLifePage);
+							this->currentController->base_makeActive( true );
+						}
+					}
+				}
+			}
+			else if(this->currentController == existingAccountPage)
+			{
+				if(this->status.isNewScreen)
+				{
+					OneLife::game::Debug::writeControllerInfo("Checking for existing account ...");
+					this->status.isNewScreen = false;
+				}
+				this->status.connectedMode = false;
+				this->currentController->base_step();
+				if( existingAccountPage->checkSignal( "quit" ) ) {
+					quitGame();
+				}
+				else if( existingAccountPage->checkSignal( "poll" ) )
+				{
+					this->setController(pollPage);
+					this->currentController->base_makeActive( true );
+				}
+				else if( existingAccountPage->checkSignal( "genes" ) )
+				{
+					this->setController(geneticHistoryPage);
+					this->currentController->base_makeActive( true );
+				}
+				else if( existingAccountPage->checkSignal( "settings" ) )
+				{
+					this->setController(settingsPage);
+					this->currentController->base_makeActive( true );
+				}
+				else if( existingAccountPage->checkSignal( "review" ) )
+				{
+					this->setController(reviewPage);
+					this->currentController->base_makeActive( true );
+				}
+				else if( existingAccountPage->checkSignal( "friends" ) )
+				{
+					this->setController(twinPage);
+					this->currentController->base_makeActive( true );
+				}
+				else if( existingAccountPage->checkSignal( "done" )||mapPullMode || autoLogIn )
+				{
+					// auto-log-in one time for map pull
+					// or one time for autoLogInMode
+					mapPullMode = false;
+					autoLogIn = false;
+
+					// login button clears twin status
+					// they have to login from twin page to play as twin
+					if( userTwinCode != NULL ) {
+						delete [] userTwinCode;
+						userTwinCode = NULL;
+					}
+					OneLife::game::Debug::write("this->controller.sceneBuilder address : %p", this->controller.sceneBuilder);
+					this->setController(this->controller.sceneBuilder);
+				}
+				else if( existingAccountPage->checkSignal( "tutorial" ) )
+				{
+					livingLifePage->runTutorial();
+
+					// tutorial button clears twin status
+					// they have to login from twin page to play as twin
+					if( userTwinCode != NULL )
+					{
+						delete [] userTwinCode;
+						userTwinCode = NULL;
+					}
+					startConnecting();
+				}
+				else if( autoUpdatePage->checkSignal( "relaunchFailed" ) )
+				{
+					this->setController(finalMessagePage);
+					finalMessagePage->setMessageKey( "manualRestartMessage" );
+					this->currentController->base_makeActive( true );
+				}
+			}
+			else if(this->currentController == livingLifePage)
+			{
+				if(this->status.isNewScreen)
+				{
+					OneLife::game::Debug::writeControllerInfo("Living Life!");
+					this->status.isNewScreen = false;
+				}
+				this->status.connectedMode = true;
+				this->currentController->base_step();
+				if( livingLifePage->checkSignal( "loginFailed" ) )
+				{
+					lastScreenViewCenter.x = 0;
+					lastScreenViewCenter.y = 0;
+					setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+					this->setController(existingAccountPage);
+					existingAccountPage->setStatus( "loginFailed", true );
+					existingAccountPage->setStatusPositiion( true );
+					this->currentController->base_makeActive( true );
+				}
+				else if( livingLifePage->checkSignal( "noLifeTokens" ) )
+				{
+					lastScreenViewCenter.x = 0;
+					lastScreenViewCenter.y = 0;
+					setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+					this->setController(existingAccountPage);
+					existingAccountPage->setStatus( "noLifeTokens", true );
+					existingAccountPage->setStatusPositiion( true );
+					this->currentController->base_makeActive( true );
+				}
+				else if( livingLifePage->checkSignal( "connectionFailed" ) )
+				{
+					lastScreenViewCenter.x = 0;
+					lastScreenViewCenter.y = 0;
+					setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+					this->setController(existingAccountPage);
+					existingAccountPage->setStatus( "connectionFailed", true );
+					existingAccountPage->setStatusPositiion( true );
+					this->currentController->base_makeActive( true );
+				}
+				else if( livingLifePage->checkSignal( "versionMismatch" ) )
+				{
+					lastScreenViewCenter.x = 0;
+					lastScreenViewCenter.y = 0;
+					setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+					this->setController(existingAccountPage);
+					char *message = autoSprintf( translate( "versionMismatch" ),
+							versionNumber,
+							livingLifePage->
+									getRequiredVersion() );
+
+					if(!this->isUsingCustomServer())
+					{
+						existingAccountPage->showDisableCustomServerButton( true );
+					}
+
+
+					existingAccountPage->setStatusDirect( message, true );
+
+					delete [] message;
+
+					existingAccountPage->setStatusPositiion( true );
+
+					this->currentController->base_makeActive( true );
+				}
+				else if( livingLifePage->checkSignal( "twinCancel" ) ) {
+
+					existingAccountPage->setStatus( NULL, false );
+
+					lastScreenViewCenter.x = 0;
+					lastScreenViewCenter.y = 0;
+
+					setViewCenterPosition( lastScreenViewCenter.x,
+							lastScreenViewCenter.y );
+
+					this->currentController = existingAccountPage;
+
+					this->currentController->base_makeActive( true );
+				}
+				else if( livingLifePage->checkSignal( "serverShutdown" ) ) {
+					lastScreenViewCenter.x = 0;
+					lastScreenViewCenter.y = 0;
+
+					setViewCenterPosition( lastScreenViewCenter.x,
+							lastScreenViewCenter.y );
+
+					this->currentController = existingAccountPage;
+
+					existingAccountPage->setStatus( "serverShutdown", true );
+
+					existingAccountPage->setStatusPositiion( true );
+
+					this->currentController->base_makeActive( true );
+				}
+				else if( livingLifePage->checkSignal( "serverUpdate" ) ) {
+					lastScreenViewCenter.x = 0;
+					lastScreenViewCenter.y = 0;
+					setViewCenterPosition( lastScreenViewCenter.x,lastScreenViewCenter.y );
+					this->setController(existingAccountPage);
+					existingAccountPage->setStatus( "serverUpdate", true );
+					existingAccountPage->setStatusPositiion( true );
+					this->currentController->base_makeActive( true );
+				}
+				else if( livingLifePage->checkSignal( "serverFull" ) ) {
+					lastScreenViewCenter.x = 0;
+					lastScreenViewCenter.y = 0;
+
+					setViewCenterPosition( lastScreenViewCenter.x,
+							lastScreenViewCenter.y );
+
+					this->currentController = existingAccountPage;
+
+					existingAccountPage->setStatus( "serverFull", true );
+
+					existingAccountPage->setStatusPositiion( true );
+
+					this->currentController->base_makeActive( true );
+				}
+				else if( livingLifePage->checkSignal( "died" ) ) {
+					showDiedPage();
+				}
+				else if( livingLifePage->checkSignal( "disconnect" ) ) {
+					showReconnectPage();
+				}
+				else if( livingLifePage->checkSignal( "loadFailure" ) ) {
+					this->currentController = finalMessagePage;
+
+					finalMessagePage->setMessageKey( "loadingMapFailedMessage" );
+
+					char *failedFileName = getSpriteBankLoadFailure();
+					if( failedFileName == NULL ) {
+						failedFileName = getSoundBankLoadFailure();
+					}
+
+					if( failedFileName != NULL ) {
+
+						char *detailMessage =
+								autoSprintf( translate( "loadingMapFailedSubMessage" ),
+										failedFileName );
+						finalMessagePage->setSubMessage( detailMessage );
+						delete [] detailMessage;
+					}
+
+					this->currentController->base_makeActive( true );
+				}
+			}
+			else if(/* !writeFailed && !loadingFailedFlag*/ false )//step3 (demo mode done or was never enabled )
+			{
+				this->status.connectedMode = false;
+				if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}
+
+				if( this->currentController != NULL )
+				{
+					this->currentController->base_step();
+					if( this->currentController == settingsPage ) {
+						if( settingsPage->checkSignal( "back" ) ) {
+							existingAccountPage->setStatus( NULL, false );
+							this->currentController = existingAccountPage;
+							this->currentController->base_makeActive( true );
+						}
+						else if( settingsPage->checkSignal( "editAccount" ) ) {
+							loginEditOverride = true;
+
+							existingAccountPage->setStatus( "editAccountWarning", false );
+							existingAccountPage->setStatusPositiion( true );
+
+							this->currentController = existingAccountPage;
+							this->currentController->base_makeActive( true );
+						}
+						else if( settingsPage->checkSignal( "relaunchFailed" ) ) {
+							this->currentController = finalMessagePage;
+
+							finalMessagePage->setMessageKey( "manualRestartMessage" );
+
+							this->currentController->base_makeActive( true );
+						}
+
+					}
+					else if( this->currentController == reviewPage ) {
+						if( reviewPage->checkSignal( "back" ) ) {
+							existingAccountPage->setStatus( NULL, false );
+							this->currentController = existingAccountPage;
+							this->currentController->base_makeActive( true );
+						}
+					}
+					else if( this->currentController == twinPage ) {
+						if( twinPage->checkSignal( "cancel" ) ) {
+							existingAccountPage->setStatus( NULL, false );
+							this->currentController = existingAccountPage;
+							this->currentController->base_makeActive( true );
+						}
+						else if( twinPage->checkSignal( "done" ) ) {
+							//printf("\n=====>startConnecting() livingLifePage done");
+							startConnecting();
+						}
+					}
+					else  if( this->currentController == autoUpdatePage ) {
+						if( autoUpdatePage->checkSignal( "failed" ) ) {
+							this->currentController = finalMessagePage;
+
+							finalMessagePage->setMessageKey( "upgradeMessage" );
+
+							this->currentController->base_makeActive( true );
+						}
+						else if( autoUpdatePage->checkSignal( "writeError" ) ) {
 							this->currentController = finalMessagePage;
 
 							finalMessagePage->setMessageKey(
-									"upgradeMessage" );
+									"updateWritePermissionMessage" );
 
 							this->currentController->base_makeActive( true );
 						}
-						else {
-							this->currentController = autoUpdatePage;
+						else if( autoUpdatePage->checkSignal( "relaunchFailed" ) ) {
+							this->currentController = finalMessagePage;
+
+							finalMessagePage->setMessageKey( "manualRestartMessage" );
+
 							this->currentController->base_makeActive( true );
 						}
 					}
-				}
-				else
-				{
-					// up to date, okay to connect
-					this->setController(livingLifePage);
-					this->currentController->base_makeActive( true );
-				}
-			}
-		}
-	}
-	else if(this->currentController == existingAccountPage)
-	{
-		if(this->status.isNewScreen)
-		{
-			OneLife::game::Debug::writeControllerInfo("Checking for existing account ...");
-			this->status.isNewScreen = false;
-		}
-		this->status.connectedMode = false;
-		this->currentController->base_step();
-		if( existingAccountPage->checkSignal( "quit" ) ) {
-			quitGame();
-		}
-		else if( existingAccountPage->checkSignal( "poll" ) )
-		{
-			this->setController(pollPage);
-			this->currentController->base_makeActive( true );
-		}
-		else if( existingAccountPage->checkSignal( "genes" ) )
-		{
-			this->setController(geneticHistoryPage);
-			this->currentController->base_makeActive( true );
-		}
-		else if( existingAccountPage->checkSignal( "settings" ) )
-		{
-			this->setController(settingsPage);
-			this->currentController->base_makeActive( true );
-		}
-		else if( existingAccountPage->checkSignal( "review" ) )
-		{
-			this->setController(reviewPage);
-			this->currentController->base_makeActive( true );
-		}
-		else if( existingAccountPage->checkSignal( "friends" ) )
-		{
-			this->setController(twinPage);
-			this->currentController->base_makeActive( true );
-		}
-		else if( existingAccountPage->checkSignal( "done" )||mapPullMode || autoLogIn )
-		{
-			// auto-log-in one time for map pull
-			// or one time for autoLogInMode
-			mapPullMode = false;
-			autoLogIn = false;
+					else if( this->currentController == extendedMessagePage ) {
+						if( extendedMessagePage->checkSignal( "done" ) ) {
 
-			// login button clears twin status
-			// they have to login from twin page to play as twin
-			if( userTwinCode != NULL ) {
-				delete [] userTwinCode;
-				userTwinCode = NULL;
-			}
-			OneLife::game::Debug::write("this->controller.sceneBuilder address : %p", this->controller.sceneBuilder);
-			this->setController(this->controller.sceneBuilder);
-		}
-		else if( existingAccountPage->checkSignal( "tutorial" ) )
-		{
-			livingLifePage->runTutorial();
+							extendedMessagePage->setSubMessage( "" );
 
-			// tutorial button clears twin status
-			// they have to login from twin page to play as twin
-			if( userTwinCode != NULL )
+							if( userReconnect ) {
+								//printf("\n===>setting this->currentController to livingLifePage (extendedMessagePage)");
+								this->currentController = livingLifePage;
+							}
+							else {
+								this->currentController = pollPage;
+							}
+							this->currentController->base_makeActive( true );
+						}
+					}
+					else if( this->currentController == pollPage ) {
+						if( pollPage->checkSignal( "done" ) ) {
+							this->currentController = rebirthChoicePage;
+							this->currentController->base_makeActive( true );
+						}
+					}
+					else if( this->currentController == geneticHistoryPage ) {
+						if( geneticHistoryPage->checkSignal( "done" ) ) {
+							if( !isHardToQuitMode() ) {
+								this->currentController = existingAccountPage;
+							}
+							else {
+								this->currentController = rebirthChoicePage;
+							}
+							this->currentController->base_makeActive( true );
+						}
+					}
+					else if( this->currentController == rebirthChoicePage ) {
+						if( rebirthChoicePage->checkSignal( "reborn" ) ) {
+							// get server address again from scratch, in case
+							// the server we were on just crashed
+
+							// but keep twin status, if set
+							//printf("\n=====>startConnecting() geneticHistoryPage reborn");
+							startConnecting();
+						}
+						else if( rebirthChoicePage->checkSignal( "tutorial" ) ) {
+							livingLifePage->runTutorial();
+							// heck, allow twins in tutorial too, for now, it's funny
+							//printf("\n=====>startConnecting() geneticHistoryPage tutorial");
+							startConnecting();
+						}
+						else if( rebirthChoicePage->checkSignal( "review" ) ) {
+							this->currentController = reviewPage;
+							this->currentController->base_makeActive( true );
+						}
+						else if( rebirthChoicePage->checkSignal( "menu" ) ) {
+							this->currentController = existingAccountPage;
+							this->currentController->base_makeActive( true );
+						}
+						else if( rebirthChoicePage->checkSignal( "genes" ) ) {
+							this->currentController = geneticHistoryPage;
+							this->currentController->base_makeActive( true );
+						}
+						else if( rebirthChoicePage->checkSignal( "quit" ) ) {
+							quitGame();
+						}
+					}
+					else if( this->currentController == finalMessagePage ) {
+						if( finalMessagePage->checkSignal( "quit" ) ) {
+							quitGame();
+						}
+					}
+				}
+
+			}
+			else
 			{
-				delete [] userTwinCode;
-				userTwinCode = NULL;
+				OneLife::game::Debug::write("Current controller unknown. Address : %p", this->currentController);
 			}
-			startConnecting();
-		}
-		else if( autoUpdatePage->checkSignal( "relaunchFailed" ) )
-		{
-			this->setController(finalMessagePage);
-			finalMessagePage->setMessageKey( "manualRestartMessage" );
-			this->currentController->base_makeActive( true );
-		}
-	}
-	else if(this->currentController == (void*)this->controller.sceneBuilder)
-	{
-		if(this->status.isNewScreen)
-		{
-			OneLife::game::Debug::writeControllerInfo("Generating environment...");
-			this->status.isNewScreen = false;
-			this->controller.sceneBuilder->handle(&livingLifePage);
-			this->controller.sceneBuilder->handle(&(this->player));
-			OneLife::game::Debug::write("this->component.socket : %p", this->component.socket);
-			this->controller.sceneBuilder->handle(this->component.socket);
-		}
-		this->status.connectedMode = false;
-		switch(this->lastSignalValue)
-		{
-			case signal::DONE:
-				this->setController(livingLifePage);
-				startConnecting();
-				break;
-		}
-	}
-	else if(this->currentController == livingLifePage)
-	{
-		if(this->status.isNewScreen)
-		{
-			OneLife::game::Debug::writeControllerInfo("Living Life!");
-			this->status.isNewScreen = false;
-		}
-		this->status.connectedMode = true;
-		this->currentController->base_step();
-		if( livingLifePage->checkSignal( "loginFailed" ) )
-		{
-			lastScreenViewCenter.x = 0;
-			lastScreenViewCenter.y = 0;
-			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
-			this->setController(existingAccountPage);
-			existingAccountPage->setStatus( "loginFailed", true );
-			existingAccountPage->setStatusPositiion( true );
-			this->currentController->base_makeActive( true );
-		}
-		else if( livingLifePage->checkSignal( "noLifeTokens" ) )
-		{
-			lastScreenViewCenter.x = 0;
-			lastScreenViewCenter.y = 0;
-			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
-			this->setController(existingAccountPage);
-			existingAccountPage->setStatus( "noLifeTokens", true );
-			existingAccountPage->setStatusPositiion( true );
-			this->currentController->base_makeActive( true );
-		}
-		else if( livingLifePage->checkSignal( "connectionFailed" ) )
-		{
-			lastScreenViewCenter.x = 0;
-			lastScreenViewCenter.y = 0;
-			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
-			this->setController(existingAccountPage);
-			existingAccountPage->setStatus( "connectionFailed", true );
-			existingAccountPage->setStatusPositiion( true );
-			this->currentController->base_makeActive( true );
-		}
-		else if( livingLifePage->checkSignal( "versionMismatch" ) )
-		{
-			lastScreenViewCenter.x = 0;
-			lastScreenViewCenter.y = 0;
-			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
-			this->setController(existingAccountPage);
-			char *message = autoSprintf( translate( "versionMismatch" ),
-					versionNumber,
-					livingLifePage->
-							getRequiredVersion() );
-
-			if(!this->isUsingCustomServer())
-			{
-				existingAccountPage->showDisableCustomServerButton( true );
-			}
-
-
-			existingAccountPage->setStatusDirect( message, true );
-
-			delete [] message;
-
-			existingAccountPage->setStatusPositiion( true );
-
-			this->currentController->base_makeActive( true );
-		}
-		else if( livingLifePage->checkSignal( "twinCancel" ) ) {
-
-			existingAccountPage->setStatus( NULL, false );
-
-			lastScreenViewCenter.x = 0;
-			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
-			this->currentController = existingAccountPage;
-
-			this->currentController->base_makeActive( true );
-		}
-		else if( livingLifePage->checkSignal( "serverShutdown" ) ) {
-			lastScreenViewCenter.x = 0;
-			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
-			this->currentController = existingAccountPage;
-
-			existingAccountPage->setStatus( "serverShutdown", true );
-
-			existingAccountPage->setStatusPositiion( true );
-
-			this->currentController->base_makeActive( true );
-		}
-		else if( livingLifePage->checkSignal( "serverUpdate" ) ) {
-			lastScreenViewCenter.x = 0;
-			lastScreenViewCenter.y = 0;
-			setViewCenterPosition( lastScreenViewCenter.x,lastScreenViewCenter.y );
-			this->setController(existingAccountPage);
-			existingAccountPage->setStatus( "serverUpdate", true );
-			existingAccountPage->setStatusPositiion( true );
-			this->currentController->base_makeActive( true );
-		}
-		else if( livingLifePage->checkSignal( "serverFull" ) ) {
-			lastScreenViewCenter.x = 0;
-			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
-			this->currentController = existingAccountPage;
-
-			existingAccountPage->setStatus( "serverFull", true );
-
-			existingAccountPage->setStatusPositiion( true );
-
-			this->currentController->base_makeActive( true );
-		}
-		else if( livingLifePage->checkSignal( "died" ) ) {
-			showDiedPage();
-		}
-		else if( livingLifePage->checkSignal( "disconnect" ) ) {
-			showReconnectPage();
-		}
-		else if( livingLifePage->checkSignal( "loadFailure" ) ) {
-			this->currentController = finalMessagePage;
-
-			finalMessagePage->setMessageKey( "loadingMapFailedMessage" );
-
-			char *failedFileName = getSpriteBankLoadFailure();
-			if( failedFileName == NULL ) {
-				failedFileName = getSoundBankLoadFailure();
-			}
-
-			if( failedFileName != NULL ) {
-
-				char *detailMessage =
-						autoSprintf( translate( "loadingMapFailedSubMessage" ),
-								failedFileName );
-				finalMessagePage->setSubMessage( detailMessage );
-				delete [] detailMessage;
-			}
-
-			this->currentController->base_makeActive( true );
-		}
-	}
-	else if(/* !writeFailed && !loadingFailedFlag*/ false )//step3 (demo mode done or was never enabled )
-	{
-		this->status.connectedMode = false;
-		if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}
-
-		if( this->currentController != NULL )
-		{
-			this->currentController->base_step();
-			if( this->currentController == settingsPage ) {
-				if( settingsPage->checkSignal( "back" ) ) {
-					existingAccountPage->setStatus( NULL, false );
-					this->currentController = existingAccountPage;
-					this->currentController->base_makeActive( true );
-				}
-				else if( settingsPage->checkSignal( "editAccount" ) ) {
-					loginEditOverride = true;
-
-					existingAccountPage->setStatus( "editAccountWarning", false );
-					existingAccountPage->setStatusPositiion( true );
-
-					this->currentController = existingAccountPage;
-					this->currentController->base_makeActive( true );
-				}
-				else if( settingsPage->checkSignal( "relaunchFailed" ) ) {
-					this->currentController = finalMessagePage;
-
-					finalMessagePage->setMessageKey( "manualRestartMessage" );
-
-					this->currentController->base_makeActive( true );
-				}
-
-			}
-			else if( this->currentController == reviewPage ) {
-				if( reviewPage->checkSignal( "back" ) ) {
-					existingAccountPage->setStatus( NULL, false );
-					this->currentController = existingAccountPage;
-					this->currentController->base_makeActive( true );
-				}
-			}
-			else if( this->currentController == twinPage ) {
-				if( twinPage->checkSignal( "cancel" ) ) {
-					existingAccountPage->setStatus( NULL, false );
-					this->currentController = existingAccountPage;
-					this->currentController->base_makeActive( true );
-				}
-				else if( twinPage->checkSignal( "done" ) ) {
-					//printf("\n=====>startConnecting() livingLifePage done");
-					startConnecting();
-				}
-			}
-			else  if( this->currentController == autoUpdatePage ) {
-				if( autoUpdatePage->checkSignal( "failed" ) ) {
-					this->currentController = finalMessagePage;
-
-					finalMessagePage->setMessageKey( "upgradeMessage" );
-
-					this->currentController->base_makeActive( true );
-				}
-				else if( autoUpdatePage->checkSignal( "writeError" ) ) {
-					this->currentController = finalMessagePage;
-
-					finalMessagePage->setMessageKey(
-							"updateWritePermissionMessage" );
-
-					this->currentController->base_makeActive( true );
-				}
-				else if( autoUpdatePage->checkSignal( "relaunchFailed" ) ) {
-					this->currentController = finalMessagePage;
-
-					finalMessagePage->setMessageKey( "manualRestartMessage" );
-
-					this->currentController->base_makeActive( true );
-				}
-			}
-			else if( this->currentController == extendedMessagePage ) {
-				if( extendedMessagePage->checkSignal( "done" ) ) {
-
-					extendedMessagePage->setSubMessage( "" );
-
-					if( userReconnect ) {
-						//printf("\n===>setting this->currentController to livingLifePage (extendedMessagePage)");
-						this->currentController = livingLifePage;
-					}
-					else {
-						this->currentController = pollPage;
-					}
-					this->currentController->base_makeActive( true );
-				}
-			}
-			else if( this->currentController == pollPage ) {
-				if( pollPage->checkSignal( "done" ) ) {
-					this->currentController = rebirthChoicePage;
-					this->currentController->base_makeActive( true );
-				}
-			}
-			else if( this->currentController == geneticHistoryPage ) {
-				if( geneticHistoryPage->checkSignal( "done" ) ) {
-					if( !isHardToQuitMode() ) {
-						this->currentController = existingAccountPage;
-					}
-					else {
-						this->currentController = rebirthChoicePage;
-					}
-					this->currentController->base_makeActive( true );
-				}
-			}
-			else if( this->currentController == rebirthChoicePage ) {
-				if( rebirthChoicePage->checkSignal( "reborn" ) ) {
-					// get server address again from scratch, in case
-					// the server we were on just crashed
-
-					// but keep twin status, if set
-					//printf("\n=====>startConnecting() geneticHistoryPage reborn");
-					startConnecting();
-				}
-				else if( rebirthChoicePage->checkSignal( "tutorial" ) ) {
-					livingLifePage->runTutorial();
-					// heck, allow twins in tutorial too, for now, it's funny
-					//printf("\n=====>startConnecting() geneticHistoryPage tutorial");
-					startConnecting();
-				}
-				else if( rebirthChoicePage->checkSignal( "review" ) ) {
-					this->currentController = reviewPage;
-					this->currentController->base_makeActive( true );
-				}
-				else if( rebirthChoicePage->checkSignal( "menu" ) ) {
-					this->currentController = existingAccountPage;
-					this->currentController->base_makeActive( true );
-				}
-				else if( rebirthChoicePage->checkSignal( "genes" ) ) {
-					this->currentController = geneticHistoryPage;
-					this->currentController->base_makeActive( true );
-				}
-				else if( rebirthChoicePage->checkSignal( "quit" ) ) {
-					quitGame();
-				}
-			}
-			else if( this->currentController == finalMessagePage ) {
-				if( finalMessagePage->checkSignal( "quit" ) ) {
-					quitGame();
-				}
-			}
-		}
-
-	}
-	else
-	{
-		OneLife::game::Debug::write("Current controller unknown. Address : %p", this->currentController);
+			break;
 	}
 }
 
