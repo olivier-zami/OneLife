@@ -9,7 +9,7 @@
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/debug.h"
 
-using signal = OneLife::dataType::Signal;
+using SIGNAL = OneLife::dataType::Signal;
 
 OneLife::game::ConfigurationScreen::ConfigurationScreen()
 {
@@ -38,6 +38,10 @@ void OneLife::game::ConfigurationScreen::handle(OneLife::dataType::UiComponent* 
 	else if(!this->status.isEnvironmentChecked)
 	{
 		this->checkEnvironment();
+	}
+	else
+	{
+		this->sendSignal(SIGNAL::DONE);
 	}
 }
 

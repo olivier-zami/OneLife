@@ -495,8 +495,10 @@ void OneLife::game::Controller::base_keyDown( unsigned char inASCII ) {
 
 
 
-void OneLife::game::Controller::base_makeActive( char inFresh ){
-    if( inFresh ) {    
+void OneLife::game::Controller::base_makeActive( char inFresh )
+{
+    if( inFresh )
+	{
         for( int i=0; i<mComponents.size(); i++ ) {
             PageComponent *c = *( mComponents.getElement( i ) );
             
@@ -512,10 +514,8 @@ void OneLife::game::Controller::base_makeActive( char inFresh ){
 
         clearSignal();
         }
-    
-
     makeActive( inFresh );
-    }
+}
 
 
 

@@ -9,7 +9,8 @@ namespace OneLife::dataType
 {
 	typedef enum{
 		NONE,
-		DONE
+		DONE,
+		QUIT
 	}Signal;
 }
 

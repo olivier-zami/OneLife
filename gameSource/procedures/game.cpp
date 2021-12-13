@@ -60,7 +60,6 @@ extern CustomRandomSource randSource;
 #include "OneLife/gameSource/controllers/FinalMessagePage.h"
 #include "OneLife/gameSource/controllers/GeneticHistoryPage.h"
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
-#include "OneLife/gameSource/controllers/LoadingPage.h"
 #include "OneLife/gameSource/controllers/PollPage.h"
 #include "OneLife/gameSource/controllers/RebirthChoicePage.h"
 #include "OneLife/gameSource/controllers/ReviewPage.h"
@@ -105,7 +104,6 @@ int userID = -1;
 int serverSequenceNumber = 0;
 FinalMessagePage *finalMessagePage;
 ServerActionPage *getServerAddressPage;
-LoadingPage *loadingPage;
 AutoUpdatePage *autoUpdatePage;
 LivingLifePage *livingLifePage;
 ExistingAccountPage *existingAccountPage;
@@ -168,7 +166,6 @@ bool isTrippingEffectOn = false;
 // fraction of viewWidth visible vertically (aspect ratio)
 double viewHeightFraction;
 int screenW, screenH;
-char initDone = false;
 float mouseSpeed;
 int maxSimultaneousExpectedSoundEffects = 10;
 
@@ -512,7 +509,6 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
 
 
 	finalMessagePage = new FinalMessagePage;
-	loadingPage = new LoadingPage;
 	autoUpdatePage = new AutoUpdatePage;
 	livingLifePage = NULL;
 	existingAccountPage = new ExistingAccountPage;
@@ -545,38 +541,13 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
 	//setSoundSpriteRateRange( 0.95, 1.05 );
 	setSoundSpriteVolumeRange( 0.60, 1.0 );
 
-	char rebuilding;
-
-	int numSprites =
-			initSpriteBankStart( &rebuilding );
-
-	if( rebuilding ) {
-		loadingPage->setCurrentPhase( translate( "spritesRebuild" ) );
-	}
-	else {
-		loadingPage->setCurrentPhase( translate( "sprites" ) );
-	}
-	loadingPage->setCurrentProgress( 0 );
-
-
-	loadingStepBatchSize = numSprites / numLoadingSteps;
-
-	if( loadingStepBatchSize < 1 ) {
-		loadingStepBatchSize = 1;
-	}
+	//char rebuilding;//TODO: delete (moved to LoadingPage)
+	//int numSprites = initSpriteBankStart( &rebuilding );//TODO: delete (moved to LoadingPage)
+	//loadingStepBatchSize = numSprites / numLoadingSteps;//TODO: delete (moved to LoadingPage)
+	//if( loadingStepBatchSize < 1 )loadingStepBatchSize = 1;//TODO: delete (moved to LoadingPage)
 
 	// for filter support in LivingLifePage
 	enableObjectSearch( true );
-
-
-	currentGamePage = loadingPage;
-
-	//testPage = new TestPage;
-	//currentGamePage = testPage;
-
-	currentGamePage->base_makeActive( true );
-
-	initDone = true;
 }
 
 

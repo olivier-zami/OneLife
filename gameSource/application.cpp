@@ -24,6 +24,8 @@
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "OneLife/gameSource/misc_plateformspecific.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
+#include "OneLife/gameSource/controllers/LivingLifePage.h"
+#include "OneLife/gameSource/controllers/LoadingPage.h"
 #include "OneLife/gameSource/components/keyboard.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
@@ -36,7 +38,7 @@
 #include "OneLife/gameSource/dataTypes/feature.h"
 #include "OneLife/gameSource/debug.h"
 
-using signal = OneLife::dataType::Signal;
+using SIGNAL = OneLife::dataType::Signal;
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
@@ -51,7 +53,7 @@ using namespace OneLife::dataType::hardware::keyboard;
 extern unsigned char keyMap[256];
 extern char keyMapOn;
 extern GameSceneHandler *sceneHandler;
-#include "OneLife/gameSource/controllers/LivingLifePage.h"
+
 extern OneLife::game::Controller* currentGamePage;
 extern LivingLifePage *livingLifePage;
 
@@ -85,6 +87,7 @@ OneLife::game::Application *currentScreenGL;
 long timeSinceLastFrameMS = 0;// FOVMOD NOTE:  Change 1/3 - Take these lines during the merge process
 //char screenGLStencilBufferSupported = false; //TODO: check if not used somewhere =>delete
 char measureRecorded = false;
+LoadingPage *loadingPage;
 
 static int numFramesSkippedBeforeMeasure = 0;
 static int numFramesToSkipBeforeMeasure = 30;
@@ -115,7 +118,6 @@ char rightKey = 'd';
 #include "OneLife/gameSource/controllers/FinalMessagePage.h"
 #include "OneLife/gameSource/controllers/GeneticHistoryPage.h"
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
-#include "OneLife/gameSource/controllers/LoadingPage.h"
 #include "OneLife/gameSource/controllers/PollPage.h"
 #include "OneLife/gameSource/controllers/RebirthChoicePage.h"
 #include "OneLife/gameSource/controllers/ReviewPage.h"
@@ -164,9 +166,8 @@ extern char *currentUserTypedMessage;
 extern int loadingStepBatchSize;
 extern int numLoadingSteps;
 extern char loginEditOverride;
+extern double loadingPhaseStartTime;
 
-int loadingPhase = 0;
-double loadingPhaseStartTime;
 /**********************************************************************************************************************/
 
 OneLife::game::Application::Application(
@@ -444,12 +445,14 @@ OneLife::game::Application::Application(
 	this->component.socket = nullptr;
 
 	//!set controllers
+	this->currentController = nullptr;
+	this->controller.initScreen = nullptr;
 	this->controller.configurationScreen = nullptr;
+	this->controller.sceneBuilder = nullptr;
 	this->controller.gameSceneController = nullptr;
 
 	//!
-	this->lastSignal = signal::NONE;
-	this->currentController = nullptr;
+	this->lastSignal = SIGNAL::NONE;
 	this->useCustomServer = false;
 	this->serverMessage = nullptr;
 
@@ -1140,7 +1143,7 @@ void OneLife::game::Application::readMessages()
 {
 	//!message from game
 	this->lastSignal = this->channel->getLastSignal();
-	this->channel->setLastSignal(signal::NONE);
+	this->channel->setLastSignal(SIGNAL::NONE);
 
 	//!message from server
 	char *message = nullptr;
@@ -4826,11 +4829,25 @@ other->lineage.push_back( cousinNum );
 
 void OneLife::game::Application::selectScreen()
 {
+	if(!this->currentController) this->setController(&(this->controller.initScreen));
 	switch(this->lastSignal)
 	{
-		case signal::DONE:
+		case SIGNAL::DONE:
 			OneLife::game::Debug::write("==>receive done signal");
-			if(this->currentController == (void*)this->controller.sceneBuilder)
+			if(this->currentController == (void*)this->controller.initScreen)
+			{
+				this->setController(&this->controller.configurationScreen);
+			}
+			else if(this->currentController == (void*)this->controller.configurationScreen)
+			{
+				this->setController(&loadingPage);
+			}
+			else if(this->currentController == (void*)loadingPage)
+			{
+				this->setController(&existingAccountPage);
+			}
+			/*
+			else if(this->currentController == (void*)this->controller.sceneBuilder)
 			{
 				if(this->status.isNewScreen)
 				{
@@ -4841,318 +4858,22 @@ void OneLife::game::Application::selectScreen()
 					OneLife::game::Debug::write("this->component.socket : %p", this->component.socket);
 					this->controller.sceneBuilder->handle(this->component.socket);
 				}
+				this->status.connectedMode = false;
 				this->setController(livingLifePage);
 				startConnecting();
 			}
-			this->status.connectedMode = false;
-			this->setController(livingLifePage);
-			startConnecting();
+		 	*/
+			else
+			{
+				OneLife::game::Debug::write("===>unknown controller(%p) send signal DONE");
+			}
+			break;
+		case SIGNAL::QUIT:
+			this->quit = true;
 			break;
 		default:
-			if(!this->currentController)
-			{
-				OneLife::game::Debug::writeControllerInfo("Initialization");
-				if(!this->controller.initScreen) this->controller.initScreen = new OneLife::game::initScreen();
-				this->controller.initScreen->setServerSocketAddress(this->data.socket);
-				this->controller.initScreen->handle(&(this->component.socket));
-				this->controller.initScreen->handle(&(this->controller.sceneBuilder));//TODO remove this and SDL intialization
-				this->setController(this->controller.initScreen);
-			}
-			else if(this->currentController == (void*)this->controller.initScreen)
-			{
-				if(this->status.isNewScreen)
-				{
-					OneLife::game::Debug::writeControllerInfo("Load Configuration");
-					if(!this->controller.configurationScreen) this->controller.configurationScreen = new OneLife::game::ConfigurationScreen();
-					this->controller.configurationScreen->handleDemoMode(&demoMode);
-					this->controller.configurationScreen->handleWriteFailed(&writeFailed);
-					this->controller.configurationScreen->handleMeasureFrameRate(&measureFrameRate);
-					this->status.isNewScreen = false;
-				}
-				this->controller.configurationScreen->setPlaybackMode(this->isPlayingBack());
-				this->status.connectedMode = false;
-
-
-				if(((OneLife::game::initScreen*)this->currentController)->isTaskComplete())
-				{
-					this->setController(loadingPage);
-				}
-			}
-			else if(this->currentController == loadingPage)
-			{
-				if(this->status.isNewScreen)
-				{
-					OneLife::game::Debug::writeControllerInfo("Loading assets");
-					this->status.isNewScreen = false;
-				}
-				this->status.connectedMode = false;
-				this->currentController->base_step();
-				switch( loadingPhase )
-				{
-					case 0: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initSpriteBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-
-						if( progress == 1.0 ) {
-							initSpriteBankFinish();
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							int numSounds = initSoundBankStart( &rebuilding );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "soundsRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "sounds" ) );
-							}
-
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numSounds / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 1: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initSoundBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initSoundBankFinish();
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							int numAnimations =
-									initAnimationBankStart( &rebuilding );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "animationsRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "animations" ) );
-							}
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numAnimations / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 2: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initAnimationBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initAnimationBankFinish();
-							//printf( "Finished loading animation bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							int numObjects =
-									initObjectBankStart( &rebuilding, true, true );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "objectsRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "objects" ) );
-							}
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numObjects / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 3: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initObjectBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initObjectBankFinish();
-							//printf( "Finished loading object bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							int numCats =
-									initCategoryBankStart( &rebuilding );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "categoriesRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "categories" ) );
-							}
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numCats / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 4: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initCategoryBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initCategoryBankFinish();
-							//printf( "Finished loading category bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							char rebuilding;
-
-							// true to auto-generate concrete transitions
-							// for all abstract category transitions
-							int numTrans =
-									initTransBankStart( &rebuilding, true, true, true,
-											true );
-
-							if( rebuilding ) {
-								loadingPage->setCurrentPhase(
-										translate( "transitionsRebuild" ) );
-							}
-							else {
-								loadingPage->setCurrentPhase(
-										translate( "transitions" ) );
-							}
-							loadingPage->setCurrentProgress( 0 );
-
-
-							loadingStepBatchSize = numTrans / numLoadingSteps;
-
-							if( loadingStepBatchSize < 1 ) {
-								loadingStepBatchSize = 1;
-							}
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 5: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initTransBankStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initTransBankFinish();
-							//printf( "Finished loading transition bank in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							loadingPage->setCurrentPhase(
-									translate( "groundTextures" ) );
-
-							loadingPage->setCurrentProgress( 0 );
-
-							initGroundSpritesStart();
-
-							loadingStepBatchSize = 1;
-
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					case 6: {
-						float progress;
-						for( int i=0; i<loadingStepBatchSize; i++ ) {
-							progress = initGroundSpritesStep();
-							loadingPage->setCurrentProgress( progress );
-						}
-
-						if( progress == 1.0 ) {
-							initGroundSpritesFinish();
-							//printf( "Finished loading ground sprites in %f sec\n", Time::getCurrentTime() - loadingPhaseStartTime );
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-
-							initLiveObjectSet();
-
-							loadingPhaseStartTime = Time::getCurrentTime();
-
-							serverIP = SettingsManager::getStringSetting("customServerAddress" );
-							if( serverIP == NULL ) { serverIP = stringDuplicate( "127.0.0.1" ); }
-							serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
-
-							loadingPhase ++;
-						}
-						break;
-					}
-					default:
-						// NOW game engine can start measuring frame rate
-						loadingComplete();
-						initEmotion();
-						initPhotos();
-						initLifeTokens();
-						initFitnessScore();
-						initMusicPlayer();
-						setMusicLoudness( musicLoudness );
-						mapPullMode = SettingsManager::getIntSetting( "mapPullMode", 0 );
-						autoLogIn = SettingsManager::getIntSetting( "autoLogIn", 0 );
-						if( userEmail == NULL || accountKey == NULL ){autoLogIn = false;}
-						this->setController(existingAccountPage);
-						this->currentController->base_makeActive( true );
-				}
-			}
-			else if(this->currentController == getServerAddressPage)
+			/*
+			if(this->currentController == getServerAddressPage)
 			{
 				if(this->status.isNewScreen)
 				{
@@ -5242,7 +4963,9 @@ void OneLife::game::Application::selectScreen()
 					}
 				}
 			}
-			else if(this->currentController == existingAccountPage)
+			*/
+			/*
+			if(this->currentController == existingAccountPage)
 			{
 				if(this->status.isNewScreen)
 				{
@@ -5315,6 +5038,7 @@ void OneLife::game::Application::selectScreen()
 					this->currentController->base_makeActive( true );
 				}
 			}
+			/*
 			else if(this->currentController == livingLifePage)
 			{
 				if(this->status.isNewScreen)
@@ -5412,7 +5136,7 @@ void OneLife::game::Application::selectScreen()
 					lastScreenViewCenter.x = 0;
 					lastScreenViewCenter.y = 0;
 					setViewCenterPosition( lastScreenViewCenter.x,lastScreenViewCenter.y );
-					this->setController(existingAccountPage);
+					this->setController(&existingAccountPage);
 					existingAccountPage->setStatus( "serverUpdate", true );
 					existingAccountPage->setStatusPositiion( true );
 					this->currentController->base_makeActive( true );
@@ -5460,7 +5184,7 @@ void OneLife::game::Application::selectScreen()
 					this->currentController->base_makeActive( true );
 				}
 			}
-			else if(/* !writeFailed && !loadingFailedFlag*/ false )//step3 (demo mode done or was never enabled )
+			else if(/-* !writeFailed && !loadingFailedFlag*-/ false )//step3 (demo mode done or was never enabled )
 			{
 				this->status.connectedMode = false;
 				if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}
@@ -5609,13 +5333,14 @@ void OneLife::game::Application::selectScreen()
 			{
 				OneLife::game::Debug::write("Current controller unknown. Address : %p", this->currentController);
 			}
+		 	*/
 			break;
 	}
 }
 
 void OneLife::game::Application::update(OneLife::dataType::UiComponent* dataScreen)
 {
-	if(!this->currentController) return;
+	if(!this->currentController)return;
 	if( pauseOnMinimize && this->isMinimized() ) sceneHandler->setPause(true);// auto-pause when minimized
 	this->currentController->handle(dataScreen);
 }
@@ -6164,9 +5889,50 @@ void OneLife::game::Application::sendClientMessage()
 
 /**********************************************************************************************************************/
 
-void OneLife::game::Application::setController(void* controller)
+void OneLife::game::Application::setController(void* ptrController)
 {
-	this->currentController = (OneLife::game::Controller*)controller;
+	OneLife::game::Debug::writeMethodInfo("OneLife::game::Application::setController(%p)", ptrController);
+	if(!*(void**)ptrController)
+	{
+		if((void**)ptrController == (void**)&(this->controller.initScreen))
+		{
+			OneLife::game::Debug::writeControllerInfo("Initialization");
+			if(!this->controller.initScreen) this->controller.initScreen = new OneLife::game::initScreen();
+			this->controller.initScreen->setServerSocketAddress(this->data.socket);
+			this->controller.initScreen->handle(&(this->component.socket));
+			this->currentController = this->controller.initScreen;
+		}
+		else if((void**)ptrController == (void**)&(this->controller.configurationScreen))
+		{
+			OneLife::game::Debug::writeControllerInfo("Load Configuration");
+			if(!this->controller.configurationScreen) this->controller.configurationScreen = new OneLife::game::ConfigurationScreen();
+			this->controller.configurationScreen->handleDemoMode(&demoMode);
+			this->controller.configurationScreen->handleWriteFailed(&writeFailed);
+			this->controller.configurationScreen->handleMeasureFrameRate(&measureFrameRate);
+			this->controller.configurationScreen->setPlaybackMode((bool)this->isPlayingBack());
+			this->currentController = this->controller.configurationScreen;
+			this->status.connectedMode = false;
+		}
+		else if((void**)ptrController == (void**)&(loadingPage))
+		{
+			OneLife::game::Debug::writeControllerInfo("Loading assets");
+			if(!loadingPage)loadingPage = new LoadingPage();
+			loadingPage->showProgressBar(true);
+			this->currentController = loadingPage;
+			this->status.connectedMode = false;
+		}
+		else if((void**)ptrController ==(void**)&(existingAccountPage))
+		{
+			OneLife::game::Debug::writeControllerInfo("Loading assets");
+			if(!existingAccountPage)existingAccountPage = new ExistingAccountPage();
+			this->currentController = existingAccountPage;
+			this->currentController->base_makeActive( true );
+		}
+	}
+	else
+	{
+		this->currentController = (OneLife::game::Controller*)*(void**)ptrController;
+	}
 	currentGamePage = this->currentController;
 	this->status.isNewScreen = true;
 }

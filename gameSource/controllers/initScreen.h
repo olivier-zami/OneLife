@@ -23,19 +23,17 @@ namespace OneLife::game
 
 			void handle(OneLife::dataType::UiComponent* screen);
 			void handle(OneLife::game::component::Socket** socket);
-			void handle(OneLife::game::SceneBuilder** controller);
 
 			void setServerSocketAddress(OneLife::dataType::socket::Address socket);
 
-			void initSocket();
-			void initSceneBuilder();
-			bool isTaskComplete();
-
 		private:
+			void initGraphicContext();
+			void initSocket();
+
 			struct{
 				bool isConfigurationLoaded;
+				bool isInitGraphicContext;
 				bool isInitSocket;
-				bool isInitSceneBuilder;
 			}status;
 
 			struct{
@@ -49,7 +47,6 @@ namespace OneLife::game
 
 			OneLife::game::component::Socket** socket;
 
-			bool taskComplete;
 			bool minDuration;
 			timeSec_t frameStartSec;
 			unsigned long frameStartMSec;
