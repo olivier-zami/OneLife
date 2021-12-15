@@ -24,7 +24,7 @@ namespace OneLife::game
 
 			OneLife::game::Channel* getChannel();
 
-			void sendSignal(unsigned int signal);
+			void sendSignal(unsigned int signal, unsigned int page=0, const char* message=nullptr);
 
 			void sendDeathMessage(const char* message);
 			void sendTripMessage(const char* message);

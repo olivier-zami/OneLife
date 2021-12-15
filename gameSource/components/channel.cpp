@@ -5,26 +5,39 @@
 #include "channel.h"
 
 #include <cstring>
+#include "OneLife/gameSource/dataTypes/controllers.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
 
-using signal = OneLife::dataType::Signal;
+using CONTROLLER = OneLife::dataValue::Controller::Type;
+using SIGNAL = OneLife::dataValue::Signal;
+
+const unsigned int OneLife::game::Channel::SIZE_MESSAGE = 255;
 
 OneLife::game::Channel::Channel()
 {
-	this->lastSignalValue = signal::NONE;
+	this->lastSignal.type = SIGNAL::NONE;
+	this->lastSignal.target = CONTROLLER::NONE;
+	memset(this->lastSignal.message, 0, sizeof(this->lastSignal.message));
+	this->lastSignalValue = SIGNAL::NONE;
 	memset(this->waitingMessage, 0, sizeof(this->waitingMessage));
 }
 
-OneLife::game::Channel::~Channel() {}
+OneLife::game::Channel::~Channel(){}
 
-void OneLife::game::Channel::setLastSignal(unsigned int lastSignal)
+void OneLife::game::Channel::setLastSignal(unsigned int lastSignal, unsigned int target, const char* message)
 {
-	this->lastSignalValue = lastSignal;
+	this->lastSignal.type = lastSignal;
+	this->lastSignal.target = target;
+	if(message)
+	{
+		memset(this->lastSignal.message, 0, sizeof(this->lastSignal.message));
+		strcpy((char*)this->lastSignal.message, message);
+	}
 }
 
-unsigned int OneLife::game::Channel::getLastSignal()
+OneLife::dataType::Signal OneLife::game::Channel::getLastSignal()
 {
-	return this->lastSignalValue;
+	return this->lastSignal;
 }
 
 void OneLife::game::Channel::stackMessage(OneLife::dataType::Message message)

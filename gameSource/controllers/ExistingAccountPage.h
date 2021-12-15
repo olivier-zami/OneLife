@@ -1,3 +1,6 @@
+#ifndef ONELIFE_GAME_ACCOUNT_H
+#define ONELIFE_GAME_ACCOUNT_H
+
 #include "OneLife/gameSource/components/controller.h"
 
 #include "OneLife/gameSource/TextField.h"
@@ -10,7 +13,6 @@ class ExistingAccountPage : public OneLife::game::Controller, public ActionListe
     public:
         
         ExistingAccountPage();
-        
         virtual ~ExistingAccountPage();
 
 		void handle(OneLife::dataType::UiComponent* screen);
@@ -86,6 +88,6 @@ class ExistingAccountPage : public OneLife::game::Controller, public ActionListe
         void switchFields();
         
         void processLogin( char inStore, const char *inSignal );
-
     };
 
+#endif //ONELIFE_GAME_ACCOUNT_H

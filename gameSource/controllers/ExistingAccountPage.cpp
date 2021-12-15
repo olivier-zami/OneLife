@@ -13,6 +13,12 @@
 #include "OneLife/gameSource/lifeTokens.h"
 #include "OneLife/gameSource/fitnessScore.h"
 #include "OneLife/gameSource/application.h"
+#include "OneLife/gameSource/dataTypes/controllers.h"
+#include "OneLife/gameSource/dataTypes/signals.h"
+#include "OneLife/gameSource/debug.h"
+
+using SIGNAL = OneLife::dataValue::Signal;
+using CONTROLLER = OneLife::dataValue::Controller::Type;
 
 extern OneLife::game::Application *gameApplication;
 extern Font *mainFont;
@@ -20,6 +26,10 @@ extern char gamePlayingBack;
 extern char *userEmail;
 extern char *accountKey;
 extern SpriteHandle instructionsSprite;
+extern char mapPullMode;
+extern char autoLogIn;
+extern char *userTwinCode;
+
 char loginEditOverride = false;
 static JenkinsRandomSource randSource;
 
@@ -172,6 +182,62 @@ void ExistingAccountPage::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
 	screen->draw = nullptr;
+
+	if(this->checkSignal("quit"))
+	{
+		this->sendSignal(SIGNAL::QUIT);
+	}
+	else if(this->checkSignal( "poll" ) )
+	{
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::POLL_PAGE);
+	}
+	else if(this->checkSignal( "genes" ) )
+	{
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::GENETIC_HISTORY_PAGE);
+	}
+	else if(this->checkSignal( "settings" ) )
+	{
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::SETTINGS_PAGE);
+	}
+	else if(this->checkSignal( "review" ) )
+	{
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::REVIEW_PAGE);
+	}
+	else if(this->checkSignal( "friends" ) )
+	{
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::TWIN_PAGE);
+	}
+	else if(this->checkSignal( "done" )||mapPullMode || autoLogIn )
+	{
+		OneLife::game::Debug::write("######> check signal \"done\"");
+		// auto-log-in one time for map pull
+		// or one time for autoLogInMode
+		mapPullMode = false;
+		autoLogIn = false;
+
+		// login button clears twin status
+		// they have to login from twin page to play as twin
+		if( userTwinCode != NULL ) {
+			delete [] userTwinCode;
+			userTwinCode = NULL;
+		}
+		this->sendSignal(SIGNAL::DONE);
+	}
+	else if(this->checkSignal("tutorial" ))
+	{
+		// tutorial button clears twin status
+		// they have to login from twin page to play as twin
+		if( userTwinCode != NULL )
+		{
+			delete [] userTwinCode;
+			userTwinCode = NULL;
+		}
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::TUTORIAL);
+	}
+	else if(this->checkSignal( "relaunchFailed" ) )
+	{
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::FINAL_MESSAGE_PAGE, "manualRestartMessage");
+	}
 }
 
 void ExistingAccountPage::clearFields()
@@ -340,6 +406,7 @@ void ExistingAccountPage::step()
 
 void ExistingAccountPage::actionPerformed( GUIComponent *inTarget )
 {
+	OneLife::game::Debug::writeMethodInfo("ExistingAccountPage::actionPerformed( GUIComponent *inTarget )");
     if( inTarget == &mLoginButton ) {
         processLogin( true, "done" );
         }

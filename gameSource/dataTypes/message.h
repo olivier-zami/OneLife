@@ -12,6 +12,12 @@ namespace OneLife::dataType
 		unsigned int size;
 		void* content;
 	}Message;
+
+	typedef struct{
+		unsigned int type;
+		unsigned int target;
+		char message[255];
+	}Signal;
 }
 
 namespace OneLife::dataType::message

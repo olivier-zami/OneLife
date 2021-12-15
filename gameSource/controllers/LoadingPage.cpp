@@ -19,7 +19,7 @@
 #include "OneLife/gameSource/fitnessScore.h"
 #include "OneLife/gameSource/musicPlayer.h"
 
-using SIGNAL = OneLife::dataType::Signal;
+using SIGNAL = OneLife::dataValue::Signal;
 
 extern int loadingStepBatchSize;
 extern int numLoadingSteps;

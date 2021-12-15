@@ -113,7 +113,7 @@ OneLife::game::Channel* OneLife::game::Controller::getChannel()
 
 /**********************************************************************************************************************/
 
-void OneLife::game::Controller::sendSignal(unsigned int signal)
+void OneLife::game::Controller::sendSignal(unsigned int signal, unsigned int page, const char* message)
 {
 	OneLife::game::Controller::channel->setLastSignal(signal);
 }

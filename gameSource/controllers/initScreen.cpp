@@ -9,7 +9,7 @@
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/debug.h"
 
-using signal = OneLife::dataType::Signal;
+using signal = OneLife::dataValue::Signal;
 
 extern SimpleVector<unsigned char> serverSocketBuffer; //serverSocketBuffer
 extern int bytesInCount;//bytesInCount

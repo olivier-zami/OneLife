@@ -5,11 +5,12 @@
 #ifndef ONELIFE_GAME_DATATYPE_SIGNALS_H
 #define ONELIFE_GAME_DATATYPE_SIGNALS_H
 
-namespace OneLife::dataType
+namespace OneLife::dataValue
 {
 	typedef enum{
 		NONE,
 		DONE,
+		ACTIVATE,
 		QUIT
 	}Signal;
 }

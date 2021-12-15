@@ -9,7 +9,7 @@
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/debug.h"
 
-using SIGNAL = OneLife::dataType::Signal;
+using SIGNAL = OneLife::dataValue::Signal;
 
 OneLife::game::ConfigurationScreen::ConfigurationScreen()
 {

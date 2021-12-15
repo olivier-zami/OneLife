@@ -24,6 +24,7 @@
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 #include "OneLife/gameSource/misc_plateformspecific.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
+#include "OneLife/gameSource/controllers/ExistingAccountPage.h"
 #include "OneLife/gameSource/controllers/LivingLifePage.h"
 #include "OneLife/gameSource/controllers/LoadingPage.h"
 #include "OneLife/gameSource/components/keyboard.h"
@@ -31,6 +32,7 @@
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/controller.h"
 #include "OneLife/gameSource/components/channel.h"
+#include "OneLife/gameSource/dataTypes/controllers.h"
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 #include "OneLife/gameSource/procedures/graphics/drawFrame.h"
@@ -38,7 +40,8 @@
 #include "OneLife/gameSource/dataTypes/feature.h"
 #include "OneLife/gameSource/debug.h"
 
-using SIGNAL = OneLife::dataType::Signal;
+using CONTROLLER = OneLife::dataValue::Controller::Type;
+using SIGNAL = OneLife::dataValue::Signal;
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
@@ -113,7 +116,6 @@ char rightKey = 'd';
 #include "minorGems/game/doublePair.h"
 #include "OneLife/gameSource/procedures/graphics/modalObjects/drawPausePanel.h"
 #include "OneLife/gameSource/controllers/AutoUpdatePage.h"
-#include "OneLife/gameSource/controllers/ExistingAccountPage.h"
 #include "OneLife/gameSource/controllers/ExtendedMessagePage.h"
 #include "OneLife/gameSource/controllers/FinalMessagePage.h"
 #include "OneLife/gameSource/controllers/GeneticHistoryPage.h"
@@ -153,7 +155,6 @@ extern doublePair lastScreenViewCenter;
 extern int versionNumber;
 extern int serverPort;
 extern char *serverIP;
-extern char *userTwinCode;
 extern char autoLogIn;
 extern char mapPullMode;
 extern char *accountKey;
@@ -167,6 +168,8 @@ extern int loadingStepBatchSize;
 extern int numLoadingSteps;
 extern char loginEditOverride;
 extern double loadingPhaseStartTime;
+
+char *userTwinCode = NULL;
 
 /**********************************************************************************************************************/
 
@@ -687,6 +690,8 @@ void OneLife::game::Application::start()
 				oversleepMSec = 0;
 			}
 		}
+
+		this->lastSignal = SIGNAL::NONE;
 	}
 }
 
@@ -1142,7 +1147,7 @@ void OneLife::game::Application::_oldReadDevicesStatus()
 void OneLife::game::Application::readMessages()
 {
 	//!message from game
-	this->lastSignal = this->channel->getLastSignal();
+	this->lastSignal = this->channel->getLastSignal().type;
 	this->channel->setLastSignal(SIGNAL::NONE);
 
 	//!message from server
@@ -4868,6 +4873,23 @@ void OneLife::game::Application::selectScreen()
 				OneLife::game::Debug::write("===>unknown controller(%p) send signal DONE");
 			}
 			break;
+		case SIGNAL::ACTIVATE:
+			switch(this->channel->getLastSignal().target)
+			{
+				case CONTROLLER::POLL_PAGE:
+					this->setController(&pollPage);
+					break;
+				case CONTROLLER::FINAL_MESSAGE_PAGE:
+					this->setController(&finalMessagePage);
+					finalMessagePage->setMessageKey(this->channel->getLastSignal().message);
+					break;
+				case CONTROLLER::TUTORIAL:
+					this->setController(&livingLifePage);
+					livingLifePage->runTutorial();
+					startConnecting();
+					break;
+			}
+			break;
 		case SIGNAL::QUIT:
 			this->quit = true;
 			break;
@@ -4963,82 +4985,6 @@ void OneLife::game::Application::selectScreen()
 					}
 				}
 			}
-			*/
-			/*
-			if(this->currentController == existingAccountPage)
-			{
-				if(this->status.isNewScreen)
-				{
-					OneLife::game::Debug::writeControllerInfo("Checking for existing account ...");
-					this->status.isNewScreen = false;
-				}
-				this->status.connectedMode = false;
-				this->currentController->base_step();
-				if( existingAccountPage->checkSignal( "quit" ) ) {
-					quitGame();
-				}
-				else if( existingAccountPage->checkSignal( "poll" ) )
-				{
-					this->setController(pollPage);
-					this->currentController->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "genes" ) )
-				{
-					this->setController(geneticHistoryPage);
-					this->currentController->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "settings" ) )
-				{
-					this->setController(settingsPage);
-					this->currentController->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "review" ) )
-				{
-					this->setController(reviewPage);
-					this->currentController->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "friends" ) )
-				{
-					this->setController(twinPage);
-					this->currentController->base_makeActive( true );
-				}
-				else if( existingAccountPage->checkSignal( "done" )||mapPullMode || autoLogIn )
-				{
-					// auto-log-in one time for map pull
-					// or one time for autoLogInMode
-					mapPullMode = false;
-					autoLogIn = false;
-
-					// login button clears twin status
-					// they have to login from twin page to play as twin
-					if( userTwinCode != NULL ) {
-						delete [] userTwinCode;
-						userTwinCode = NULL;
-					}
-					OneLife::game::Debug::write("this->controller.sceneBuilder address : %p", this->controller.sceneBuilder);
-					this->setController(this->controller.sceneBuilder);
-				}
-				else if( existingAccountPage->checkSignal( "tutorial" ) )
-				{
-					livingLifePage->runTutorial();
-
-					// tutorial button clears twin status
-					// they have to login from twin page to play as twin
-					if( userTwinCode != NULL )
-					{
-						delete [] userTwinCode;
-						userTwinCode = NULL;
-					}
-					startConnecting();
-				}
-				else if( autoUpdatePage->checkSignal( "relaunchFailed" ) )
-				{
-					this->setController(finalMessagePage);
-					finalMessagePage->setMessageKey( "manualRestartMessage" );
-					this->currentController->base_makeActive( true );
-				}
-			}
-			/*
 			else if(this->currentController == livingLifePage)
 			{
 				if(this->status.isNewScreen)
@@ -5921,11 +5867,59 @@ void OneLife::game::Application::setController(void* ptrController)
 			this->currentController = loadingPage;
 			this->status.connectedMode = false;
 		}
-		else if((void**)ptrController ==(void**)&(existingAccountPage))
+		else if((void**)ptrController == (void**)&(existingAccountPage))
 		{
-			OneLife::game::Debug::writeControllerInfo("Loading assets");
+			OneLife::game::Debug::writeControllerInfo("Checking for existing account ...");
 			if(!existingAccountPage)existingAccountPage = new ExistingAccountPage();
 			this->currentController = existingAccountPage;
+			this->currentController->base_makeActive( true );
+			this->currentController->base_step();
+			this->status.connectedMode = false;
+		}
+		else if((void**)ptrController == (void**)&(pollPage))
+		{
+			//char *reviewURL = SettingsManager::getStringSetting( "reviewServerURL", "" );//TODO: set reviewURL value elsewhere
+			//if(!pollPage)pollPage = new PollPage(reviewURL);//TODO: instantiate pollPage
+			this->currentController = pollPage;
+			this->currentController->base_makeActive( true );
+		}
+		else if((void**)ptrController == (void**)&(geneticHistoryPage))
+		{
+			this->currentController = geneticHistoryPage;
+			this->currentController->base_makeActive( true );
+		}
+		else if((void**)ptrController == (void**)&(settingsPage))
+		{
+			this->currentController = settingsPage;
+			this->currentController->base_makeActive( true );
+		}
+		else if((void**)ptrController == (void**)&(reviewPage))
+		{
+			this->currentController = reviewPage;
+			this->currentController->base_makeActive( true );
+		}
+		else if((void**)ptrController == (void**)&(twinPage))
+		{
+			this->currentController = twinPage;
+			this->currentController->base_makeActive( true );
+		}
+		else if((void**)ptrController == (void**)&(this->controller.sceneBuilder))
+		{
+			OneLife::game::Debug::writeControllerInfo("Build local Map");
+			if(!this->controller.initScreen) this->controller.sceneBuilder = new OneLife::game::SceneBuilder();
+			this->currentController = this->controller.sceneBuilder;
+		}
+		else if((void**)ptrController == (void**)&(livingLifePage))
+		{
+			OneLife::game::Debug::writeControllerInfo("Start Living Life");
+			if(!livingLifePage)livingLifePage = new LivingLifePage();
+			this->currentController = livingLifePage;
+		}
+		else if((void**)ptrController == (void**)&(finalMessagePage))
+		{
+			OneLife::game::Debug::writeControllerInfo("Display Final Page");
+			if(!finalMessagePage)finalMessagePage = new FinalMessagePage();
+			this->currentController = finalMessagePage;
 			this->currentController->base_makeActive( true );
 		}
 	}

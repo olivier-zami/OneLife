@@ -13,7 +13,7 @@
 #include "OneLife/gameSource/debug.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 
-using signal = OneLife::dataType::Signal;
+using signal = OneLife::dataValue::Signal;
 
 extern char userReconnect;
 extern double frameRateFactor;

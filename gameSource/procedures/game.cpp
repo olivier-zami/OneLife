@@ -96,7 +96,6 @@ char autoLogIn = 0;
 char *reflectorURL = NULL;
 char *userEmail = NULL;
 char *accountKey = NULL;
-char *userTwinCode = NULL;
 int userTwinCount = 0;
 char userReconnect = false;
 // these are needed by ServerActionPage, but we don't use them
