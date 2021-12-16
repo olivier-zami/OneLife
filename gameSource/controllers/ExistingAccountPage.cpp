@@ -183,6 +183,7 @@ void ExistingAccountPage::handle(OneLife::dataType::UiComponent* screen)
 	screen->label = nullptr;
 	screen->draw = nullptr;
 
+	/*
 	if(this->checkSignal("quit"))
 	{
 		this->sendSignal(SIGNAL::QUIT);
@@ -238,6 +239,7 @@ void ExistingAccountPage::handle(OneLife::dataType::UiComponent* screen)
 	{
 		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::FINAL_MESSAGE_PAGE, "manualRestartMessage");
 	}
+	 */
 }
 
 void ExistingAccountPage::clearFields()
@@ -408,10 +410,10 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget )
 {
 	OneLife::game::Debug::writeMethodInfo("ExistingAccountPage::actionPerformed( GUIComponent *inTarget )");
     if( inTarget == &mLoginButton ) {
-        processLogin( true, "done" );
+        processLogin( true, SIGNAL::DONE);
         }
     else if( inTarget == &mTutorialButton ) {
-        processLogin( true, "tutorial" );
+        processLogin(true, SIGNAL::ACTIVATE, CONTROLLER::TUTORIAL);
         }
     else if( inTarget == &mClearAccountButton ) {
         SettingsManager::setSetting( "email", "" );
@@ -436,11 +438,13 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget )
         mKeyField.setContentsHidden( false );
         }
     else if( inTarget == &mFriendsButton ) {
-        processLogin( true, "friends" );
+        processLogin(true, SIGNAL::ACTIVATE, CONTROLLER::TWIN_PAGE);
         }
-    else if( inTarget == &mGenesButton ) {
-        setSignal( "genes" );
-        }
+    else if( inTarget == &mGenesButton )
+	{
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::GENETIC_HISTORY_PAGE);
+        //setSignal( "genes" );
+	}
     else if( inTarget == &mFamilyTreesButton ) {
         char *url = SettingsManager::getStringSetting( "lineageServerURL", "" );
 
@@ -496,10 +500,12 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget )
         mHideAccount = ! mHideAccount;
         }
     else if( inTarget == &mCancelButton ) {
-        setSignal( "quit" );
+		this->sendSignal(SIGNAL::QUIT);
+        //setSignal( "quit" );
         }
     else if( inTarget == &mSettingsButton ) {
-        setSignal( "settings" );
+		this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::SETTINGS_PAGE);
+        //setSignal( "settings" );
         }
     else if( inTarget == &mReviewButton ) {
         if( userEmail != NULL ) {
@@ -511,8 +517,8 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget )
             delete [] accountKey;
             }
         accountKey = mKeyField.getText();
-        
-        setSignal( "review" );
+        this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::REVIEW_PAGE);
+        //setSignal( "review" );
         }
     else if( inTarget == &mAtSignButton ) {
         mEmailField.insertCharacter( '@' );
@@ -542,18 +548,20 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget )
         
         if( !relaunched ) {
             printf( "Relaunch failed\n" );
-            setSignal( "relaunchFailed" );
+			this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::FINAL_MESSAGE_PAGE, "relaunchFailed");
+            //setSignal( "relaunchFailed" );
             }
         else {
             printf( "Relaunched... but did not exit?\n" );
-            setSignal( "relaunchFailed" );
+			this->sendSignal(SIGNAL::ACTIVATE, CONTROLLER::FINAL_MESSAGE_PAGE, "relaunchFailed");
+            //setSignal( "relaunchFailed" );
             }
         }
     else if( inTarget == &mDisableCustomServerButton ) {
 		gameApplication->setUseCustomServerStatus(false);
         //SettingsManager::setSetting( "useCustomServer", 0 );
         mDisableCustomServerButton.setVisible( false );
-        processLogin( true, "done" );
+        processLogin(true, SIGNAL::DONE);
         }
 }
 
@@ -583,7 +591,7 @@ void ExistingAccountPage::keyDown( unsigned char inASCII )
         // enter key
         if( mKeyField.isFocused() )
 		{
-            processLogin( true, "done" );
+            processLogin( true, SIGNAL::DONE);
             return;
 		}
         else if( mEmailField.isFocused() )
@@ -602,7 +610,8 @@ void ExistingAccountPage::specialKeyDown( int inKeyCode )
 	}
 }
 
-void ExistingAccountPage::processLogin( char inStore, const char *inSignal ) {
+void ExistingAccountPage::processLogin(char inStore, unsigned int signalType, unsigned int page, const char* message)
+{
     if( userEmail != NULL ) {
         delete [] userEmail;
         }
@@ -624,9 +633,8 @@ void ExistingAccountPage::processLogin( char inStore, const char *inSignal ) {
             SettingsManager::setSetting( "accountKey", "" );
             }
         }
-    
-                
-    setSignal( inSignal );
+	this->sendSignal(signalType, page, message);
+    //setSignal( inSignal );
     }
 
 void ExistingAccountPage::draw( doublePair inViewCenter, double inViewSize ) {
