@@ -37,6 +37,7 @@ class LoadingPage : public OneLife::game::Controller
 		void loadSocketConfiguration();
 		void initOther();
 
+		unsigned int idxStep;
 		struct{
 			bool isSpritesLoaded;
 			bool isSoundsLoaded;

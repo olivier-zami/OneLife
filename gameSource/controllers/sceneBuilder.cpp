@@ -84,13 +84,10 @@ void OneLife::game::SceneBuilder::handle(LiveObject** player)
 
 void OneLife::game::SceneBuilder::handle(LivingLifePage** gameSceneController)
 {
-	printf("\n########################instantiation new LivingLifePage() ");
 	this->gameScene = gameSceneController;
 	if(!(*(this->gameScene)))
 	{
-		printf("\n########################instantiation new LivingLifePage()");
 		*(this->gameScene) = new LivingLifePage();
-		(*(this->gameScene))->test();
 	}
 }
 
@@ -106,7 +103,6 @@ void OneLife::game::SceneBuilder::connect()
 	OneLife::game::Debug::writeControllerStepInfo("OneLife::game::SceneBuilder::connect()");
 	if(!this->socket)throw new OneLife::game::Exception("Socket object is not set before call OneLife::game::SceneBuilder::connect()");
 	OneLife::game::Debug::write("this->socket : %p", this->socket);
-	(*(this->gameScene))->test();
 	(*(this->gameScene))->setSocket(this->socket);//TODO remove this after command communication system implementation
 	this->socket->connect();
 	if(this->socket->isConnected()) this->status.isConnected = true;

@@ -40,6 +40,7 @@ static int nextSocketConnectionHandle = 0;
 
 OneLife::game::component::Socket::Socket()
 {
+	this->idSocket = -1;
 	this->serverSocketConnected = false;
 	this->numServerBytesRead = 0;
 	this->numServerBytesSent = 0;
@@ -58,7 +59,6 @@ void OneLife::game::component::Socket::handle(
 {
 	this->serverSocketBuffer = serverSocketBuffer;
 	this->bytesInCount = bytesInCount;
-	this->idSocket = -1;
 }
 
 void OneLife::game::component::Socket::setAddress(OneLife::dataType::socket::Address address)

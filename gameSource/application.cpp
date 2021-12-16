@@ -4851,23 +4851,14 @@ void OneLife::game::Application::selectScreen()
 			{
 				this->setController(&existingAccountPage);
 			}
-			/*
+			else if(this->currentController == (void*)existingAccountPage)
+			{
+				this->setController(&this->controller.sceneBuilder);
+			}
 			else if(this->currentController == (void*)this->controller.sceneBuilder)
 			{
-				if(this->status.isNewScreen)
-				{
-					OneLife::game::Debug::writeControllerInfo("Generating environment...");
-					this->status.isNewScreen = false;
-					this->controller.sceneBuilder->handle(&livingLifePage);
-					this->controller.sceneBuilder->handle(&(this->player));
-					OneLife::game::Debug::write("this->component.socket : %p", this->component.socket);
-					this->controller.sceneBuilder->handle(this->component.socket);
-				}
-				this->status.connectedMode = false;
-				this->setController(livingLifePage);
-				startConnecting();
+				this->setController(&livingLifePage);
 			}
-		 	*/
 			else
 			{
 				OneLife::game::Debug::write("===>unknown controller(%p) send signal DONE");
@@ -5906,8 +5897,14 @@ void OneLife::game::Application::setController(void* ptrController)
 		else if((void**)ptrController == (void**)&(this->controller.sceneBuilder))
 		{
 			OneLife::game::Debug::writeControllerInfo("Build local Map");
-			if(!this->controller.initScreen) this->controller.sceneBuilder = new OneLife::game::SceneBuilder();
+			if(!this->controller.sceneBuilder) this->controller.sceneBuilder = new OneLife::game::SceneBuilder();
+			this->controller.sceneBuilder->handle(&livingLifePage);
+			this->controller.sceneBuilder->handle(&(this->player));
+			this->controller.sceneBuilder->handle(this->component.socket);
 			this->currentController = this->controller.sceneBuilder;
+
+			this->status.connectedMode = false;
+			startConnecting();
 		}
 		else if((void**)ptrController == (void**)&(livingLifePage))
 		{

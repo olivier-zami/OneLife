@@ -35,6 +35,7 @@ double loadingPhaseStartTime;
 
 LoadingPage::LoadingPage()
 {
+	this->idxStep = 0;
 	this->status.isSpritesLoaded = false;//legacy char initDone = false;
 	this->status.isSoundsLoaded = false;
 	this->status.isAnimationsLoaded = false;
@@ -61,42 +62,52 @@ void LoadingPage::handle(OneLife::dataType::UiComponent* screen)
 	if(!this->status.isSpritesLoaded)
 	{
 		this->loadSprites();
+		this->idxStep = 1;
 	}
 	else if(!this->status.isSoundsLoaded)
 	{
 		this->loadSounds();
+		this->idxStep = 2;
 	}
 	else if(!this->status.isAnimationsLoaded)
 	{
 		this->loadAnimations();
+		this->idxStep = 3;
 	}
 	else if(!this->status.isObjectsLoaded)
 	{
 		this->loadObjects();
+		this->idxStep = 4;
 	}
 	else if(!this->status.isCategoriesLoaded)
 	{
 		this->loadCategories();
+		this->idxStep = 5;
 	}
 	else if(!this->status.isTransitionsLoaded)
 	{
 		this->loadTransitions();
+		this->idxStep = 6;
 	}
 	else if (!this->status.isGroundTexturesLoaded)
 	{
 		this->loadGroundTextures();
+		this->idxStep = 7;
 	}
 	else if(!this->status.isSocketSet)
 	{
 		this->loadSocketConfiguration();
+		this->idxStep = 8;
 	}
 	else if(!this->status.isInitOther)
 	{
 		this->initOther();
+		this->idxStep = 9;
 	}
 	else
 	{
 		this->sendSignal(SIGNAL::DONE);
+		this->idxStep = 0;
 	}
 }
 
@@ -121,7 +132,7 @@ void LoadingPage::setCurrentProgress( float inProgress )
 
 void LoadingPage::loadSprites()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadSprites()");
+	if(this->idxStep != 1)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadSprites()");
 	this->base_step();
 	char rebuilding;
 	int numSprites = initSpriteBankStart( &rebuilding );
@@ -141,7 +152,7 @@ void LoadingPage::loadSprites()
 
 void LoadingPage::loadSounds()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadSounds()");
+	if(this->idxStep != 2)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadSounds()");
 	this->base_step();
 	float progress;
 	for( int i=0; i<loadingStepBatchSize; i++ ) {
@@ -170,7 +181,7 @@ void LoadingPage::loadSounds()
 
 void LoadingPage::loadAnimations()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadAnimations()");
+	if(this->idxStep != 3)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadAnimations()");
 	this->base_step();
 	float progress;
 	for( int i=0; i<loadingStepBatchSize; i++ )
@@ -201,7 +212,7 @@ void LoadingPage::loadAnimations()
 
 void LoadingPage::loadObjects()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadObjects()");
+	if(this->idxStep != 4)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadObjects()");
 	this->base_step();
 	float progress;
 	for( int i=0; i<loadingStepBatchSize; i++ )
@@ -230,7 +241,7 @@ void LoadingPage::loadObjects()
 
 void LoadingPage::loadCategories()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadCategories()");
+	if(this->idxStep != 5)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadCategories()");
 	this->base_step();
 	float progress;
 	for( int i=0; i<loadingStepBatchSize; i++ )
@@ -262,7 +273,7 @@ void LoadingPage::loadCategories()
 
 void LoadingPage::loadTransitions()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadTransitions()");
+	if(this->idxStep != 6)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadTransitions()");
 	this->base_step();
 	float progress;
 	for( int i=0; i<loadingStepBatchSize; i++ ) {
@@ -302,7 +313,7 @@ void LoadingPage::loadTransitions()
 
 void LoadingPage::loadGroundTextures()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadGroundTextures()");
+	if(this->idxStep != 7)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadGroundTextures()");
 	this->base_step();
 	float progress;
 	for( int i=0; i<loadingStepBatchSize; i++ )
@@ -328,7 +339,7 @@ void LoadingPage::loadGroundTextures()
 
 void LoadingPage::loadSocketConfiguration()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadSocketConfiguration()");
+	if(this->idxStep != 8)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::loadSocketConfiguration()");
 	this->base_step();
 	float progress;
 	for( int i=0; i<loadingStepBatchSize; i++ )
@@ -354,7 +365,7 @@ void LoadingPage::loadSocketConfiguration()
 
 void LoadingPage::initOther()
 {
-	OneLife::game::Debug::writeControllerStepInfo("LoadingPage::initOther()");
+	if(this->idxStep != 9)OneLife::game::Debug::writeControllerStepInfo("LoadingPage::initOther()");
 	this->base_step();
 	// NOW game engine can start measuring frame rate
 	loadingComplete();

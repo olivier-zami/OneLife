@@ -892,11 +892,6 @@ void LivingLifePage::setSocket(OneLife::game::component::Socket *socket)
 	this->socket = socket;
 }
 
-void LivingLifePage::test()
-{
-	printf("\n#############ok ca marche ...");
-}
-
 /**********************************************************************************************************************/
 
 void LivingLifePage::sendToServerSocket( char *inMessage )
@@ -4734,7 +4729,7 @@ void LivingLifePage::makeActive( char inFresh )
     
     waitForFrameMessages = false;
 
-    this->socket->disconnect();
+    if(this->socket->isConnected())this->socket->disconnect();
     connectionMessageFade = 1.0f;
 
     

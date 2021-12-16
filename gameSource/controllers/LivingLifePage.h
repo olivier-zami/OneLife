@@ -30,8 +30,6 @@ class LivingLifePage :
         LivingLifePage();
         ~LivingLifePage();
 
-		void test();
-
 	//private:
 		//unsigned int recentInsertedGameObjectIndex;
 
