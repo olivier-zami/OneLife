@@ -60,7 +60,10 @@
 #include "OneLife/gameSource/components/soundPlayer.h"
 #include "OneLife/gameSource/procedures/graphics/components.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
+#include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/debug.h"
+
+using SIGNAL = OneLife::dataValue::Signal;
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -4649,7 +4652,7 @@ char LivingLifePage::isSameFloor( int inFloor, GridPos inFloorPos,
   
 void LivingLifePage::makeActive( char inFresh )
 {
-	printf("\n#######>Make livingLifePage active");
+	OneLife::game::Debug::writeMethodInfo("void LivingLifePage::makeActive(...)");
     // unhold E key
     mEKeyDown = false;
     mZKeyDown = false;
@@ -4729,7 +4732,8 @@ void LivingLifePage::makeActive( char inFresh )
     
     waitForFrameMessages = false;
 
-    if(this->socket->isConnected())this->socket->disconnect();
+	this->sendSignal(SIGNAL::DISCONNECT);
+    //if(this->socket->isConnected())this->socket->disconnect();
     connectionMessageFade = 1.0f;
 
     

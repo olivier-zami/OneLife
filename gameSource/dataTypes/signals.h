@@ -11,6 +11,8 @@ namespace OneLife::dataValue
 		NONE,
 		DONE,
 		ACTIVATE,
+		DISCONNECT,
+		UNDEFINED,
 		QUIT
 	}Signal;
 }

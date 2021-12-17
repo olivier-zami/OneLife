@@ -6,7 +6,7 @@
 
 #include <cstdio>
 
-void OneLife::game::Trace::log(char* message)
+void OneLife::debug::Trace::log(char* message)
 {
 	printf("\n===>%s", message);
 }

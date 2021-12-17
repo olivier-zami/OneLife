@@ -83,6 +83,7 @@ void OneLife::game::component::Socket::connect()
 	r.sock = SocketClient::connectToServer( &address, 0, &timedOut );// non-blocking connet
 	if( r.sock != NULL )
 	{
+		OneLife::game::Debug::write("=======================>SocketClient::connectToServer(....)");
 		socketConnectionRecords.push_back( r );
 		this->idSocket = r.handle;
 	}
@@ -571,6 +572,7 @@ char *getNextServerMessageRaw() {
 // then returns the first message from the frame
 char *getNextServerMessage()
 {
+	OneLife::game::Debug::write("=======>call read message");
 	overheadServerBytesRead += 52;
 
 	if( readyPendingReceivedMessages.size() > 0 )

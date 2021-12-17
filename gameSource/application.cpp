@@ -36,7 +36,7 @@
 #include "OneLife/gameSource/dataTypes/signals.h"
 #include "OneLife/gameSource/dataTypes/exception/exception.h"
 #include "OneLife/gameSource/procedures/graphics/drawFrame.h"
-#include "OneLife/gameSource/components/trace.h"
+#include "OneLife/gameSource/debug/trace.h"
 #include "OneLife/gameSource/dataTypes/feature.h"
 #include "OneLife/gameSource/debug.h"
 
@@ -1154,7 +1154,7 @@ void OneLife::game::Application::readMessages()
 	char *message = nullptr;
 	while(message = getNextServerMessage())
 	{
-		OneLife::game::Trace::log(message);
+		OneLife::game::Debug::write("=================> %", message);
 		//printf("\n===>receive message length %d message\n%s\n", (int)strlen( message ), message );
 
 		messageType type = getMessageType( message );
@@ -5828,7 +5828,6 @@ void OneLife::game::Application::sendClientMessage()
 
 void OneLife::game::Application::setController(void* ptrController)
 {
-	OneLife::game::Debug::writeMethodInfo("OneLife::game::Application::setController(%p)", ptrController);
 	if(!*(void**)ptrController)
 	{
 		if((void**)ptrController == (void**)&(this->controller.initScreen))
@@ -5911,6 +5910,7 @@ void OneLife::game::Application::setController(void* ptrController)
 			OneLife::game::Debug::writeControllerInfo("Start Living Life");
 			if(!livingLifePage)livingLifePage = new LivingLifePage();
 			this->currentController = livingLifePage;
+			this->currentController->base_makeActive( true );
 		}
 		else if((void**)ptrController == (void**)&(finalMessagePage))
 		{
@@ -5918,6 +5918,13 @@ void OneLife::game::Application::setController(void* ptrController)
 			if(!finalMessagePage)finalMessagePage = new FinalMessagePage();
 			this->currentController = finalMessagePage;
 			this->currentController->base_makeActive( true );
+		}
+		else if((void**)ptrController == (void**)&(getServerAddressPage))
+		{
+			OneLife::game::Debug::writeControllerInfo("Get Server Address Page");
+			//if(!getServerAddressPage)getServerAddressPage = new ServerActionPage(const char *inServerURL, const char *inActionName, char inAttachAccountHmac);
+			//this->currentController = getServerAddressPage;
+			//this->currentController->base_makeActive( true );
 		}
 	}
 	else

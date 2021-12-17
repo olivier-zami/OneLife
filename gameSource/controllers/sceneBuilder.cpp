@@ -71,7 +71,7 @@ void OneLife::game::SceneBuilder::handle(OneLife::dataType::UiComponent* screen)
 	}
 	else if(!this->status.isPlayerAgentSet)
 	{
-		//this->initPlayerAgent();
+		this->initPlayerAgent();
 		this->status.isPlayerAgentSet = true;//TODO remove and uncomment initPlayer after test done
 	}
 	else this->updateScreen();

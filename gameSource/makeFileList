@@ -50,8 +50,8 @@ controllers/SettingsPage.cpp \
 controllers/TwinPage.cpp \
 components/socket.cpp \
 components/soundPlayer.cpp \
-components/trace.cpp \
 dataTypes/exception/exception.cpp \
+debug/trace.cpp \
 feature.cpp \
 features/base.cpp \
 features/family.cpp \
