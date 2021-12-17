@@ -10,7 +10,7 @@
 #include "OneLife/gameSource/game.h"
 
 
-#include "components/GamePage.h"
+#include "controller.h"
 #include "TextButton.h"
 #include "TextField.h"
 
@@ -39,7 +39,7 @@ typedef struct WalkAnimationRecord {
 
 
 
-class EditorAnimationPage : public GamePage, public ActionListener {
+class EditorAnimationPage : public Controller, public ActionListener {
         
     public:
         EditorAnimationPage();

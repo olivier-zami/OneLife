@@ -1,10 +1,10 @@
-#include "../GamePage.h"
+#include "OneLife/gameSource/controller.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "../../TextButton.h"
 #include "../../RadioButtonSet.h"
 
-class PollPage : public GamePage, public ActionListener
+class PollPage : public Controller, public ActionListener
 {
 
     public:

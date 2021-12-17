@@ -1,10 +1,10 @@
-#include "../GamePage.h"
+#include "OneLife/gameSource/controller.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "OneLife/gameSource/TextButton.h"
 
 
-class RebirthChoicePage : public GamePage, public ActionListener {
+class RebirthChoicePage : public Controller, public ActionListener {
         
     public:
         RebirthChoicePage();

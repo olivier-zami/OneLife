@@ -10,7 +10,7 @@
 #include "OneLife/gameSource/game.h"
 
 
-#include "components/GamePage.h"
+#include "controller.h"
 #include "TextButton.h"
 #include "TextField.h"
 
@@ -41,7 +41,7 @@
 
 
 
-class EditorObjectPage : public GamePage, public ActionListener {
+class EditorObjectPage : public Controller, public ActionListener {
         
     public:
         EditorObjectPage();

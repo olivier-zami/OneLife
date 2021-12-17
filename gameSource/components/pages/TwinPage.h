@@ -1,4 +1,4 @@
-#include "../GamePage.h"
+#include "OneLife/gameSource/controller.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/util/SimpleVector.h"
@@ -7,7 +7,7 @@
 #include "OneLife/gameSource/TextButton.h"
 #include "OneLife/gameSource/RadioButtonSet.h"
 
-class TwinPage : public GamePage, public ActionListener {
+class TwinPage : public Controller, public ActionListener {
         
     public:
         

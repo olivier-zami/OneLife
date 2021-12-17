@@ -116,7 +116,7 @@ int loadingStepBatchSize = 1;
 double loadingPhaseStartTime;
 
 
-GamePage *currentGamePage = NULL;
+Controller *currentGamePage = NULL;
 
 
 

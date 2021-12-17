@@ -15,6 +15,7 @@
 #include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/application.h"
+#include "OneLife/gameSource/debug/console.h"
 
 
 extern OneLife::game::Application *screen;
@@ -75,7 +76,7 @@ OneLife::game::dataType::socket::Address OneLife::game::component::Socket::getAd
 
 void OneLife::game::component::Socket::connect()
 {
-	printf("\n===>OneLife::game::component::Socket::connect() :: %s:%i", this->address.ip, this->address.port);
+	OneLife::debug::Console::showFunction("OneLife::game::component::Socket::connect(%s : %i)", this->address.ip, this->address.port);
 	*(this->idServerSocket) = openSocketConnection( this->address.ip, this->address.port );
 	this->timeLastMessageSent = game_getCurrentTime();
 }
@@ -92,8 +93,8 @@ bool OneLife::game::component::Socket::isConnected()
  */
 void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::socket::Message message)
 {
+	OneLife::debug::Console::showFunction("OneLife::game::component::Socket::sendMessage(%s)", message.body);
 	this->timeLastMessageSent = game_getCurrentTime();
-	printf( "Sending message to server: %s\n", message.body );
 	replaceLastMessageSent( stringDuplicate( message.body ) );//TODO: if lastMessageSentToServer used create method getlastMessageSent()
 	int len = strlen( message.body );
 	//TODO: test idServerSocket
@@ -777,13 +778,13 @@ void replaceLastMessageSent( char *inNewMessage ) {
 }
 
 /**********************************************************************************************************************/
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/controller.h"
 #include "minorGems/util/SettingsManager.h"
 extern char userReconnect;
 char usingCustomServer = false;
 char *serverIP = NULL;
 int serverPort = 0;
-extern GamePage *currentGamePage;
+extern Controller *currentGamePage;
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
 #include "OneLife/gameSource/components/pages/ServerActionPage.h"

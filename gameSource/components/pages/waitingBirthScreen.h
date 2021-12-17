@@ -5,10 +5,10 @@
 #ifndef ONELIFE_COMPONENT_SCREEN_WAITINGBIRTHSCREEN_H
 #define ONELIFE_COMPONENT_SCREEN_WAITINGBIRTHSCREEN_H
 
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/controller.h"
 
 class WaitingBirthScreen
-		: public GamePage
+		: public Controller
 {
 	public:
 };

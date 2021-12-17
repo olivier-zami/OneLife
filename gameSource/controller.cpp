@@ -1,4 +1,4 @@
-#include "GamePage.h"
+#include "controller.h"
 
 #include "minorGems/util/stringUtils.h"
 #include "OneLife/gameSource/serialWebRequests.h"
@@ -10,32 +10,32 @@
 
 
 
-int GamePage::sPageCount = 0;
+int Controller::sPageCount = 0;
 
-SpriteHandle GamePage::sWaitingSprites[3] = { NULL, NULL, NULL };
-SpriteHandle GamePage::sResponseWarningSprite = NULL;
+SpriteHandle Controller::sWaitingSprites[3] = { NULL, NULL, NULL };
+SpriteHandle Controller::sResponseWarningSprite = NULL;
 
-int GamePage::sCurrentWaitingSprite = 0;
-int GamePage::sLastWaitingSprite = -1;
-int GamePage::sWaitingSpriteDirection = 1;
-double GamePage::sCurrentWaitingSpriteFade = 0;
+int Controller::sCurrentWaitingSprite = 0;
+int Controller::sLastWaitingSprite = -1;
+int Controller::sWaitingSpriteDirection = 1;
+double Controller::sCurrentWaitingSpriteFade = 0;
 
-char GamePage::sResponseWarningShowing = false;
-doublePair GamePage::sResponseWarningPosition = { 0, 0 };
+char Controller::sResponseWarningShowing = false;
+doublePair Controller::sResponseWarningPosition = { 0, 0 };
 
 
-double GamePage::sWaitingFade = 0;
-char GamePage::sWaiting = false;
-char GamePage::sShowWaitingWarningOnly = false;
+double Controller::sWaitingFade = 0;
+char Controller::sWaiting = false;
+char Controller::sShowWaitingWarningOnly = false;
 
-char GamePage::sShutdownPendingWarning = false;
+char Controller::sShutdownPendingWarning = false;
 
 
 extern int currentActiveSerialWebRequest;
 
 
 
-GamePage::GamePage()
+Controller::Controller()
         : PageComponent( 0, 0 ),
           mStatusError( false ),
           mStatusMessageKey( NULL ),
@@ -59,7 +59,7 @@ GamePage::GamePage()
     sPageCount++;
     }
 
-GamePage::~GamePage() {
+Controller::~Controller() {
     if( mStatusMessage != NULL ) {
         delete [] mStatusMessage;
         }
@@ -87,7 +87,7 @@ GamePage::~GamePage() {
         }
     }
 
-void GamePage::handle(OneLife::dataType::UiComponent* screen)
+void Controller::handle(OneLife::dataType::UiComponent* screen)
 {
 	screen->label = nullptr;
 	screen->draw = OneLife::game::graphic::drawUnimplementedScreen;
@@ -95,13 +95,13 @@ void GamePage::handle(OneLife::dataType::UiComponent* screen)
 	screen->body = dataScreen;
 }
 
-void GamePage::skipDrawingSubComponents( char inSkip ) {
+void Controller::skipDrawingSubComponents( char inSkip ) {
     mSkipDrawingSubComponents = inSkip;
     }
 
 
 
-void GamePage::setStatus( const char *inStatusMessageKey, char inError ) {
+void Controller::setStatus( const char *inStatusMessageKey, char inError ) {
     mStatusMessageKey = inStatusMessageKey;
     mStatusError = inError;
 
@@ -113,7 +113,7 @@ void GamePage::setStatus( const char *inStatusMessageKey, char inError ) {
 
 
 
-void GamePage::setStatusDirect( const char *inStatusMessage, char inError ) {
+void Controller::setStatusDirect( const char *inStatusMessage, char inError ) {
     if( mStatusMessage != NULL ) {
         delete [] mStatusMessage;
         mStatusMessage = NULL;
@@ -130,13 +130,13 @@ void GamePage::setStatusDirect( const char *inStatusMessage, char inError ) {
 
 
 
-char GamePage::isStatusShowing() {
+char Controller::isStatusShowing() {
     return ( mStatusMessage != NULL || mStatusMessageKey != NULL );
     }
 
 
 
-void GamePage::setToolTip( const char *inTip ) {
+void Controller::setToolTip( const char *inTip ) {
     if( mTip != NULL && inTip == NULL ) {
         // tip disappearing, save it as mLastTip
         if( mLastTip != NULL ) {
@@ -161,7 +161,7 @@ void GamePage::setToolTip( const char *inTip ) {
 
 
 
-void GamePage::clearToolTip( const char *inTipToClear ) {
+void Controller::clearToolTip( const char *inTipToClear ) {
     if( mTip != NULL ) {
         if( strcmp( mTip, inTipToClear ) == 0 ) {
 
@@ -179,18 +179,18 @@ void GamePage::clearToolTip( const char *inTipToClear ) {
 
 
 
-void GamePage::setTipPosition( char inTop ) {
+void Controller::setTipPosition( char inTop ) {
     mTipAtTopOfScreen = inTop;
     }
 
 
-void GamePage::setStatusPositiion( char inTop ) {
+void Controller::setStatusPositiion( char inTop ) {
     mStatusAtTopOfScreen = inTop;
     }
 
 
 
-void GamePage::base_draw( doublePair inViewCenter, 
+void Controller::base_draw( doublePair inViewCenter,
                           double inViewSize ){
 
     if( sShutdownPendingWarning ) {
@@ -325,7 +325,7 @@ void GamePage::base_draw( doublePair inViewCenter,
 extern double frameRateFactor;
 
 
-void GamePage::base_step() {
+void Controller::base_step() {
     if( sShutdownPendingWarning ) {
         // skip stepping stuff so that game doesn't advance
         // while the user's view is obscured
@@ -400,21 +400,21 @@ void GamePage::base_step() {
 
 
 
-void GamePage::showShutdownPendingWarning() {
+void Controller::showShutdownPendingWarning() {
     sShutdownPendingWarning = true;
     setIgnoreEvents( true );
     }
 
 
 
-void GamePage::setSignal( const char *inSignalName ) {
+void Controller::setSignal( const char *inSignalName ) {
     clearSignal();
     mSignal = stringDuplicate( inSignalName );
     }
 
 
 
-void GamePage::clearSignal() {
+void Controller::clearSignal() {
     if( mSignal != NULL ) {
         delete [] mSignal;
         }
@@ -423,7 +423,7 @@ void GamePage::clearSignal() {
 
 
 
-char GamePage::checkSignal( const char *inSignalName ) {
+char Controller::checkSignal( const char *inSignalName ) {
     if( mSignal == NULL ) {
         return false;
         }
@@ -437,7 +437,7 @@ char GamePage::checkSignal( const char *inSignalName ) {
 
 
 
-char GamePage::isAnySignalSet() {
+char Controller::isAnySignalSet() {
     if( mSignal == NULL ) {
         return false;
         }
@@ -448,7 +448,7 @@ char GamePage::isAnySignalSet() {
 
 
 
-void GamePage::base_keyDown( unsigned char inASCII ) {
+void Controller::base_keyDown( unsigned char inASCII ) {
     PageComponent::base_keyDown( inASCII );
     
     if( sShutdownPendingWarning && inASCII == ' ' ) {
@@ -460,7 +460,7 @@ void GamePage::base_keyDown( unsigned char inASCII ) {
 
 
 
-void GamePage::base_makeActive( char inFresh ){
+void Controller::base_makeActive( char inFresh ){
     if( inFresh ) {    
         for( int i=0; i<mComponents.size(); i++ ) {
             PageComponent *c = *( mComponents.getElement( i ) );
@@ -484,7 +484,7 @@ void GamePage::base_makeActive( char inFresh ){
 
 
 
-void GamePage::base_makeNotActive(){
+void Controller::base_makeNotActive(){
     for( int i=0; i<mComponents.size(); i++ ) {
         PageComponent *c = *( mComponents.getElement( i ) );
         
@@ -497,7 +497,7 @@ void GamePage::base_makeNotActive(){
 
 
 
-void GamePage::setWaiting( char inWaiting, char inWarningOnly ) {
+void Controller::setWaiting( char inWaiting, char inWarningOnly ) {
     sWaiting = inWaiting;
     sShowWaitingWarningOnly = inWarningOnly;
     
@@ -509,7 +509,7 @@ void GamePage::setWaiting( char inWaiting, char inWarningOnly ) {
 
 
 
-void GamePage::pointerMove( float inX, float inY ) {
+void Controller::pointerMove( float inX, float inY ) {
     if( sResponseWarningShowing && currentActiveSerialWebRequest != -1 ) {
         
         if( fabs( inX - sResponseWarningPosition.x ) < 20 &&

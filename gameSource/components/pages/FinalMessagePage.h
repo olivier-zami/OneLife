@@ -1,10 +1,10 @@
-#include "../GamePage.h"
+#include "OneLife/gameSource/controller.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "OneLife/gameSource/TextButton.h"
 
 
-class FinalMessagePage : public GamePage, ActionListener {
+class FinalMessagePage : public Controller, ActionListener {
         
     public:
 

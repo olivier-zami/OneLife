@@ -115,7 +115,7 @@ ReviewPage *reviewPage;
 TwinPage *twinPage;
 PollPage *pollPage;
 GeneticHistoryPage *geneticHistoryPage;
-GamePage *currentGamePage = NULL;//TestPage *testPage = NULL;
+Controller *currentGamePage = NULL;//TestPage *testPage = NULL;
 int loadingStepBatchSize = 1;
 int numLoadingSteps = 20;
 SpriteHandle instructionsSprite;

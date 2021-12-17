@@ -6,14 +6,14 @@
 #define ONELIFE_GAME_INITIALIZATIONSCREEN_H
 
 #include "minorGems/system/Time.h"
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/controller.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 
 namespace OneLife::game
 {
 	class InitializationScreen :
-			public GamePage
+			public Controller
 	{
 		public:
 			InitializationScreen();

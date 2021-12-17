@@ -9,11 +9,11 @@
 #include "minorGems/graphics/openGL/SingleTextureGL.h"
 #include "minorGems/util/log/AppLog.h"
 #include "minorGems/util/SettingsManager.h"
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/controller.h"
 #include "OneLife/gameSource/application.h"
 #include "OneLife/gameSource/procedures/graphics/modalObjects/drawPausePanel.h"
 
-extern GamePage *currentGamePage;
+extern Controller *currentGamePage;
 extern double viewWidth;
 extern doublePair lastScreenViewCenter;
 extern char userReconnect;

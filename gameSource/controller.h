@@ -1,17 +1,17 @@
 #ifndef GAME_PAGE_INCLUDED
 #define GAME_PAGE_INCLUDED
 
-#include "../PageComponent.h"
+#include "PageComponent.h"
 
 #include "minorGems/game/doublePair.h"
 #include "minorGems/game/gameGraphics.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
 
-class GamePage :
+class Controller :
 		public PageComponent
 {
     public:
-        virtual ~GamePage();
+        virtual ~Controller();
 		virtual void handle(OneLife::dataType::UiComponent* screen);
         void setStatus( const char *inStatusMessageKey, char inError );
         // inStatusMessage destroyed by caller
@@ -181,7 +181,7 @@ class GamePage :
         
 
 
-        GamePage();
+        Controller();
         
 
         char mStatusError;

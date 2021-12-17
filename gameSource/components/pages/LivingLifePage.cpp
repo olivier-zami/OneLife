@@ -59,6 +59,7 @@
 #include "OneLife/gameSource/components/soundPlayer.h"
 #include "OneLife/gameSource/procedures/graphics/components.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
+#include "OneLife/gameSource/debug/console.h"
 
 #define OHOL_NON_EDITOR 1
 #include "OneLife/gameSource/ObjectPickable.h"
@@ -923,6 +924,7 @@ void LivingLifePage::takeOffBackpack()
 	
 	char message[32];
 	sprintf(message, "SELF %i %i 5#", ourLiveObject->xd, ourLiveObject->yd);
+	OneLife::debug::Console::write("context : LivingLifePage::takeOffBackpack()");
 	sendToServerSocket( message );
 }
 
@@ -2399,7 +2401,7 @@ void LivingLifePage::sendBugReport( int inBugNumber ) {
     char *bugMessage = autoSprintf( "BUG %d %s#", inBugNumber, bugString );
     
     delete [] bugString;
-
+	OneLife::debug::Console::write("context : LivingLifePage::sendBugReport()");
     sendToServerSocket( bugMessage );
     delete [] bugMessage;
     
@@ -2514,7 +2516,8 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     }
 
         
-void LivingLifePage::step() {
+void LivingLifePage::step()
+{
     
     if( isAnySignalSet() ) {
         return;
@@ -2566,7 +2569,6 @@ void LivingLifePage::step() {
     
     if( !this->socket->isConnected() )
 	{
-		printf("\n=====>Connect({%s,%i})", serverIP, serverPort);
 		this->socket->connect();
 		connectionMessageFade = 1.0f;
         return;
@@ -3639,12 +3641,11 @@ void LivingLifePage::step() {
     char *message = getNextServerMessage();
 
 
-    while( message != NULL ) {
-        overheadServerBytesRead += 52;
-        
-        printf( "Got length %d message\n%s\n", 
-                (int)strlen( message ), message );
+    while( message != NULL )
+	{
+		OneLife::debug::Console::write("Got length %d message\n%s\n", (int)strlen( message ), message);
 
+		overheadServerBytesRead += 52;
         messageType type = getMessageType( message );
         
         if( mapPullMode && type != MAP_CHUNK ) {

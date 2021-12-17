@@ -12,8 +12,8 @@
 #include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 
 
-#include "OneLife/gameSource/components/GamePage.h"
-extern GamePage *currentGamePage;
+#include "OneLife/gameSource/controller.h"
+extern Controller *currentGamePage;
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
 #include "OneLife/gameSource/game.h"

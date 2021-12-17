@@ -24,7 +24,7 @@
 #include "OneLife/gameSource/components/keyboard.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
-#include "OneLife/gameSource/components/GamePage.h"
+#include "OneLife/gameSource/controller.h"
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
@@ -39,7 +39,7 @@ using namespace OneLife::dataType::hardware::keyboard;
 extern unsigned char keyMap[256];
 extern char keyMapOn;
 extern GameSceneHandler *sceneHandler;
-extern GamePage *currentGamePage;
+extern Controller *currentGamePage;
 #include "OneLife/gameSource/components/pages/LivingLifePage.h"
 extern LivingLifePage *livingLifePage;
 
@@ -134,7 +134,7 @@ extern ReviewPage *reviewPage;
 extern TwinPage *twinPage;
 extern PollPage *pollPage;
 extern GeneticHistoryPage *geneticHistoryPage;
-extern GamePage *currentGamePage;
+extern Controller *currentGamePage;
 extern float pauseScreenFade;
 extern char userReconnect;
 extern doublePair lastScreenViewCenter;
