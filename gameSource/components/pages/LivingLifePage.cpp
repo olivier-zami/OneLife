@@ -57,6 +57,7 @@
 #include "OneLife/gameSource/procedures/misc.h"
 #include "OneLife/gameSource/scenes1/maps/outsideMap.h"
 #include "OneLife/gameSource/components/soundPlayer.h"
+#include "OneLife/gameSource/controllers/features/apocalypse.h"
 #include "OneLife/gameSource/procedures/graphics/components.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/debug/console.h"
@@ -272,7 +273,6 @@ static int valleySpacing = 40;
 static int valleyOffset = 0;
 static int apocalypseInProgress = false;
 static double apocalypseDisplayProgress = 0;
-static double apocalypseDisplaySeconds = 6;
 static double remapPeakSeconds = 60;
 static double remapDelaySeconds = 30;
 
@@ -314,7 +314,14 @@ LivingLifePage::LivingLifePage()
           mZKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 )
 {
+	//!set features
+	OneLife::game::feature::Apocalypse* apocalyspe = new OneLife::game::feature::Apocalypse();
+	apocalyspe->handleProgressStatus(&apocalypseInProgress);
+	apocalyspe->handleFrameRateFactor(&frameRateFactor);
+	apocalyspe->handleApocalypseDisplayProgress(&apocalypseDisplayProgress);
+	this->availableFeature.push_back((OneLife::game::Feature*)apocalyspe);
 
+	//!
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
         mUsingSteam = true;
         }
@@ -2518,16 +2525,9 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
         
 void LivingLifePage::step()
 {
-    
-    if( isAnySignalSet() ) {
-        return;
-        }
-    
+    if(this->isAnySignalSet())return;
 
-    if( apocalypseInProgress ) {
-        double stepSize = frameRateFactor / ( apocalypseDisplaySeconds * 60.0 );
-        apocalypseDisplayProgress += stepSize;
-        }
+	for(auto feature : this->availableFeature) this->update(feature);
     
     if( mRemapPeak > 0 )
 	{
@@ -14877,5 +14877,13 @@ bool LivingLifePage::dirIsSafeToWalk(int x, int y, int dir) {
 	tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
 
 	return true;
+}
+
+/**********************************************************************************************************************/
+//!protected
+
+void LivingLifePage::update(OneLife::game::Feature* feature)
+{
+	feature->update();
 }
 

@@ -435,18 +435,14 @@ char Controller::checkSignal( const char *inSignalName ) {
         }
     }
 
-
-
-char Controller::isAnySignalSet() {
-    if( mSignal == NULL ) {
+char Controller::isAnySignalSet()
+{
+    if( mSignal == NULL )
+	{
         return false;
-        }
+	}
     return true;
-    }
-
-
-
-
+}
 
 void Controller::base_keyDown( unsigned char inASCII ) {
     PageComponent::base_keyDown( inASCII );

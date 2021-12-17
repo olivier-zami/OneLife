@@ -76,6 +76,8 @@ scenes1/agent.cpp \
 scenes1/intangibles/text.cpp \
 scenes1/maps/outsideMap.cpp \
 controller.cpp \
+controllers/feature.cpp \
+controllers/features/apocalypse.cpp \
 settings.cpp \
 objectBank.cpp \
 transitionBank.cpp \

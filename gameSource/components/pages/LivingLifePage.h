@@ -1,8 +1,7 @@
 #ifndef LIVING_LIFE_PAGE_INCLUDED
 #define LIVING_LIFE_PAGE_INCLUDED
 
-
-
+#include <vector>
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/SettingsManager.h"
@@ -15,66 +14,39 @@
 #include "OneLife/gameSource/emotion.h"
 #include "OneLife/gameSource/TextField.h"
 #include "../../components/socket.h"
+#include "OneLife/gameSource/controllers/feature.h"
 #include "OneLife/gameSource/dataTypes/misc.h"
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/components/pages/menu/playerStatus.h"
 
-class LivingLifePage : public Controller, public ActionListener {
-        
+class LivingLifePage : public Controller, public ActionListener
+{
     public:
-
         LivingLifePage();
         ~LivingLifePage();
 
 		void setServerSocket(OneLife::game::component::Socket* socket);
-
 		void handle(OneLife::dataType::UiComponent* screen);
-        
         void clearMap();
-        
-        // enabled tutorail next time a connection loads
-        void runTutorial();
-        
-
+        void runTutorial();// enabled tutorail next time a connection loads
         char isMapBeingPulled();
-
-        // destroyed by caller
-        // can be NULL
-        char *getDeathReason();
-
-        // prevent a jitter when frameRateFactor changes due to fps lag
-        void adjustAllFrameCounts( double inOldFrameRateFactor,
-                                   double inNewFrameRateFactor );
-
-        virtual void draw( doublePair inViewCenter, 
-                           double inViewSize );
-        
+        char *getDeathReason();// destroyed by caller can be NULL
+        void adjustAllFrameCounts( double inOldFrameRateFactor, double inNewFrameRateFactor ); // prevent a jitter when frameRateFactor changes due to fps lag
+        virtual void draw( doublePair inViewCenter,double inViewSize );
         virtual void step();
-  
         virtual void makeActive( char inFresh );
-        
-
         virtual void pointerMove( float inX, float inY );
         virtual void pointerDown( float inX, float inY );
         virtual void pointerDrag( float inX, float inY );
         virtual void pointerUp( float inX, float inY );
-
         virtual void keyDown( unsigned char inASCII );
         virtual void specialKeyDown( int inKeyCode );
-        
         virtual void keyUp( unsigned char inASCII );
-
-        
-        // handles error detection, total byte counting, etc.
-        void sendToServerSocket( char *inMessage );
-        
+        void sendToServerSocket( char *inMessage );// handles error detection, total byte counting, etc.
         void sendBugReport( int inBugNumber );
-
-
         int getRequiredVersion() {
             return mRequiredVersion;
             }
-			
 
 		void setNextActionMessage( const char* str, int x, int y );
 		int getObjId( int mapX, int mapY );
@@ -87,12 +59,10 @@ class LivingLifePage : public Controller, public ActionListener {
 		void takeOffBackpack();
 		void setOurSendPosXY(int &x, int &y);
 		bool isCharKey(unsigned char c, unsigned char key);
-		
 		void actionAlphaRelativeToMe( int x, int y );
 		void actionBetaRelativeToMe( int x, int y );
 		void useTileRelativeToMe( int x, int y ) ;
 		void dropTileRelativeToMe( int x, int y ) ;
-		
 		void movementStep();
 		bool findNextMove(int &x, int &y, int dir);
 		int getNextMoveDir(int direction, int add);
@@ -101,39 +71,30 @@ class LivingLifePage : public Controller, public ActionListener {
 		void setMoveDirection(int &x, int &y, int direction);
 		bool tileHasClosedDoor(int x, int y);
 		bool dirIsSafeToWalk(int x, int y, int dir);
-
-
-
 		doublePair minitechGetLastScreenViewCenter();
 		char *minitechGetDisplayObjectDescription(int objId);
 		bool minitechSayFieldIsFocused() { return mSayField.isFocused(); }
-
         virtual void actionPerformed( GUIComponent *inTarget );
-        
+		int sendX( int inX );
+		int sendY( int inY );
+		int mMapD;
+		int *mMap;
 
     protected:
-
+		void update(OneLife::game::Feature* feature);
+		std::vector<OneLife::game::Feature*> availableFeature;
         int mServerSocket;
-        
         int mRequiredVersion;
-
         char mForceRunTutorial;
         int mTutorialNumber;
-
         char mGlobalMessageShowing;
         double mGlobalMessageStartTime;
         SimpleVector<char*>mGlobalMessagesToDestroy;
-        
-
         int mFirstServerMessagesReceived;
-        
         char mStartedLoadingFirstObjectSet;
         char mDoneLoadingFirstObjectSet;
         double mStartedLoadingFirstObjectSetStartTime;
-
         float mFirstObjectSetLoadingProgress;
-        
-        
 
         // an offset that we apply to all server-recieved coordinates
         // before storing them locally, and reverse-apply to all local
@@ -150,38 +111,20 @@ class LivingLifePage : public Controller, public ActionListener {
         // conversion function for received coordinates into local coords
         void applyReceiveOffset( int *inX, int *inY );
         // converts local coors for sending back to server
-		
-	public:
-        
-        int sendX( int inX );
-        int sendY( int inY );
-
-
-        int mMapD;
-		
-        int *mMap;
-        
-	protected:
 
 		struct {
 			bool debugMessageEnabled;
 		}feature;
 
 		OneLife::game::component::Socket* socket;
-        
         int *mMapBiomes;
         int *mMapFloors;
-
         char *mMapCellDrawnFlags;
-
         double *mMapAnimationFrameCount;
         double *mMapAnimationLastFrameCount;
-        
         double *mMapAnimationFrozenRotFrameCount;
         char *mMapAnimationFrozenRotFrameCountUsed;
-
         int *mMapFloorAnimationFrameCount;
-
 
         // all tiles on ground work their way toward animation type of
         // "ground" but may have a lingering types after being dropped
@@ -193,30 +136,22 @@ class LivingLifePage : public Controller, public ActionListener {
         // as it slides back into grid position
         doublePair *mMapDropOffsets;
         double *mMapDropRot;
-
         SoundUsage *mMapDropSounds;
-        
 
         // 0, 0 for most, except objects that are moving
         doublePair *mMapMoveOffsets;
         // speed in CELL_D per sec
         double *mMapMoveSpeeds;
-        
 
         // true if left-right flipped (to match last drop)
         // not tracked on server, so resets when object goes off of screen
         char *mMapTileFlips;
-        
-
         SimpleVector<int> *mMapContainedStacks;
-
         SimpleVector< SimpleVector<int> > *mMapSubContainedStacks;
-        
-        
+
         // true if this map spot was something that our
         // player was responsible for placing
         char *mMapPlayerPlacedFlags;
-        
         SimpleVector<GridPos> mMapExtraMovingObjectsDestWorldPos;
         SimpleVector<int> mMapExtraMovingObjectsDestObjectIDs;
         SimpleVector<ExtraMapObject> mMapExtraMovingObjects;

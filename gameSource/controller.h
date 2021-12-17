@@ -11,7 +11,9 @@ class Controller :
 		public PageComponent
 {
     public:
+		Controller();
         virtual ~Controller();
+
 		virtual void handle(OneLife::dataType::UiComponent* screen);
         void setStatus( const char *inStatusMessageKey, char inError );
         // inStatusMessage destroyed by caller
@@ -178,10 +180,7 @@ class Controller :
         virtual void clearSignal();
         
         virtual char isAnySignalSet();
-        
 
-
-        Controller();
         
 
         char mStatusError;
