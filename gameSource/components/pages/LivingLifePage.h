@@ -18,6 +18,7 @@
 #include "OneLife/gameSource/dataTypes/misc.h"
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/components/pages/menu/playerStatus.h"
+#include "OneLife/gameSource/components/scenes/map.h"
 
 class LivingLifePage : public Controller, public ActionListener
 {
@@ -27,7 +28,6 @@ class LivingLifePage : public Controller, public ActionListener
 
 		void setServerSocket(OneLife::game::component::Socket* socket);
 		void handle(OneLife::dataType::UiComponent* screen);
-        void clearMap();
         void runTutorial();// enabled tutorail next time a connection loads
         char isMapBeingPulled();
         char *getDeathReason();// destroyed by caller can be NULL
@@ -82,6 +82,8 @@ class LivingLifePage : public Controller, public ActionListener
 
     protected:
 		void update(OneLife::game::Feature* feature);
+
+		OneLife::game::Map* localMap;
 		std::vector<OneLife::game::Feature*> availableFeature;
         int mServerSocket;
         int mRequiredVersion;

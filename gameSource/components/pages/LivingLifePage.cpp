@@ -314,6 +314,29 @@ LivingLifePage::LivingLifePage()
           mZKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 )
 {
+	//!set localMap
+	this->localMap = new OneLife::game::Map();
+	this->localMap->handle(
+			&mMapD,
+			&mMap,
+			&mMapBiomes,
+			&mMapFloors,
+			&mMapAnimationFrameCount,
+			&mMapAnimationLastFrameCount,
+			&mMapAnimationFrozenRotFrameCount,
+			&mMapAnimationFrozenRotFrameCountUsed,
+			&mMapFloorAnimationFrameCount,
+			&mMapCurAnimType,
+			&mMapLastAnimType,
+			&mMapLastAnimFade,
+			&mMapDropOffsets,
+			&mMapDropRot,
+			&mMapDropSounds,
+			&mMapMoveOffsets,
+			&mMapMoveSpeeds,
+			&mMapTileFlips,
+			&mMapPlayerPlacedFlags);
+
 	//!set features
 	OneLife::game::feature::Apocalypse* apocalyspe = new OneLife::game::feature::Apocalypse();
 	apocalyspe->handleProgressStatus(&apocalypseInProgress);
@@ -593,9 +616,7 @@ LivingLifePage::LivingLifePage()
 
     mMapPlayerPlacedFlags = new char[ mMapD * mMapD ];
 
-
-    clearMap();
-
+	this->localMap->reset();
 
     splitAndExpandSprites( "hungerBoxes.tga", NUM_HUNGER_BOX_SPRITES, mHungerBoxSprites );
     splitAndExpandSprites( "hungerBoxFills.tga", NUM_HUNGER_BOX_SPRITES, mHungerBoxFillSprites );
@@ -663,6 +684,8 @@ LivingLifePage::LivingLifePage()
 
 	this->feature.debugMessageEnabled = false;
 }
+
+/**********************************************************************************************************************/
 
 void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 {
@@ -948,44 +971,6 @@ void LivingLifePage::setOurSendPosXY(int &x, int &y)
 bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
 	char tKey = key;
 	return (c == key || c == toupper(tKey));
-}
-
-void LivingLifePage::clearMap()
-{
-    for( int i=0; i<mMapD *mMapD; i++ ) {
-        // -1 represents unknown
-        // 0 represents known empty
-        mMap[i] = -1;
-        mMapBiomes[i] = -1;
-        mMapFloors[i] = -1;
-        
-        mMapAnimationFrameCount[i] = randSource2.getRandomBoundedInt( 0, 10000 );
-        mMapAnimationLastFrameCount[i] = 
-            randSource2.getRandomBoundedInt( 0, 10000 );
-        
-        mMapAnimationFrozenRotFrameCount[i] = 0;
-        mMapAnimationFrozenRotFrameCountUsed[i] = false;
-        
-        mMapFloorAnimationFrameCount[i] = 
-            randSource2.getRandomBoundedInt( 0, 10000 );
-
-        mMapCurAnimType[i] = ground;
-        mMapLastAnimType[i] = ground;
-        mMapLastAnimFade[i] = 0;
-
-        mMapDropOffsets[i].x = 0;
-        mMapDropOffsets[i].y = 0;
-        mMapDropRot[i] = 0;
-        mMapDropSounds[i] = blankSoundUsage;
-
-        mMapMoveOffsets[i].x = 0;
-        mMapMoveOffsets[i].y = 0;
-        mMapMoveSpeeds[i] = 0;
-        
-        mMapTileFlips[i] = false;
-        
-        mMapPlayerPlacedFlags[i] = false;
-        }
 }
 
 void LivingLifePage::runTutorial()
@@ -11001,7 +10986,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     
     apocalypseInProgress = false;
 
-    clearMap();
+    this->localMap->reset();
     
     mMapExtraMovingObjects.deleteAll();
     mMapExtraMovingObjectsDestWorldPos.deleteAll();

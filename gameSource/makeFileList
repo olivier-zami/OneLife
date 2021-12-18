@@ -43,6 +43,7 @@ components/pages/TwinPage.cpp \
 components/pages/waitingBirthScreen.cpp \
 components/scenes/agent.cpp \
 components/scenes/intangibles/text.cpp \
+components/scenes/map.cpp \
 components/scenes/maps/outsideMap.cpp \
 components/socket.cpp \
 components/soundPlayer.cpp \
