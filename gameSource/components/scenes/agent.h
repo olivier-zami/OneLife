@@ -5,9 +5,9 @@
 #ifndef ONELIFE_GAME_AGENT_H
 #define ONELIFE_GAME_AGENT_H
 
-#include "OneLife/gameSource/GridPos.h"
-#include "OneLife/gameSource/dataTypes/game.h"
-#include "OneLife/gameSource/animationBank.h"
+#include "../../GridPos.h"
+#include "../../dataTypes/game.h"
+#include "../../animationBank.h"
 
 namespace OneLife::game
 {

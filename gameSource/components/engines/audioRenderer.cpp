@@ -17,7 +17,7 @@
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
 #include "OneLife/gameSource/soundBank.h"
 #include "OneLife/gameSource/components/camera.h"
-#include "OneLife/gameSource/scenes1/maps/outsideMap.h"
+#include "OneLife/gameSource/components/scenes/maps/outsideMap.h"
 
 extern CustomRandomSource randSource;
 extern GameSceneHandler *sceneHandler;

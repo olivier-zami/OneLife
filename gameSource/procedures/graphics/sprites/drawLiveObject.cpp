@@ -10,7 +10,7 @@
 #include "OneLife/gameSource/components/camera.h"
 #include "OneLife/gameSource/soundBank.h"
 #include "OneLife/gameSource/dataTypes/const.h"
-#include "OneLife/gameSource/scenes1/agent.h"
+#include "OneLife/gameSource/components/scenes/agent.h"
 #include "OneLife/gameSource/ageControl.h"
 
 extern double frameRateFactor;

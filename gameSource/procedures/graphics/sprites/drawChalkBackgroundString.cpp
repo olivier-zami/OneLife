@@ -12,7 +12,7 @@
 #include "minorGems/game/drawUtils.h"
 #include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/procedures/maths/misc.h"
-#include "OneLife/gameSource/scenes1/intangibles/text.h"
+#include "OneLife/gameSource/components/scenes/intangibles/text.h"
 
 extern Font *handwritingFont;
 extern float gui_fov_scale_hud;

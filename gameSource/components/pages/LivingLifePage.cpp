@@ -45,8 +45,8 @@
 #include "OneLife/gameSource/features/homeland.h"
 #include "OneLife/gameSource/procedures/maths/gridPos.h"
 #include "OneLife/gameSource/procedures/maths/misc.h"
-#include "OneLife/gameSource/scenes1/agent.h"
-#include "OneLife/gameSource/scenes1/intangibles/text.h"
+#include "OneLife/gameSource/components/scenes/agent.h"
+#include "OneLife/gameSource/components/scenes/intangibles/text.h"
 #include "OneLife/gameSource/procedures/graphics/sprites/strings.h"
 #include "OneLife/gameSource/procedures/graphics/sprites/grounds.h"
 #include "OneLife/gameSource/procedures/graphics/sprites/agents.h"
@@ -55,7 +55,7 @@
 #include "OneLife/gameSource/procedures/graphics/base.h"
 #include "OneLife/gameSource/minitech.h"
 #include "OneLife/gameSource/procedures/misc.h"
-#include "OneLife/gameSource/scenes1/maps/outsideMap.h"
+#include "OneLife/gameSource/components/scenes/maps/outsideMap.h"
 #include "OneLife/gameSource/components/soundPlayer.h"
 #include "OneLife/gameSource/controllers/features/apocalypse.h"
 #include "OneLife/gameSource/procedures/graphics/components.h"
@@ -2528,37 +2528,39 @@ void LivingLifePage::step()
     if(this->isAnySignalSet())return;
 
 	for(auto feature : this->availableFeature) this->update(feature);
-    
+
+	//!
     if( mRemapPeak > 0 )
 	{
-        if( mRemapDelay < 1 ) {
-            double stepSize = 
-                frameRateFactor / ( remapDelaySeconds * 60.0 );
+        if( mRemapDelay < 1 )
+		{
+            double stepSize = frameRateFactor / ( remapDelaySeconds * 60.0 );
             mRemapDelay += stepSize;
-            }
-        else {
-
-            double stepSize = 
-                mRemapDirection * frameRateFactor / ( remapPeakSeconds * 60.0 );
-        
+		}
+        else
+		{
+            double stepSize = mRemapDirection * frameRateFactor / ( remapPeakSeconds * 60.0 );
             mCurrentRemapFraction += stepSize;
-            
-            if( stepSize > 0 && mCurrentRemapFraction >= mRemapPeak ) {
+            if( stepSize > 0 && mCurrentRemapFraction >= mRemapPeak )
+			{
                 mCurrentRemapFraction = mRemapPeak;
                 mRemapDirection *= -1;
-                }
-            if( stepSize < 0 && mCurrentRemapFraction <= 0 ) {
+			}
+            if( stepSize < 0 && mCurrentRemapFraction <= 0 )
+			{
                 mCurrentRemapFraction = 0;
                 mRemapPeak = 0;
-                }
-            if( takingPhoto ) {
+			}
+            if( takingPhoto )
+			{
                 // stop remapping briefly during photo
                 setRemapFraction( 0 );
-                }
-            else {
+			}
+            else
+			{
                 setRemapFraction( mCurrentRemapFraction );
-                }
-            }
+			}
+		}
 	}
     
 
@@ -2668,49 +2670,35 @@ void LivingLifePage::step()
 
     // move moving objects
     int numCells = mMapD * mMapD;
-    
-    for( int i=0; i<numCells; i++ ) {
-                
+    for(int i=0; i<numCells; i++)
+	{
         if( mMapMoveSpeeds[i] > 0 &&
             ( mMapMoveOffsets[ i ].x != 0 ||
-              mMapMoveOffsets[ i ].y != 0  ) ) {
-
-            
+              mMapMoveOffsets[ i ].y != 0  ) )
+		{
             doublePair nullOffset = { 0, 0 };
-                    
-
-            doublePair delta = sub( nullOffset, 
-                                    mMapMoveOffsets[ i ] );
-                    
+            doublePair delta = sub(nullOffset, mMapMoveOffsets[ i ]);
             double step = frameRateFactor * mMapMoveSpeeds[ i ] / 60.0;
-                    
-            if( length( delta ) < step ) {
-                        
+            if( length( delta ) < step )
+			{
                 mMapMoveOffsets[ i ].x = 0;
                 mMapMoveOffsets[ i ].y = 0;
                 mMapMoveSpeeds[ i ] = 0;
-                
-                if( mMapCurAnimType[ i ] != ground ) {
-                        
+                if(mMapCurAnimType[ i ] != ground)
+				{
                     mMapLastAnimType[ i ] = mMapCurAnimType[ i ];
                     mMapCurAnimType[ i ] = ground;
                     mMapLastAnimFade[ i ] = 1;
-                    
-                    mMapAnimationLastFrameCount[ i ] =
-                        mMapAnimationFrameCount[ i ];
-                    
-                    mMapAnimationFrozenRotFrameCount[ i ] = 
-                        mMapAnimationLastFrameCount[ i ];
-                    
-                    }
-                }
-            else {
-                mMapMoveOffsets[ i ] =
-                    add( mMapMoveOffsets[ i ],
-                         mult( normalize( delta ), step ) );
-                }
-            }
-        }
+                    mMapAnimationLastFrameCount[ i ] = mMapAnimationFrameCount[ i ];
+                    mMapAnimationFrozenRotFrameCount[ i ] = mMapAnimationLastFrameCount[ i ];
+				}
+			}
+            else
+			{
+                mMapMoveOffsets[ i ] = add( mMapMoveOffsets[ i ], mult( normalize( delta ), step ) );
+			}
+		}
+	}
     
     
     // step extra moving objects
@@ -10815,8 +10803,8 @@ void LivingLifePage::step()
             
             mStartedLoadingFirstObjectSet = true;
             mStartedLoadingFirstObjectSetStartTime = game_getCurrentTime();
-            }
-        }
+		}
+	}
 }
 
 
