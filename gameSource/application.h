@@ -548,7 +548,7 @@ namespace OneLife::game
 			OneLife::game::InitializationScreen* initializationScreen;
 
 			OneLife::dataType::ui::Screen currentScreen;
-			OneLife::game::component::Socket* connection;
+			OneLife::game::component::Socket* socket;
 			OneLife::game::DeviceListener* deviceListener;
 			OneLife::game::ScreenRenderer* screenRenderer;
 

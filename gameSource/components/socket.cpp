@@ -5,7 +5,7 @@
 #include "socket.h"
 
 #include <cstdio>
-
+#include <cstring>
 #include "minorGems/util/log/AppLog.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/network/HostAddress.h"
@@ -40,7 +40,11 @@ static int nextSocketConnectionHandle = 0;
 
 OneLife::game::component::Socket::Socket()
 {
-	this->serverSocketConnected = false;
+	this->status.isConnected = false;
+	this->currentMessage.type = 0;
+	this->currentMessage.size = 0;
+	this->currentMessage.content = malloc(1024*sizeof(char));
+	memset(this->currentMessage.content, 0, 1024*sizeof(char));
 	this->numServerBytesRead = 0;
 	this->numServerBytesSent = 0;
 	this->overheadServerBytesRead = 0;
@@ -53,13 +57,11 @@ OneLife::game::component::Socket::~Socket() {}
 
 void OneLife::game::component::Socket::handle(
 		SimpleVector<unsigned char>* serverSocketBuffer, //serverSocketBuffer
-		int* bytesInCount,//bytesInCount
-		int* idServerSocket)//mServerSocket
+		int* bytesInCount)//bytesInCount
 {
 	this->serverSocketBuffer = serverSocketBuffer;
 	this->bytesInCount = bytesInCount;
-	this->idServerSocket = idServerSocket;
-	*(this->idServerSocket) = -1;
+	this->id = -1;
 }
 
 void OneLife::game::component::Socket::setAddress(OneLife::game::dataType::socket::Address address)
@@ -77,14 +79,50 @@ OneLife::game::dataType::socket::Address OneLife::game::component::Socket::getAd
 void OneLife::game::component::Socket::connect()
 {
 	OneLife::debug::Console::showFunction("OneLife::game::component::Socket::connect(%s : %i)", this->address.ip, this->address.port);
-	*(this->idServerSocket) = openSocketConnection( this->address.ip, this->address.port );
+	this->id = openSocketConnection( this->address.ip, this->address.port );
 	this->timeLastMessageSent = game_getCurrentTime();
 }
 
 bool OneLife::game::component::Socket::isConnected()
 {
-	if(*(this->idServerSocket) == -1) this->serverSocketConnected = false;
-	return (bool) (*(this->idServerSocket) != -1);
+	if(this->id == -1) this->status.isConnected = false;
+	return (bool) (this->id != -1);
+}
+
+/**
+ *
+ * @param inServerSocket
+ * @return
+ * @note reads all waiting data from socket and stores it in buffer returns false on socket error
+ */
+char OneLife::game::component::Socket::readMessage()
+{
+	if(this->id==-1/*this->forceDisconnect*/) return false;
+
+	unsigned char buffer[512];
+	int numRead = readFromSocket( this->id, buffer, 512 );
+	while( numRead > 0 )
+	{
+		if(!this->status.isConnected )
+		{
+			this->status.isConnected = true;
+			this->connectedTime = game_getCurrentTime();
+		}
+
+		(*(this->serverSocketBuffer)).appendArray( buffer, numRead );
+		this->numServerBytesRead += numRead;
+		*(this->bytesInCount) += numRead;
+
+		numRead = readFromSocket( this->id, buffer, 512 );
+	}
+
+	if( numRead == -1 ) {
+		printf( "Failed to read from server socket at time %f\n",
+				game_getCurrentTime() );
+		return false;
+	}
+
+	return true;
 }
 
 /**
@@ -95,10 +133,10 @@ void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::sock
 {
 	OneLife::debug::Console::showFunction("OneLife::game::component::Socket::sendMessage(%s)", message.body);
 	this->timeLastMessageSent = game_getCurrentTime();
-	replaceLastMessageSent( stringDuplicate( message.body ) );//TODO: if lastMessageSentToServer used create method getlastMessageSent()
+	replaceLastMessageSent(stringDuplicate( message.body ) );//TODO: if lastMessageSentToServer used create method getlastMessageSent()
 	int len = strlen( message.body );
-	//TODO: test idServerSocket
-	int numSent = sendToSocket( *(this->idServerSocket), (unsigned char*)(message.body), len );
+	//TODO: test id
+	int numSent = sendToSocket( this->id, (unsigned char*)(message.body), len );
 
 	if( numSent == len )
 	{
@@ -110,50 +148,40 @@ void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::sock
 	else
 	{
 		printf( "Failed to send message to server socket at time %f (tried to send %d, but numSent=%d)\n", game_getCurrentTime(), len, numSent );
-		closeSocket( *(this->idServerSocket) ); *(this->idServerSocket) = -1;//TODO: set idServerSocket to -1 in closeSocket();
+		this->close();//TODO: set id to -1 in closeSocket();
 	}
 }
 
-/**
- *
- * @param inServerSocket
- * @return
- * @note reads all waiting data from socket and stores it in buffer returns false on socket error
- */
-char OneLife::game::component::Socket::readMessage()
+OneLife::game::dataType::Message OneLife::game::component::Socket::getMessage(char* message)
 {
-	if(this->forceDisconnect)
+	int sizeX = 0;
+	int sizeY = 0;
+	int x = 0;
+	int y = 0;
+
+	int binarySize = 0;
+	int compressedSize = 0;
+
+	sscanf(message, "MC\n%d %d %d %d\n%d %d\n", &sizeX, &sizeY, &x, &y, &binarySize, &compressedSize );
+	printf("Got map chunk with bin size %d, compressed size %d\n", binarySize, compressedSize );
+
+	unsigned char *compressedChunk = new unsigned char[ compressedSize ];
+	for( int i=0; i<compressedSize; i++ )
 	{
-		this->forceDisconnect = false;
-		return false;
+		compressedChunk[i] = (*(this->serverSocketBuffer)).getElementDirect( i );
 	}
+	(*(this->serverSocketBuffer)).deleteStartElements( compressedSize );
+	//unsigned char *decompressedChunk = zipDecompress(compressedChunk, compressedSize, binarySize);
+	this->currentMessage.size = binarySize;
+	this->currentMessage.content = zipDecompress(compressedChunk, compressedSize, binarySize);
+	delete [] compressedChunk;
 
+	return this->currentMessage;
+}
 
-	unsigned char buffer[512];
-
-	int numRead = readFromSocket( *(this->idServerSocket), buffer, 512 );
-
-
-	while( numRead > 0 ) {
-		if( ! this->serverSocketConnected ) {
-			this->serverSocketConnected = true;
-			this->connectedTime = game_getCurrentTime();
-		}
-
-		(*(this->serverSocketBuffer)).appendArray( buffer, numRead );
-		this->numServerBytesRead += numRead;
-		*(this->bytesInCount) += numRead;
-
-		numRead = readFromSocket( *(this->idServerSocket), buffer, 512 );
-	}
-
-	if( numRead == -1 ) {
-		printf( "Failed to read from server socket at time %f\n",
-				game_getCurrentTime() );
-		return false;
-	}
-
-	return true;
+void OneLife::game::component::Socket::deleteAllMessages()
+{
+	(*(this->serverSocketBuffer)).deleteAll();
 }
 
 /**
@@ -173,13 +201,16 @@ double OneLife::game::component::Socket::getTimeLastMessageSent()
 void OneLife::game::component::Socket::disconnect()
 {
 	this->connectedTime = 0;
-	this->serverSocketConnected = false;
+	this->status.isConnected = false;
 }
 
 void OneLife::game::component::Socket::close()
 {
-	//*(this->idServerSocket) = -1;//TODO: close socket before
-	this->forceDisconnect = true;
+	if(this->id != -1)
+	{
+		closeSocket(this->id);
+		this->id = -1;//TODO: close socket before
+	}
 }
 
 void OneLife::game::component::Socket::resetStats()

@@ -7,8 +7,9 @@
 
 #include "../../../minorGems/util/SimpleVector.h"
 #include "minorGems/network/SocketClient.h"
-#include "../dataTypes/game.h"
-#include "../dataTypes/socket.h"
+#include "OneLife/gameSource/dataTypes/message.h"
+#include "OneLife/gameSource/dataTypes/game.h"
+#include "OneLife/gameSource/dataTypes/socket.h"
 
 namespace OneLife::game::component
 {
@@ -20,21 +21,22 @@ namespace OneLife::game::component
 
 			void handle(
 					SimpleVector<unsigned char>* serverSocketBuffer = nullptr,
-					int* bytesInCount = nullptr,
-					int* idServerSocket = nullptr);
+					int* bytesInCount = nullptr);
 
 			void setAddress(OneLife::game::dataType::socket::Address address);
 			OneLife::game::dataType::socket::Address getAddress();
 
 			void connect();
 			bool isConnected();
-			void sendMessage(OneLife::game::dataType::socket::Message message);
 			char readMessage();
-			double getLastQueryLifeTime();
-			double getTimeLastMessageSent();
+			void sendMessage(OneLife::game::dataType::socket::Message message);
+			OneLife::game::dataType::Message getMessage(char* message = nullptr);
 			void disconnect();
 			void close();
 
+			double getLastQueryLifeTime();
+			double getTimeLastMessageSent();
+			void deleteAllMessages();
 			void resetStats();
 			int getTotalServerBytesRead();
 			int getTotalServerBytesSent();
@@ -43,9 +45,12 @@ namespace OneLife::game::component
 			int getTotalServerMessageSent();
 
 		private:
+			int id;
+			struct{
+				bool isConnected;
+			}status;
 			OneLife::game::dataType::socket::Address address;
-			int* idServerSocket;
-			char forceDisconnect;
+			OneLife::game::dataType::Message currentMessage;
 			char serverSocketConnected;
 			double connectedTime;
 			double timeLastMessageSent;

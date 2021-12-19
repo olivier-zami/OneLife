@@ -283,8 +283,7 @@ extern void setTrippingColor( double x, double y );
 /**********************************************************************************************************************/
 
 LivingLifePage::LivingLifePage()
-        : mServerSocket( -1 ),
-          mForceRunTutorial( false ),
+        : mForceRunTutorial( false ),
           mTutorialNumber( 0 ),
           mGlobalMessageShowing( false ),
           mGlobalMessageStartTime( 0 ),
@@ -698,8 +697,7 @@ void LivingLifePage::setServerSocket(OneLife::game::component::Socket *socket)
 	this->socket = socket;
 	this->socket->handle(
 			&serverSocketBuffer,
-			&bytesInCount,
-			&mServerSocket);
+			&bytesInCount);
 }
 
 void LivingLifePage::sendToServerSocket( char *inMessage )
@@ -1056,11 +1054,8 @@ LivingLifePage::~LivingLifePage()
 	}
 
     mSentChatPhrases.deallocateStringElements();
-    
-    if( mServerSocket != -1 )
-	{
-        closeSocket( mServerSocket );
-	}
+
+	this->socket->close();
     
     mPreviousHomeDistStrings.deallocateStringElements();
     mPreviousHomeDistFades.deleteAll();
@@ -2580,8 +2575,7 @@ void LivingLifePage::step()
         if( pageLifeTime > 10 )
 		{
             // having trouble connecting.
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+            this->socket->close();
 
             setWaiting( false );
             setSignal( "connectionFailed" );
@@ -2593,11 +2587,9 @@ void LivingLifePage::step()
 
     // first, read all available data from server
     char readSuccess = this->socket->readMessage();
-    
 
     if( ! readSuccess )
 	{
-        
         if( this->socket->isConnected() )
 		{
             if( this->socket->getLastQueryLifeTime() < 1 )
@@ -2608,50 +2600,46 @@ void LivingLifePage::step()
 			}
 		}
         
-
-        closeSocket( mServerSocket );
-        mServerSocket = -1;
-
-        if( mFirstServerMessagesReceived  ) {
-            
-            if( mDeathReason != NULL ) {
-                delete [] mDeathReason;
-                }
+		this->socket->close();
+        if( mFirstServerMessagesReceived  )
+		{
+            if( mDeathReason != NULL ) delete [] mDeathReason;
             mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
-            
             handleOurDeath( true );
-            }
-        else {
+		}
+        else
+		{
             setWaiting( false );
             setSignal( "loginFailed" );
-            }
+		}
         return;
 	}
     
-    if( mLastMouseOverID != 0 ) {
+    if( mLastMouseOverID != 0 )
+	{
         mLastMouseOverFade -= 0.01 * frameRateFactor;
-        
-        if( mLastMouseOverFade < 0 ) {
+        if( mLastMouseOverFade < 0 )
+		{
             mLastMouseOverID = 0;
-            }
-        }
-    
+		}
+	}
 
-    if( mGlobalMessageShowing ) {
-        
-        if( game_getCurrentTime() - mGlobalMessageStartTime > 10 ) {
+    if( mGlobalMessageShowing )
+	{
+        if( game_getCurrentTime() - mGlobalMessageStartTime > 10 )
+		{
             mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
                 mTutorialHideOffset[ mLiveTutorialSheetIndex ];
 
             if( mTutorialPosOffset[ mLiveTutorialSheetIndex ].y ==
-                mTutorialHideOffset[ mLiveTutorialSheetIndex ].y ) {
+                mTutorialHideOffset[ mLiveTutorialSheetIndex ].y )
+			{
                 // done hiding
                 mGlobalMessageShowing = false;
                 mGlobalMessagesToDestroy.deallocateStringElements();
-                }
-            }
-        }
-    
+			}
+		}
+	}
 
     // move moving objects
     int numCells = mMapD * mMapD;
@@ -2684,64 +2672,54 @@ void LivingLifePage::step()
 			}
 		}
 	}
-    
-    
-    // step extra moving objects
-    for( int i=0; i<mMapExtraMovingObjects.size(); i++ ) {
-        
-        ExtraMapObject *o = mMapExtraMovingObjects.getElement( i );
-        
-        doublePair nullOffset = { 0, 0 };
-                    
 
+    // step extra moving objects
+    for( int i=0; i<mMapExtraMovingObjects.size(); i++ )
+	{
+        ExtraMapObject *o = mMapExtraMovingObjects.getElement( i );
+        doublePair nullOffset = { 0, 0 };
         doublePair delta = sub( nullOffset, o->moveOffset );
-        
         double step = frameRateFactor * o->moveSpeed / 60.0;
-                    
-        if( length( delta ) < step ) {
+        if( length( delta ) < step )
+		{
             // reached dest
-            
             endExtraObjectMove( i );
             i--;
-            }
-        else {
-            o->moveOffset =
-                add( o->moveOffset,
-                     mult( normalize( delta ), step ) );
-            }
-        }
-    
+		}
+        else
+		{
+            o->moveOffset = add( o->moveOffset, mult( normalize( delta ), step ) );
+		}
+	}
 
-
-
-    if( mCurMouseOverID > 0 && ! mCurMouseOverSelf ) {
+    if( mCurMouseOverID > 0 && ! mCurMouseOverSelf )
+	{
         mCurMouseOverFade += 0.2 * frameRateFactor;
-        if( mCurMouseOverFade >= 1 ) {
+        if( mCurMouseOverFade >= 1 )
+		{
             mCurMouseOverFade = 1.0;
-            }
-        }
+		}
+	}
     
-    for( int i=0; i<mPrevMouseOverSpotFades.size(); i++ ) {
+    for( int i=0; i<mPrevMouseOverSpotFades.size(); i++ )
+	{
         float f = mPrevMouseOverSpotFades.getElementDirect( i );
-        
         f -= 0.1 * frameRateFactor;
-        
-        
-        if( f <= 0 ) {
+        if( f <= 0 )
+		{
             mPrevMouseOverSpotFades.deleteElement( i );
             mPrevMouseOverSpots.deleteElement( i );
             mPrevMouseOverSpotsBehind.deleteElement( i );
             i--;
-            }
-        else {
+		}
+        else
+		{
             *( mPrevMouseOverSpotFades.getElement( i ) ) = f;
-            }
-        }
-    
-    
-    
-    if( mCurMouseOverCell.x != -1 ) {
-        
+		}
+	}
+
+    if( mCurMouseOverCell.x != -1 )
+	{
         LiveObject *ourObject = getOurLiveObject();
 
         // we're not mousing over any object or person
@@ -2766,9 +2744,10 @@ void LivingLifePage::step()
                 mCurMouseOverCellFade = 0;
                 }
             }
-        }
+	}
     
-    for( int i=0; i<mPrevMouseOverCellFades.size(); i++ ) {
+    for( int i=0; i<mPrevMouseOverCellFades.size(); i++ )
+	{
         float f = mPrevMouseOverCellFades.getElementDirect( i );
         
         f -= 0.1 * frameRateFactor;
@@ -2802,7 +2781,8 @@ void LivingLifePage::step()
         }
     
     
-    if( ! equal( mNotePaperPosOffset, mNotePaperPosTargetOffset ) ) {
+    if( ! equal( mNotePaperPosOffset, mNotePaperPosTargetOffset ) )
+	{
         doublePair delta = 
             sub( mNotePaperPosTargetOffset, mNotePaperPosOffset );
         
@@ -2844,26 +2824,26 @@ void LivingLifePage::step()
         }
     
     
-    
+    //OneLife::debug::Console::write("===>LiveObject *ourObject = getOurLiveObject()");
     LiveObject *ourObject = getOurLiveObject();
-
-    if( ourObject != NULL ) {    
+    if( ourObject != NULL )
+	{
         char tooClose = false;
         double homeDist = 0;
+        int homeArrow = getHomeDir(ourObject->currentPos, &homeDist, &tooClose);
         
-        int homeArrow = getHomeDir( ourObject->currentPos, &homeDist,
-                                    &tooClose );
-        
-        if( homeArrow != -1 && ! tooClose ) {
+        if( homeArrow != -1 && ! tooClose )
+		{
             mHomeSlipPosTargetOffset.y = mHomeSlipHideOffset.y + 68;
-            
-            if( homeDist > 1000 ) {
+            if( homeDist > 1000 )
+			{
                 mHomeSlipPosTargetOffset.y += 20;
-                }
-            }
-        else {
+			}
+		}
+        else
+		{
             mHomeSlipPosTargetOffset.y = mHomeSlipHideOffset.y;
-            }
+		}
 
         int cm = ourObject->currentMouseOverClothingIndex;
         if( cm != -1 ) {
@@ -3507,8 +3487,7 @@ void LivingLifePage::step()
                 curTime - ourObject->pendingActionAnimationStartTime,
                 curTime - lastServerMessageReceiveTime );
 
-        closeSocket( mServerSocket );
-        mServerSocket = -1;
+        this->socket->close();
         
         if( mDeathReason != NULL ) {
             delete [] mDeathReason;
@@ -3589,8 +3568,7 @@ void LivingLifePage::step()
                 "for our PING.  Declaring connection broken.\n",
                 curTime - ourObject->pendingActionAnimationStartTime );
             
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+            this->socket->close();
 
             if( mDeathReason != NULL ) {
                 delete [] mDeathReason;
@@ -3628,8 +3606,7 @@ void LivingLifePage::step()
             }
         
         if( type == SHUTDOWN  || type == FORCED_SHUTDOWN ) {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+            this->socket->close();
             
             setWaiting( false );
             setSignal( "serverShutdown" );
@@ -3638,8 +3615,7 @@ void LivingLifePage::step()
             return;
             }
         else if( type == SERVER_FULL ) {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+            this->socket->close();
             
             setWaiting( false );
             setSignal( "serverFull" );
@@ -3784,8 +3760,7 @@ void LivingLifePage::step()
                 // if server is using an older version, check that
                 // their version is not behind our data version at least
 
-                closeSocket( mServerSocket );
-                mServerSocket = -1;
+                this->socket->close();
 
                 setWaiting( false );
 
@@ -3918,8 +3893,7 @@ void LivingLifePage::step()
             return;
             }
         else if( type == REJECTED ) {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+            this->socket->close();
             
             setWaiting( false );
             setSignal( "loginFailed" );
@@ -3928,8 +3902,7 @@ void LivingLifePage::step()
             return;
             }
         else if( type == NO_LIFE_TOKENS ) {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+            this->socket->close();
             
             setWaiting( false );
             setSignal( "noLifeTokens" );
@@ -4430,12 +4403,12 @@ void LivingLifePage::step()
             int binarySize = 0;
             int compressedSize = 0;
             
-            sscanf( message, "MC\n%d %d %d %d\n%d %d\n", 
-                    &sizeX, &sizeY, &x, &y, &binarySize, &compressedSize );
-            
-            printf( "Got map chunk with bin size %d, compressed size %d\n", 
-                    binarySize, compressedSize );
-            
+            sscanf(message, "MC\n%d %d %d %d\n%d %d\n", &sizeX, &sizeY, &x, &y, &binarySize, &compressedSize );
+            printf("Got map chunk with bin size %d, compressed size %d\n", binarySize, compressedSize );
+
+			OneLife::game::dataType::Message serverMessage = this->socket->getMessage(message);
+
+			/***************************************/
             if( ! mMapGlobalOffsetSet ) {
                 
                 // we need 7 fraction bits to represent 128 pixels per tile
@@ -4671,66 +4644,35 @@ void LivingLifePage::step()
             delete [] newMapAnimationFrozenRotFameCount;
             delete [] newMapAnimationFrozenRotFameCountUsed;
             delete [] newMapFloorAnimationFrameCount;
-            
             delete [] newMapCurAnimType;
             delete [] newMapLastAnimType;
             delete [] newMapLastAnimFade;
             delete [] newMapDropOffsets;
             delete [] newMapDropRot;
             delete [] newMapDropSounds;
-
             delete [] newMapMoveOffsets;
             delete [] newMapMoveSpeeds;
-            
             delete [] newMapTileFlips;
             delete [] newMapContainedStacks;
             delete [] newMapSubContainedStacks;
-            
             delete [] newMapPlayerPlacedFlags;
-            
-            
 
             mMapOffsetX = newMapOffsetX;
             mMapOffsetY = newMapOffsetY;
+			/***************************************/
             
-            
-            unsigned char *compressedChunk = 
-                new unsigned char[ compressedSize ];
-    
-            
-            for( int i=0; i<compressedSize; i++ ) {
-                compressedChunk[i] = serverSocketBuffer.getElementDirect( i );
-                }
-            serverSocketBuffer.deleteStartElements( compressedSize );
-
-            
-            unsigned char *decompressedChunk =
-                zipDecompress( compressedChunk, 
-                               compressedSize,
-                               binarySize );
-            
-            delete [] compressedChunk;
-            
-            if( decompressedChunk == NULL ) {
+            if( serverMessage.content == NULL )
+			{
                 printf( "Decompressing chunk failed\n" );
-                }
-            else {
-                
-                unsigned char *binaryChunk = 
-                    new unsigned char[ binarySize + 1 ];
-            
-                memcpy( binaryChunk, decompressedChunk, binarySize );
-            
-                delete [] decompressedChunk;
- 
-            
-                // for now, binary chunk is actually just ASCII
-                binaryChunk[ binarySize ] = '\0';
-            
-                
-                SimpleVector<char *> *tokens = 
-                    tokenizeString( (char*)binaryChunk );
-            
+			}
+            else
+			{
+                unsigned char *binaryChunk = new unsigned char[ serverMessage.size + 1 ];
+                memcpy( binaryChunk, serverMessage.content, serverMessage.size );
+                //delete [] decompressedChunk;
+
+                binaryChunk[ serverMessage.size ] = '\0'; // for now, binary chunk is actually just ASCII
+                SimpleVector<char *> *tokens = tokenizeString( (char*)binaryChunk );
                 delete [] binaryChunk;
 
 
@@ -7788,8 +7730,7 @@ void LivingLifePage::step()
                         // if we're in live trigger mode, leave 
                         // server connection open so we can see what happens
                         // next
-                        closeSocket( mServerSocket );
-                        mServerSocket = -1;
+                        this->socket->close();
                         handleOurDeath();
                         }
                     else {
@@ -11093,7 +11034,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     lastPongReceived = 0;
     
 
-    serverSocketBuffer.deleteAll();
+	this->socket->deleteAllMessages();
 
     if( nextActionMessageToSend != NULL ) {    
         delete [] nextActionMessageToSend;
@@ -11647,7 +11588,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         return;
         }
 
-    if( mServerSocket == -1 ) {
+    if(!this->socket->isConnected()) {
         // dead
         return;
         }
@@ -11929,7 +11870,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
     
-    if( mServerSocket == -1 ) {
+    if(!this->socket->isConnected()) {
         // dead
         return;
         }
@@ -13531,7 +13472,7 @@ void LivingLifePage::pointerUp( float inX, float inY ) {
         }
     
 
-    if( mServerSocket == -1 ) {
+    if(!this->socket->isConnected()) {
         // dead
         return;
         }
@@ -13586,7 +13527,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
     registerTriggerKeyCommand( inASCII, this );
 
 
-    if( mServerSocket == -1 ) {
+    if(!this->socket->isConnected()) {
         // dead
         return;
         }
@@ -13801,8 +13742,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             if( userTwinCode != NULL &&
                 ! mStartedLoadingFirstObjectSet ) {
                 
-                closeSocket( mServerSocket );
-                mServerSocket = -1;
+                this->socket->close();
                 
                 setWaiting( false );
                 setSignal( "twinCancel" );
@@ -14151,7 +14091,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         return;
         }
     
-    if( mServerSocket == -1 ) {
+    if(!this->socket->isConnected()) {
         // dead
         return;
         }

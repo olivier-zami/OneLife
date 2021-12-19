@@ -85,7 +85,6 @@ class LivingLifePage : public Controller, public ActionListener
 
 		OneLife::game::Map* localMap;
 		std::vector<OneLife::game::Feature*> availableFeature;
-        int mServerSocket;
         int mRequiredVersion;
         char mForceRunTutorial;
         int mTutorialNumber;

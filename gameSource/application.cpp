@@ -25,6 +25,7 @@
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/controller.h"
+#include "OneLife/gameSource/debug/console.h"
 
 #ifdef __mac__
 #include "minorGems/game/platforms/SDL/mac/SDLMain_Ext.h"
@@ -189,6 +190,7 @@ OneLife::game::Application::Application(
 {
 	this->idScreen = 0;
 	this->isNewSystemEnable = false;
+	currentScreenGL = this;
 
 	//!gameScreens declaration
 	this->initializationScreen = nullptr;
@@ -424,7 +426,7 @@ OneLife::game::Application::Application(
 
 	/******************************************************************************************************************/
 
-	this->connection = nullptr;
+	this->socket = nullptr;
 	//this->currentScreen.status.fullScreen;
 	this->deviceListener = new OneLife::game::DeviceListener();
 
@@ -502,13 +504,22 @@ void OneLife::game::Application::setConnection(const char* ip, int port)
 	memset(serverAddress.ip, 0, sizeof(serverAddress.ip));
 	strcpy(serverAddress.ip, ip);
 	serverAddress.port = port;
-	this->connection = new OneLife::game::component::Socket();
-	this->connection->setAddress(serverAddress);
+	this->socket = new OneLife::game::component::Socket();
+	this->socket->setAddress(serverAddress);
+	/***
+	this->socket->connect();
+	char status = this->socket->readMessage();
+	if(status)
+	{
+		OneLife::debug::Console::write("read message\n");
+	}
+	else OneLife::debug::Console::write("not read message\n");
+	/***/
 }
 
 OneLife::game::component::Socket* OneLife::game::Application::getConnection()
 {
-	return this->connection;
+	return this->socket;
 }
 
 /**
@@ -518,7 +529,7 @@ OneLife::game::component::Socket* OneLife::game::Application::getConnection()
 */
 void OneLife::game::Application::start()
 {
-	currentScreenGL = this;
+
 
 	// call our resize callback (GLUT used to do this for us when the
 	// window was created)
@@ -1608,7 +1619,7 @@ void OneLife::game::Application::selectScreen()
 					serverPort = SettingsManager::getIntSetting("customServerPort", 8005 );
 
 					livingLifePage = new LivingLifePage();
-					livingLifePage->setServerSocket(this->connection);
+					livingLifePage->setServerSocket(this->socket);
 
 					loadingPhase ++;
 				}
