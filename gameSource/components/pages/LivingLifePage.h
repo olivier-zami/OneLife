@@ -19,6 +19,7 @@
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/components/pages/menu/playerStatus.h"
 #include "OneLife/gameSource/components/scenes/map.h"
+#include "OneLife/gameSource/dataTypes/types/message.h"
 
 class LivingLifePage : public Controller, public ActionListener
 {
@@ -26,8 +27,16 @@ class LivingLifePage : public Controller, public ActionListener
         LivingLifePage();
         ~LivingLifePage();
 
-		void setServerSocket(OneLife::game::component::Socket* socket);
 		void handle(OneLife::dataType::UiComponent* screen);
+
+		void readMessage(const char* message);
+
+	private:
+		void readMessage(OneLife::data::type::message::MapChunk mapChunk, const char* message=nullptr);//TODO: put messsage content in mapChunk object
+
+	public:
+
+		void setServerSocket(OneLife::game::component::Socket* socket);
         void runTutorial();// enabled tutorail next time a connection loads
         char isMapBeingPulled();
         char *getDeathReason();// destroyed by caller can be NULL

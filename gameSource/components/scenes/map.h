@@ -6,6 +6,8 @@
 #define ONELIFE_GAME_COMPONENT_MAP_H
 
 #include "minorGems/game/doublePair.h"
+#include "minorGems/util/SimpleVector.h"
+#include "OneLife/gameSource/GridPos.h"
 #include "OneLife/gameSource/SoundUsage.h"
 #include "OneLife/gameSource/animationBank.h"
 
@@ -36,9 +38,17 @@ namespace OneLife::game
 				doublePair** mMapMoveOffsets,
 				double** mMapMoveSpeeds,
 				char** mMapTileFlips,
-				char** mMapPlayerPlacedFlags);
+				char** mMapPlayerPlacedFlags,
+				char* mMapGlobalOffsetSet,
+				GridPos* mMapGlobalOffset,
+				char** mMapCellDrawnFlags,
+				SimpleVector<int>** mMapContainedStacks,
+				SimpleVector<SimpleVector<int>>** mMapSubContainedStacks);
 
+			void setGlobalOffset(GridPos offset);
 			void reset();
+			void applyOffset(int* x, int* y);
+			bool isGlobalOffsetSet();
 
 		private:
 			int* mMapD;
@@ -60,6 +70,11 @@ namespace OneLife::game
 			double** mMapMoveSpeeds;
 			char** mMapTileFlips;
 			char** mMapPlayerPlacedFlags;
+			char* mMapGlobalOffsetSet;
+			GridPos* mMapGlobalOffset;
+			char** mMapCellDrawnFlags;
+			SimpleVector<int>** mMapContainedStacks;
+			SimpleVector<SimpleVector<int>>** mMapSubContainedStacks;
 	};
 }
 

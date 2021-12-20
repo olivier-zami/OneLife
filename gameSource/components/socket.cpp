@@ -12,10 +12,13 @@
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "minorGems/network/SocketClient.h"
+#include "OneLife/gameSource/procedures/conversions/message.h"
 #include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 #include "OneLife/gameSource/application.h"
 #include "OneLife/gameSource/debug/console.h"
+
+using MESSAGE_TYPE = OneLife::data::value::message::Type;
 
 
 extern OneLife::game::Application *screen;
@@ -55,6 +58,8 @@ OneLife::game::component::Socket::Socket()
 
 OneLife::game::component::Socket::~Socket() {}
 
+/**********************************************************************************************************************/
+
 void OneLife::game::component::Socket::handle(
 		SimpleVector<unsigned char>* serverSocketBuffer, //serverSocketBuffer
 		int* bytesInCount)//bytesInCount
@@ -63,6 +68,8 @@ void OneLife::game::component::Socket::handle(
 	this->bytesInCount = bytesInCount;
 	this->id = -1;
 }
+
+/**********************************************************************************************************************/
 
 void OneLife::game::component::Socket::setAddress(OneLife::game::dataType::socket::Address address)
 {
@@ -97,7 +104,7 @@ bool OneLife::game::component::Socket::isConnected()
  */
 char OneLife::game::component::Socket::readMessage()
 {
-	if(this->id==-1/*this->forceDisconnect*/) return false;
+	if(this->id==-1) return false;
 
 	unsigned char buffer[512];
 	int numRead = readFromSocket( this->id, buffer, 512 );
@@ -152,7 +159,12 @@ void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::sock
 	}
 }
 
-OneLife::game::dataType::Message OneLife::game::component::Socket::getMessage(char* message)
+/**
+ *
+ * @param message
+ * @return
+ */
+OneLife::game::dataType::Message OneLife::game::component::Socket::getMessage(const char* message)
 {
 	int sizeX = 0;
 	int sizeY = 0;
@@ -546,7 +558,7 @@ char *getNextServerMessageRaw() {
 
 	message[ index ] = '\0';
 
-	if( getMessageType( message ) == MAP_CHUNK ) {
+	if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::MAP_CHUNK ) {
 		pendingMapChunkMessage = message;
 
 		int sizeX, sizeY, x, y, binarySize;
@@ -557,7 +569,7 @@ char *getNextServerMessageRaw() {
 
 		return getNextServerMessageRaw();
 	}
-	else if( getMessageType( message ) == COMPRESSED_MESSAGE ) {
+	else if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::COMPRESSED_MESSAGE ) {
 		pendingCMData = true;
 
 		printf( "Got compressed message header:\n%s\n\n", message );
@@ -601,7 +613,7 @@ char *getNextServerMessage() {
 			char *message = getNextServerMessageRaw();
 
 			while( message != NULL ) {
-				messageType t = getMessageType( message );
+				OneLife::data::value::message::Type t = OneLife::procedure::conversion::getMessageType( message );
 
 				if( strstr( message, "FM" ) == message ) {
 					// end of frame, discard the marker message
@@ -616,10 +628,10 @@ char *getNextServerMessage() {
 						break;
 					}
 				}
-				else if( t == MAP_CHUNK ||
-						 t == PONG ||
-						 t == FLIGHT_DEST ||
-						 t == PHOTO_SIGNATURE ) {
+				else if( t == MESSAGE_TYPE::MAP_CHUNK ||
+						 t == MESSAGE_TYPE::PONG ||
+						 t == MESSAGE_TYPE::FLIGHT_DEST ||
+						 t == MESSAGE_TYPE::PHOTO_SIGNATURE ) {
 					// map chunks are followed by compressed data
 					// they cannot be queued
 
@@ -661,144 +673,6 @@ char *getNextServerMessage() {
 	}
 }
 
-messageType getMessageType( char *inMessage ) {
-	char *copy = stringDuplicate( inMessage );
-
-	char *firstBreak = strstr( copy, "\n" );
-
-	if( firstBreak == NULL ) {
-		delete [] copy;
-		return UNKNOWN;
-	}
-
-	firstBreak[0] = '\0';
-
-	messageType returnValue = UNKNOWN;
-
-	if( strcmp( copy, "CM" ) == 0 ) {
-		returnValue = COMPRESSED_MESSAGE;
-	}
-	else if( strcmp( copy, "MC" ) == 0 ) {
-		returnValue = MAP_CHUNK;
-	}
-	else if( strcmp( copy, "MX" ) == 0 ) {
-		returnValue = MAP_CHANGE;
-	}
-	else if( strcmp( copy, "PU" ) == 0 ) {
-		returnValue = PLAYER_UPDATE;
-	}
-	else if( strcmp( copy, "PM" ) == 0 ) {
-		returnValue = PLAYER_MOVES_START;
-	}
-	else if( strcmp( copy, "PO" ) == 0 ) {
-		returnValue = PLAYER_OUT_OF_RANGE;
-	}
-	else if( strcmp( copy, "PS" ) == 0 ) {
-		returnValue = PLAYER_SAYS;
-	}
-	else if( strcmp( copy, "LS" ) == 0 ) {
-		returnValue = LOCATION_SAYS;
-	}
-	else if( strcmp( copy, "PE" ) == 0 ) {
-		returnValue = PLAYER_EMOT;
-	}
-	else if( strcmp( copy, "FX" ) == 0 ) {
-		returnValue = FOOD_CHANGE;
-	}
-	else if( strcmp( copy, "HX" ) == 0 ) {
-		returnValue = HEAT_CHANGE;
-	}
-	else if( strcmp( copy, "LN" ) == 0 ) {
-		returnValue = LINEAGE;
-	}
-	else if( strcmp( copy, "CU" ) == 0 ) {
-		returnValue = CURSED;
-	}
-	else if( strcmp( copy, "CX" ) == 0 ) {
-		returnValue = CURSE_TOKEN_CHANGE;
-	}
-	else if( strcmp( copy, "CS" ) == 0 ) {
-		returnValue = CURSE_SCORE;
-	}
-	else if( strcmp( copy, "NM" ) == 0 ) {
-		returnValue = NAMES;
-	}
-	else if( strcmp( copy, "AP" ) == 0 ) {
-		returnValue = APOCALYPSE;
-	}
-	else if( strcmp( copy, "AD" ) == 0 ) {
-		returnValue = APOCALYPSE_DONE;
-	}
-	else if( strcmp( copy, "DY" ) == 0 ) {
-		returnValue = DYING;
-	}
-	else if( strcmp( copy, "HE" ) == 0 ) {
-		returnValue = HEALED;
-	}
-	else if( strcmp( copy, "MN" ) == 0 ) {
-		returnValue = MONUMENT_CALL;
-	}
-	else if( strcmp( copy, "GV" ) == 0 ) {
-		returnValue = GRAVE;
-	}
-	else if( strcmp( copy, "GM" ) == 0 ) {
-		returnValue = GRAVE_MOVE;
-	}
-	else if( strcmp( copy, "GO" ) == 0 ) {
-		returnValue = GRAVE_OLD;
-	}
-	else if( strcmp( copy, "OW" ) == 0 ) {
-		returnValue = OWNER;
-	}
-	else if( strcmp( copy, "VS" ) == 0 ) {
-		returnValue = VALLEY_SPACING;
-	}
-	else if( strcmp( copy, "FD" ) == 0 ) {
-		returnValue = FLIGHT_DEST;
-	}
-	else if( strcmp( copy, "VU" ) == 0 ) {
-		returnValue = VOG_UPDATE;
-	}
-	else if( strcmp( copy, "PH" ) == 0 ) {
-		returnValue = PHOTO_SIGNATURE;
-	}
-	else if( strcmp( copy, "PONG" ) == 0 ) {
-		returnValue = PONG;
-	}
-	else if( strcmp( copy, "SHUTDOWN" ) == 0 ) {
-		returnValue = SHUTDOWN;
-	}
-	else if( strcmp( copy, "SERVER_FULL" ) == 0 ) {
-		returnValue = SERVER_FULL;
-	}
-	else if( strcmp( copy, "SN" ) == 0 ) {
-		returnValue = SEQUENCE_NUMBER;
-	}
-	else if( strcmp( copy, "ACCEPTED" ) == 0 ) {
-		returnValue = ACCEPTED;
-	}
-	else if( strcmp( copy, "REJECTED" ) == 0 ) {
-		returnValue = REJECTED;
-	}
-	else if( strcmp( copy, "NO_LIFE_TOKENS" ) == 0 ) {
-		returnValue = NO_LIFE_TOKENS;
-	}
-	else if( strcmp( copy, "SD" ) == 0 ) {
-		returnValue = FORCED_SHUTDOWN;
-	}
-	else if( strcmp( copy, "MS" ) == 0 ) {
-		returnValue = GLOBAL_MESSAGE;
-	}
-	else if( strcmp( copy, "FL" ) == 0 ) {
-		returnValue = FLIP;
-	}
-	else if( strcmp( copy, "CR" ) == 0 ) {
-		returnValue = CRAVING;
-	}
-
-	delete [] copy;
-	return returnValue;
-}
 
 // destroyed internally if not NULL
 void replaceLastMessageSent( char *inNewMessage ) {

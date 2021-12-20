@@ -53,6 +53,7 @@ features/family.cpp \
 features/homeland.cpp \
 procedures/ai/pathFind.cpp \
 procedures/animations/special.cpp \
+procedures/conversions/message.cpp \
 procedures/graphics/drawAgent.cpp \
 procedures/graphics/drawGround.cpp \
 procedures/graphics/drawInitializingScreen.cpp \

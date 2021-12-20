@@ -5,6 +5,7 @@
 #include "map.h"
 
 #include "minorGems/util/random/JenkinsRandomSource.h"
+#include "OneLife/gameSource/debug/console.h"
 
 extern JenkinsRandomSource randSource2;
 
@@ -29,6 +30,10 @@ OneLife::game::Map::Map()
 	this->mMapMoveSpeeds = nullptr;
 	this->mMapTileFlips = nullptr;
 	this->mMapPlayerPlacedFlags = nullptr;
+	this->mMapGlobalOffsetSet = nullptr;
+	this->mMapGlobalOffset = nullptr;
+	this->mMapContainedStacks = nullptr;
+	this->mMapSubContainedStacks = nullptr;
 }
 
 OneLife::game::Map::~Map() {}
@@ -54,7 +59,12 @@ void OneLife::game::Map::handle(
 		doublePair** mMapMoveOffsets,
 		double** mMapMoveSpeeds,
 		char** mMapTileFlips,
-		char** mMapPlayerPlacedFlags)
+		char** mMapPlayerPlacedFlags,
+		char* mMapGlobalOffsetSet,
+		GridPos* mMapGlobalOffset,
+		char** mMapCellDrawnFlags,
+		SimpleVector<int>** mMapContainedStacks,
+		SimpleVector<SimpleVector<int>>** mMapSubContainedStacks)
 {
 	this->mMapD = mMapD;
 	this->mMap = mMap;
@@ -75,6 +85,58 @@ void OneLife::game::Map::handle(
 	this->mMapMoveSpeeds = mMapMoveSpeeds;
 	this->mMapTileFlips = mMapTileFlips;
 	this->mMapPlayerPlacedFlags = mMapPlayerPlacedFlags;
+	this->mMapGlobalOffsetSet = mMapGlobalOffsetSet;
+	this->mMapGlobalOffset = mMapGlobalOffset;
+	this->mMapCellDrawnFlags = mMapCellDrawnFlags;
+	this->mMapContainedStacks = mMapContainedStacks;
+	this->mMapSubContainedStacks = mMapSubContainedStacks;
+
+	//TODO: put below code in constructor after transfer from LivingLifePage done
+	*this->mMap = new int[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapBiomes = new int[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapFloors = new int[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapCellDrawnFlags = new char[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapContainedStacks = new SimpleVector<int>[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapSubContainedStacks = new SimpleVector< SimpleVector<int> >[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapAnimationFrameCount =  new double[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapAnimationLastFrameCount =  new double[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapAnimationFrozenRotFrameCount =  new double[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapAnimationFrozenRotFrameCountUsed =  new char[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapFloorAnimationFrameCount =  new int[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapCurAnimType =  new AnimType[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapLastAnimType =  new AnimType[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapLastAnimFade =  new double[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapDropOffsets = new doublePair[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapDropRot = new double[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapDropSounds = new SoundUsage[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapMoveOffsets = new doublePair[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapMoveSpeeds = new double[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapTileFlips = new char[ (*this->mMapD) * (*this->mMapD) ];
+	*this->mMapPlayerPlacedFlags = new char[ (*this->mMapD) * (*this->mMapD) ];
+}
+
+void OneLife::game::Map::setGlobalOffset(GridPos offset)
+{
+// we need 7 fraction bits to represent 128 pixels per tile
+	// 32-bit float has 23 significant bits, not counting sign
+	// that leaves 16 bits for tile coordinate, or 65,536
+	// Give two extra bits of wiggle room
+	int maxOK = 16384;
+
+	if( offset.x < maxOK && offset.x > -maxOK && offset.y < maxOK && offset.y > -maxOK )
+	{
+		OneLife::debug::Console::write("First chunk isn't too far from center, using 0,0 as our global offset\n" );
+		(*this->mMapGlobalOffset).x = 0;
+		(*this->mMapGlobalOffset).y = 0;
+		(*this->mMapGlobalOffsetSet) = true;
+	}
+	else
+	{
+		OneLife::debug::Console::write("Using this first chunk center as our global offset:  %d, %d\n", offset.x, offset.y );
+		(*this->mMapGlobalOffset).x = offset.x;
+		(*this->mMapGlobalOffset).y = offset.y;
+		(*this->mMapGlobalOffsetSet) = true;
+	}
 }
 
 void OneLife::game::Map::reset()
@@ -110,4 +172,18 @@ void OneLife::game::Map::reset()
 
 		(*this->mMapPlayerPlacedFlags)[i] = false;
 	}
+}
+
+void OneLife::game::Map::applyOffset(int* x, int* y)//TODO: remove applyReceiveOffset from LivingLifePage
+{
+	if(*this->mMapGlobalOffsetSet)
+	{
+		*x -= (*this->mMapGlobalOffset).x;
+		*y -= (*this->mMapGlobalOffset).y;
+	}
+}
+
+bool OneLife::game::Map::isGlobalOffsetSet()
+{
+	return (bool)(*this->mMapGlobalOffsetSet);
 }
