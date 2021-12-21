@@ -95,6 +95,11 @@ void Controller::handle(OneLife::dataType::UiComponent* screen)
 	screen->body = dataScreen;
 }
 
+void Controller::setServerSocket(OneLife::game::component::Socket *socket)
+{
+	this->socket = socket;
+}
+
 void Controller::skipDrawingSubComponents( char inSkip ) {
     mSkipDrawingSubComponents = inSkip;
     }

@@ -25,6 +25,7 @@
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h" //TODO: rename to gameScreenDeviceListener
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/controller.h"
+#include "OneLife/gameSource/controllers/screens/loginScreen.h"
 #include "OneLife/gameSource/debug/console.h"
 
 #ifdef __mac__
@@ -75,6 +76,8 @@ long timeSinceLastFrameMS = 0;// FOVMOD NOTE:  Change 1/3 - Take these lines dur
 //char screenGLStencilBufferSupported = false; //TODO: check if not used somewhere =>delete
 char measureRecorded = false;
 char loadingMessageShown = false;
+OneLife::game::LoginScreen* loginScreen;
+
 static int numFramesSkippedBeforeMeasure = 0;
 static int numFramesToSkipBeforeMeasure = 30;
 static char startMeasureTimeRecorded = false;
@@ -103,7 +106,6 @@ char rightKey = 'd';
 #include "OneLife/gameSource/components/pages/ExtendedMessagePage.h"
 #include "OneLife/gameSource/components/pages/FinalMessagePage.h"
 #include "OneLife/gameSource/components/pages/GeneticHistoryPage.h"
-#include "OneLife/gameSource/components/pages/LivingLifePage.h"
 #include "OneLife/gameSource/components/pages/LoadingPage.h"
 #include "OneLife/gameSource/components/pages/PollPage.h"
 #include "OneLife/gameSource/components/pages/RebirthChoicePage.h"
@@ -126,7 +128,6 @@ extern FinalMessagePage *finalMessagePage;
 extern ServerActionPage *getServerAddressPage;
 extern LoadingPage *loadingPage;
 extern AutoUpdatePage *autoUpdatePage;
-extern LivingLifePage *livingLifePage;
 extern ExistingAccountPage *existingAccountPage;
 extern ExtendedMessagePage *extendedMessagePage;
 extern RebirthChoicePage *rebirthChoicePage;
@@ -158,6 +159,10 @@ extern char loginEditOverride;
 
 int loadingPhase = 0;
 double loadingPhaseStartTime;
+/**********************************************************************************************************************/
+
+unsigned int OneLife::game::Application::lastServerVersion = 0;
+
 /**********************************************************************************************************************/
 
 OneLife::game::Application::Application(
@@ -194,6 +199,7 @@ OneLife::game::Application::Application(
 
 	//!gameScreens declaration
 	this->initializationScreen = nullptr;
+	loginScreen = new OneLife::game::LoginScreen();
 
 	//!init SDL context ...
 	Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
@@ -493,6 +499,14 @@ OneLife::game::Application::~Application()
 	}
 }
 
+/**********************************************************************************************************************/
+
+void OneLife::game::Application::setLastServerVersion(unsigned int version)
+{
+	OneLife::game::Application::lastServerVersion = version;
+}
+
+/**********************************************************************************************************************/
 void OneLife::game::Application::init(OneLife::game::Settings settings)
 {
 
@@ -583,7 +597,8 @@ void OneLife::game::Application::start()
 		// now all events handled, actually draw the screen
 		this->selectScreen();
 
-		if( ! currentScreenGL->m2DMode ) {
+		if( ! currentScreenGL->m2DMode )
+		{
 			// apply our view transform
 			currentScreenGL->applyViewTransform();
 		}
@@ -633,7 +648,8 @@ void OneLife::game::Application::start()
 		}
 
 
-		if( mUseFrameSleep ) {
+		if( mUseFrameSleep )
+		{
 			// lock down to mMaxFrameRate frames per second
 			int minFrameTime = 1000 / mMaxFrameRate;
 			if( ( frameTime + oversleepMSec ) < minFrameTime ) {
@@ -1620,6 +1636,7 @@ void OneLife::game::Application::selectScreen()
 
 					livingLifePage = new LivingLifePage();
 					livingLifePage->setServerSocket(this->socket);
+					//loginScreen->setServerSocket(this->socket);
 
 					loadingPhase ++;
 				}
@@ -1643,6 +1660,7 @@ void OneLife::game::Application::selectScreen()
 	}
 	else if(currentGamePage == getServerAddressPage)
 	{
+		OneLife::debug::Console::write("currentGamePage == getServerAddressPage");
 		currentGamePage->base_step();
 		if( getServerAddressPage->isResponseReady() )
 		{
@@ -1798,7 +1816,9 @@ void OneLife::game::Application::selectScreen()
 	else if(currentGamePage == livingLifePage)
 	{
 		currentGamePage->base_step();
-		if( livingLifePage->checkSignal( "loginFailed" ) ) {
+		if( livingLifePage->checkSignal( "loginFailed" ) )
+		{
+			OneLife::debug::Console::showFunctionStep("check signal : login failed ...");
 			lastScreenViewCenter.x = 0;
 			lastScreenViewCenter.y = 0;
 
@@ -1843,31 +1863,24 @@ void OneLife::game::Application::selectScreen()
 
 			currentGamePage->base_makeActive( true );
 		}
-		else if( livingLifePage->checkSignal( "versionMismatch" ) ) {
+		else if( livingLifePage->checkSignal( "versionMismatch" ) /*|| loginScreen->checkSignal("versionMismatch")*/)
+		{
+			//OneLife::debug::Console::write("versionMismatch");
+
 			lastScreenViewCenter.x = 0;
 			lastScreenViewCenter.y = 0;
-
-			setViewCenterPosition( lastScreenViewCenter.x,
-					lastScreenViewCenter.y );
-
+			setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
 			currentGamePage = existingAccountPage;
-
 			char *message = autoSprintf( translate( "versionMismatch" ),
 					versionNumber,
-					livingLifePage->
-							getRequiredVersion() );
-
-			if( SettingsManager::getIntSetting( "useCustomServer", 0 ) ) {
+					OneLife::game::Application::lastServerVersion );
+			if( SettingsManager::getIntSetting( "useCustomServer", 0 ) )
+			{
 				existingAccountPage->showDisableCustomServerButton( true );
 			}
-
-
 			existingAccountPage->setStatusDirect( message, true );
-
 			delete [] message;
-
 			existingAccountPage->setStatusPositiion( true );
-
 			currentGamePage->base_makeActive( true );
 		}
 		else if( livingLifePage->checkSignal( "twinCancel" ) ) {
@@ -1899,7 +1912,8 @@ void OneLife::game::Application::selectScreen()
 
 			currentGamePage->base_makeActive( true );
 		}
-		else if( livingLifePage->checkSignal( "serverUpdate" ) ) {
+		else if( livingLifePage->checkSignal( "serverUpdate" ) /*|| loginScreen->checkSignal("serverUpdate")*/)
+		{
 			lastScreenViewCenter.x = 0;
 			lastScreenViewCenter.y = 0;
 
@@ -1957,7 +1971,6 @@ void OneLife::game::Application::selectScreen()
 			currentGamePage->base_makeActive( true );
 		}
 	}
-
 	else if( !writeFailed && !loadingFailedFlag  )//step3 (demo mode done or was never enabled )
 	{
 		if(this->idScreen !=7){printf("\n===>!writeFailed && !loadingFailedFlag");this->idScreen = 7;}

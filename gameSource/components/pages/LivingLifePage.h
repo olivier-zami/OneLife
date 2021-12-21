@@ -21,7 +21,9 @@
 #include "OneLife/gameSource/components/scenes/map.h"
 #include "OneLife/gameSource/dataTypes/types/message.h"
 
-class LivingLifePage : public Controller, public ActionListener
+class LivingLifePage :
+		public Controller,
+		public ActionListener
 {
     public:
         LivingLifePage();
@@ -53,9 +55,6 @@ class LivingLifePage : public Controller, public ActionListener
         virtual void keyUp( unsigned char inASCII );
         void sendToServerSocket( char *inMessage );// handles error detection, total byte counting, etc.
         void sendBugReport( int inBugNumber );
-        int getRequiredVersion() {
-            return mRequiredVersion;
-            }
 
 		void setNextActionMessage( const char* str, int x, int y );
 		int getObjId( int mapX, int mapY );
@@ -94,7 +93,6 @@ class LivingLifePage : public Controller, public ActionListener
 
 		OneLife::game::Map* localMap;
 		std::vector<OneLife::game::Feature*> availableFeature;
-        int mRequiredVersion;
         char mForceRunTutorial;
         int mTutorialNumber;
         char mGlobalMessageShowing;

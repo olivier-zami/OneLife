@@ -5,7 +5,9 @@
 
 #include "minorGems/game/doublePair.h"
 #include "minorGems/game/gameGraphics.h"
+#include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
+
 
 class Controller :
 		public PageComponent
@@ -15,6 +17,13 @@ class Controller :
         virtual ~Controller();
 
 		virtual void handle(OneLife::dataType::UiComponent* screen);
+
+		void setServerSocket(OneLife::game::component::Socket* socket);
+
+	protected:
+		OneLife::game::component::Socket* socket;
+
+	public:
         void setStatus( const char *inStatusMessageKey, char inError );
         // inStatusMessage destroyed by caller
         void setStatusDirect( const char *inStatusMessage, char inError );

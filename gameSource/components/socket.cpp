@@ -128,17 +128,14 @@ bool OneLife::game::component::Socket::isConnected()
 char OneLife::game::component::Socket::readMessage()
 {
 	if(this->id==-1) return false;
+	//OneLife::debug::Console::showFunction("OneLife::game::component::Socket::readMessage()");
 
 	unsigned char buffer[512];
 	int numRead = readFromSocket( this->id, buffer, 512 );
-	if(numRead)
-	{
-		OneLife::debug::Console::write("\n\n\n=======================>read buffer size(%i)", numRead);
-		OneLife::debug::Console::write("%s", buffer);
-	}
+	if(numRead > 0)OneLife::debug::Console::showFunction("OneLife::game::component::Socket::readMessage()");
 	while( numRead > 0 )
 	{
-		OneLife::debug::Console::write("===>size(%i)", numRead);
+		OneLife::debug::Console::write("read(%i)", numRead);
 		if(!this->status.isConnected )
 		{
 			this->status.isConnected = true;
@@ -149,13 +146,12 @@ char OneLife::game::component::Socket::readMessage()
 		this->numServerBytesRead += numRead;
 		*(this->bytesInCount) += numRead;
 
-
 		numRead = readFromSocket( this->id, buffer, 512 );
 	}
 
-	if( numRead == -1 ) {
-		printf( "Failed to read from server socket at time %f\n",
-				game_getCurrentTime() );
+	if( numRead == -1 )
+	{
+		printf( "Failed to read from server socket at time %f\n", game_getCurrentTime() );
 		return false;
 	}
 

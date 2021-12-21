@@ -2,6 +2,7 @@
 
 #include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/components/engines/GameSceneHandler.h"
+#include "OneLife/gameSource/debug/console.h"
 
 
 PageComponent::PageComponent( double inX, double inY )
@@ -43,17 +44,19 @@ void PageComponent::clearToolTip( const char *inTipToClear ) {
 
 
 
-void PageComponent::base_step(){
-    for( int i=0; i<mComponents.size(); i++ ) {
+void PageComponent::base_step()
+{
+	//OneLife::debug::Console::write("PageComponent::base_step()");
+    for( int i=0; i<mComponents.size(); i++ )
+	{
         PageComponent *c = *( mComponents.getElement( i ) );
-        
-        if( c->isVisible() && c->isActive() ) {
+        if( c->isVisible() && c->isActive() )
+		{
             c->base_step();
-            }
-        }
-
+		}
+	}
     step();
-    }
+}
 
 
 

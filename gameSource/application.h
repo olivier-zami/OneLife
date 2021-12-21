@@ -47,6 +47,8 @@ namespace OneLife::game
 			void setConnection(const char* ip, int port);
 			OneLife::game::component::Socket* getConnection();
 
+			static void setLastServerVersion(unsigned int version);
+
 			void start();
 
 			const char *getCustomRecordedGameData();
@@ -542,6 +544,8 @@ namespace OneLife::game
 			void update(OneLife::dataType::UiComponent* dataScreen);
 			void render(OneLife::dataType::UiComponent* dataScreen);
 			void sendClientMessage();
+
+			static unsigned int lastServerVersion;
 
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			unsigned int idScreen;

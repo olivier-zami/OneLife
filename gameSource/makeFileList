@@ -47,6 +47,10 @@ components/scenes/map.cpp \
 components/scenes/maps/outsideMap.cpp \
 components/socket.cpp \
 components/soundPlayer.cpp \
+controller.cpp \
+controllers/feature.cpp \
+controllers/features/apocalypse.cpp \
+controllers/screens/loginScreen.cpp \
 dataTypes/exception/exception.cpp \
 debug/console.cpp \
 features/family.cpp \
@@ -77,9 +81,6 @@ procedures/game.cpp \
 procedures/maths/gridPos.cpp \
 procedures/maths/misc.cpp \
 procedures/misc.cpp \
-controller.cpp \
-controllers/feature.cpp \
-controllers/features/apocalypse.cpp \
 settings.cpp \
 objectBank.cpp \
 transitionBank.cpp \

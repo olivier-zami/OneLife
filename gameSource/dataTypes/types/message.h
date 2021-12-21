@@ -8,6 +8,13 @@
 namespace OneLife::data::type::message
 {
 	typedef struct{
+		int requiredVersion;
+		int currentPlayer;
+		int maxPlayers;
+		char challengeString[200];
+	}LoginPrerequisite;
+
+	typedef struct{
 		struct{
 			int x;
 			int y;
