@@ -25,19 +25,22 @@ namespace OneLife::game::component
 
 			void setAddress(OneLife::game::dataType::socket::Address address);
 			OneLife::game::dataType::socket::Address getAddress();
+			void enablePendingMode(bool status);
+			bool isPendingModeEnabled();
 
 			void connect();
 			bool isConnected();
 			char readMessage();
 			void sendMessage(OneLife::game::dataType::socket::Message message);
 			OneLife::game::dataType::Message getMessage(const char* message = nullptr);
+			char *getNextMessage();
 			void disconnect();
+			void reset(int mask = 0);
 			void close();
 
 			double getLastQueryLifeTime();
 			double getTimeLastMessageSent();
 			void deleteAllMessages();
-			void resetStats();
 			int getTotalServerBytesRead();
 			int getTotalServerBytesSent();
 			int getTotalServerOverheadBytesRead();
@@ -48,6 +51,7 @@ namespace OneLife::game::component
 			int id;
 			struct{
 				bool isConnected;
+				bool isPendingModeEnabled;
 			}status;
 			OneLife::game::dataType::socket::Address address;
 			OneLife::game::dataType::Message currentMessage;
@@ -72,7 +76,6 @@ void closeSocket( int inHandle );
 Socket *getSocketByHandle( int inHandle );
 int readFromSocket( int inHandle, unsigned char *inDataBuffer, int inBytesToRead );
 char *getNextServerMessageRaw();
-char *getNextServerMessage();
 void replaceLastMessageSent( char *inNewMessage );
 void startConnecting();
 void playPendingReceivedMessages( LiveObject *inPlayer );

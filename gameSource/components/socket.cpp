@@ -34,7 +34,6 @@ char pendingCMData = false;
 double lastServerMessageReceiveTime = 0;
 double largestPendingMessageTimeGap = 0;// while player action pending, measure largest gap between sequential // server messages// This is an approximation of our outtage time.
 SimpleVector<char*> readyPendingReceivedMessages;
-char waitForFrameMessages = false;
 char serverFrameReady;
 SimpleVector<char*> serverFrameMessages;
 char *lastMessageSentToServer = NULL;
@@ -44,6 +43,7 @@ static int nextSocketConnectionHandle = 0;
 OneLife::game::component::Socket::Socket()
 {
 	this->status.isConnected = false;
+	this->status.isPendingModeEnabled = false;
 	this->currentMessage.type = 0;
 	this->currentMessage.size = 0;
 	this->currentMessage.content = malloc(1024*sizeof(char));
@@ -56,7 +56,9 @@ OneLife::game::component::Socket::Socket()
 	this->numServerMessageSent = 0;
 }
 
-OneLife::game::component::Socket::~Socket() {}
+OneLife::game::component::Socket::~Socket()
+{
+}
 
 /**********************************************************************************************************************/
 
@@ -83,6 +85,27 @@ OneLife::game::dataType::socket::Address OneLife::game::component::Socket::getAd
 	return this->address;
 }
 
+/**
+ *
+ * @param status
+ * @note "PENDING_MODE" is used to wait for a signal message before sending any information (for example acceptation protocol)
+ */
+void OneLife::game::component::Socket::enablePendingMode(bool status)
+{
+	this->status.isPendingModeEnabled = status;
+}
+
+/**
+ *
+ * @return
+ */
+bool OneLife::game::component::Socket::isPendingModeEnabled()
+{
+	return this->status.isPendingModeEnabled;
+}
+
+/**********************************************************************************************************************/
+
 void OneLife::game::component::Socket::connect()
 {
 	OneLife::debug::Console::showFunction("OneLife::game::component::Socket::connect(%s : %i)", this->address.ip, this->address.port);
@@ -108,8 +131,14 @@ char OneLife::game::component::Socket::readMessage()
 
 	unsigned char buffer[512];
 	int numRead = readFromSocket( this->id, buffer, 512 );
+	if(numRead)
+	{
+		OneLife::debug::Console::write("\n\n\n=======================>read buffer size(%i)", numRead);
+		OneLife::debug::Console::write("%s", buffer);
+	}
 	while( numRead > 0 )
 	{
+		OneLife::debug::Console::write("===>size(%i)", numRead);
 		if(!this->status.isConnected )
 		{
 			this->status.isConnected = true;
@@ -119,6 +148,7 @@ char OneLife::game::component::Socket::readMessage()
 		(*(this->serverSocketBuffer)).appendArray( buffer, numRead );
 		this->numServerBytesRead += numRead;
 		*(this->bytesInCount) += numRead;
+
 
 		numRead = readFromSocket( this->id, buffer, 512 );
 	}
@@ -191,6 +221,98 @@ OneLife::game::dataType::Message OneLife::game::component::Socket::getMessage(co
 	return this->currentMessage;
 }
 
+/**
+// either returns a pending recieved message (one that was received earlier
+// or held back
+//
+// or receives the next message from the server socket (if we are not waiting
+// for full frames of messages)
+//
+// or returns NULL until a full frame of messages is available, and
+// then returns the first message from the frame
+ @return
+ */
+char* OneLife::game::component::Socket::getNextMessage()
+{
+
+	if( readyPendingReceivedMessages.size() > 0 )
+	{
+		char *message = readyPendingReceivedMessages.getElementDirect( 0 );
+		readyPendingReceivedMessages.deleteElement( 0 );
+		printf( "Playing a held pending message\n" );
+		return message;
+	}
+
+	if(this->isPendingModeEnabled())
+	{
+		if( !serverFrameReady )
+		{
+			// read more and look for end of frame
+			char *message = getNextServerMessageRaw();
+			while( message != NULL )
+			{
+				OneLife::data::value::message::Type t = OneLife::procedure::conversion::getMessageType( message );
+				if( strstr( message, "FM" ) == message )
+				{
+					// end of frame, discard the marker message
+					delete [] message;
+					if( serverFrameMessages.size() > 0 )
+					{
+						serverFrameReady = true;
+						// see end of frame, stop reading more messages
+						// for now (they are part of next frame)
+						// and start returning message to caller from
+						// this frame
+						break;
+					}
+				}
+				else if( t == MESSAGE_TYPE::MAP_CHUNK ||
+						 t == MESSAGE_TYPE::PONG ||
+						 t == MESSAGE_TYPE::FLIGHT_DEST ||
+						 t == MESSAGE_TYPE::PHOTO_SIGNATURE ) {
+					// map chunks are followed by compressed data
+					// they cannot be queued
+
+					// PONG messages should be returned instantly
+
+					// FLIGHT_DEST messages also should be returned instantly
+					// otherwise, they will be queued and seen by
+					// the client after the corresponding MC message
+					// for the new location.
+					// which will invalidate the map around player's old
+					// location
+					return message;
+				}
+				else
+				{
+					// some other message in the middle of the frame
+					// keep it
+					serverFrameMessages.push_back( message );
+				}
+
+				// keep reading messages, until we either see the
+				// end of the frame or read all available messages
+				message = getNextServerMessageRaw();
+			}
+		}
+		if( serverFrameReady )
+		{
+			char *message = serverFrameMessages.getElementDirect( 0 );
+			serverFrameMessages.deleteElement( 0 );
+			if( serverFrameMessages.size() == 0 )
+			{
+				serverFrameReady = false;
+			}
+			return message;
+		}
+		else
+		{
+			return NULL;
+		}
+	}
+	else return getNextServerMessageRaw();
+}
+
 void OneLife::game::component::Socket::deleteAllMessages()
 {
 	(*(this->serverSocketBuffer)).deleteAll();
@@ -214,10 +336,27 @@ void OneLife::game::component::Socket::disconnect()
 {
 	this->connectedTime = 0;
 	this->status.isConnected = false;
+	this->status.isPendingModeEnabled = false;
+}
+
+void OneLife::game::component::Socket::reset(int mask)
+{
+	if( pendingMapChunkMessage != NULL )
+	{
+		delete [] pendingMapChunkMessage;
+		pendingMapChunkMessage = NULL;
+	}
+	if(!(mask))//TODO if(!(mask&Socket::RESET_ALL_MESSAGES))...
+	{
+		OneLife::debug::Console::write("reset all socket messages");
+		this->deleteAllMessages();
+	}
+	//TODO if(!(mask&Socket::RESET_ALL_STATS))
 }
 
 void OneLife::game::component::Socket::close()
 {
+	this->reset();
 	if(this->id != -1)
 	{
 		closeSocket(this->id);
@@ -225,10 +364,8 @@ void OneLife::game::component::Socket::close()
 	}
 }
 
-void OneLife::game::component::Socket::resetStats()
-{
-
-}
+/**********************************************************************************************************************/
+//!private
 
 int OneLife::game::component::Socket::getTotalServerBytesRead()
 {
@@ -385,8 +522,7 @@ Socket *getSocketByHandle( int inHandle ) {
 
 // non-blocking read
 // returns number of bytes read (maybe 0), -1 on error
-int readFromSocket( int inHandle,
-					unsigned char *inDataBuffer, int inBytesToRead ) {
+int readFromSocket( int inHandle, unsigned char *inDataBuffer, int inBytesToRead ) {
 
 	if( screen->isPlayingBack() ) {
 		// play back result of this read
@@ -466,12 +602,11 @@ char *getNextServerMessageRaw() {
 		// wait for full binary data chunk to arrive completely
 		// after message before we report that the message is ready
 
-		if( serverSocketBuffer.size() >= pendingCompressedChunkSize ) {
+		if( serverSocketBuffer.size() >= pendingCompressedChunkSize )
+		{
 			char *returnMessage = pendingMapChunkMessage;
 			pendingMapChunkMessage = NULL;
-
 			messagesInCount++;
-
 			return returnMessage;
 		}
 		else {
@@ -483,7 +618,9 @@ char *getNextServerMessageRaw() {
 
 	if( pendingCMData )
 	{
-		if( serverSocketBuffer.size() >= pendingCMCompressedSize ) {
+		OneLife::debug::Console::write("#############################################################################");
+		if( serverSocketBuffer.size() >= pendingCMCompressedSize )
+		{
 			pendingCMData = false;
 
 			unsigned char *compressedData =
@@ -491,7 +628,7 @@ char *getNextServerMessageRaw() {
 
 			for( int i=0; i<pendingCMCompressedSize; i++ ) {
 				compressedData[i] = serverSocketBuffer.getElementDirect( i );
-			}
+		}
 			serverSocketBuffer.deleteStartElements( pendingCMCompressedSize );
 
 			unsigned char *decompressedMessage =
@@ -501,11 +638,13 @@ char *getNextServerMessageRaw() {
 
 			delete [] compressedData;
 
-			if( decompressedMessage == NULL ) {
+			if( decompressedMessage == NULL )
+			{
 				printf( "Decompressing CM message failed\n" );
 				return NULL;
 			}
-			else {
+			else
+			{
 				char *textMessage = new char[ pendingCMDecompressedSize + 1 ];
 				memcpy( textMessage, decompressedMessage,
 						pendingCMDecompressedSize );
@@ -523,12 +662,8 @@ char *getNextServerMessageRaw() {
 		}
 	}
 
-
-
 	// find first terminal character #
-
 	int index = serverSocketBuffer.getElementIndex( '#' );
-
 	if( index == -1 )
 	{
 		return NULL;
@@ -540,17 +675,15 @@ char *getNextServerMessageRaw() {
 
 	double gap = curTime - lastServerMessageReceiveTime;
 
-	if( gap > largestPendingMessageTimeGap ) {
+	if( gap > largestPendingMessageTimeGap )
+	{
 		largestPendingMessageTimeGap = gap;
 	}
-
 	lastServerMessageReceiveTime = curTime;
 
-
-
 	char *message = new char[ index + 1 ];
-
-	for( int i=0; i<index; i++ ) {
+	for( int i=0; i<index; i++ )
+	{
 		message[i] = (char)( serverSocketBuffer.getElementDirect( i ) );
 	}
 	// delete message and terminal character
@@ -585,94 +718,6 @@ char *getNextServerMessageRaw() {
 		return message;
 	}
 }
-
-// either returns a pending recieved message (one that was received earlier
-// or held back
-//
-// or receives the next message from the server socket (if we are not waiting
-// for full frames of messages)
-//
-// or returns NULL until a full frame of messages is available, and
-// then returns the first message from the frame
-char *getNextServerMessage() {
-
-	if( readyPendingReceivedMessages.size() > 0 ) {
-		char *message = readyPendingReceivedMessages.getElementDirect( 0 );
-		readyPendingReceivedMessages.deleteElement( 0 );
-		printf( "Playing a held pending message\n" );
-		return message;
-	}
-
-	if( !waitForFrameMessages ) {
-		return getNextServerMessageRaw();
-	}
-	else {
-		if( !serverFrameReady ) {
-			// read more and look for end of frame
-
-			char *message = getNextServerMessageRaw();
-
-			while( message != NULL ) {
-				OneLife::data::value::message::Type t = OneLife::procedure::conversion::getMessageType( message );
-
-				if( strstr( message, "FM" ) == message ) {
-					// end of frame, discard the marker message
-					delete [] message;
-
-					if( serverFrameMessages.size() > 0 ) {
-						serverFrameReady = true;
-						// see end of frame, stop reading more messages
-						// for now (they are part of next frame)
-						// and start returning message to caller from
-						// this frame
-						break;
-					}
-				}
-				else if( t == MESSAGE_TYPE::MAP_CHUNK ||
-						 t == MESSAGE_TYPE::PONG ||
-						 t == MESSAGE_TYPE::FLIGHT_DEST ||
-						 t == MESSAGE_TYPE::PHOTO_SIGNATURE ) {
-					// map chunks are followed by compressed data
-					// they cannot be queued
-
-					// PONG messages should be returned instantly
-
-					// FLIGHT_DEST messages also should be returned instantly
-					// otherwise, they will be queued and seen by
-					// the client after the corresponding MC message
-					// for the new location.
-					// which will invalidate the map around player's old
-					// location
-					return message;
-				}
-				else {
-					// some other message in the middle of the frame
-					// keep it
-					serverFrameMessages.push_back( message );
-				}
-
-				// keep reading messages, until we either see the
-				// end of the frame or read all available messages
-				message = getNextServerMessageRaw();
-			}
-		}
-
-		if( serverFrameReady ) {
-			char *message = serverFrameMessages.getElementDirect( 0 );
-
-			serverFrameMessages.deleteElement( 0 );
-
-			if( serverFrameMessages.size() == 0 ) {
-				serverFrameReady = false;
-			}
-			return message;
-		}
-		else {
-			return NULL;
-		}
-	}
-}
-
 
 // destroyed internally if not NULL
 void replaceLastMessageSent( char *inNewMessage ) {

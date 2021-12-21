@@ -108,7 +108,6 @@ extern char pendingCMData;
 extern double lastServerMessageReceiveTime;
 extern double largestPendingMessageTimeGap;
 extern SimpleVector<char*> readyPendingReceivedMessages;
-extern char waitForFrameMessages;
 extern SimpleVector<char*> serverFrameMessages;
 extern char *lastMessageSentToServer;
 extern SimpleVector<HomePos> homePosStack;
@@ -116,7 +115,6 @@ extern SimpleVector<HomePos> oldHomePosStack;
 extern int pathFindingD;// should match limit on server
 extern bool isTrippingEffectOn;
 extern SimpleVector<unsigned char> serverSocketBuffer;
-extern char *pendingMapChunkMessage;
 extern char autoAdjustFramerate;
 extern int baseFramesPerSecond;
 extern SimpleVector<OffScreenSound> offScreenSounds;
@@ -671,32 +669,21 @@ void LivingLifePage::handle(OneLife::dataType::UiComponent* screen)
 
 /**********************************************************************************************************************/
 
-void LivingLifePage::readMessage(const char *message)//TODO: use message = [socket]getNextServerMessage() in caller method;
+void LivingLifePage::readMessage(const char *message)//TODO: use message = socket->getNextMessage()in caller method;
 {
-	OneLife::data::value::message::Type messageType = OneLife::procedure::conversion::getMessageType(message);
-	switch(messageType)
-	{
-		case MESSAGE_TYPE::MAP_CHUNK:
-			OneLife::data::type::message::MapChunk mapChunk;
-			OneLife::procedure::conversion::setMapChunkMessage(&mapChunk, message);
-			OneLife::debug::Console::write("===>read MapChunk message : position(%i, %i) dimension(%i, %i)",
-					mapChunk.topLeftPosition.x,
-					mapChunk.topLeftPosition.y,
-					mapChunk.dimension.width,
-					mapChunk.dimension.height);
-			this->readMessage(mapChunk, message);
-			break;
-
-		default:
-			OneLife::debug::Console::write("===>unhandled message %i", messageType);
-			break;
-	}
+	//TODO: switch messageType => OneLife::data::value::message::Type messageType = OneLife::procedure::conversion::getMessageType(message);
 }
 
 /**********************************************************************************************************************/
 
 void LivingLifePage::readMessage(OneLife::data::type::message::MapChunk mapChunk, const char* message)
 {
+	OneLife::procedure::conversion::setMapChunkMessage(&mapChunk, message);
+	OneLife::debug::Console::write("===>read MapChunk message : position(%i, %i) dimension(%i, %i)",
+			mapChunk.topLeftPosition.x,
+			mapChunk.topLeftPosition.y,
+			mapChunk.dimension.width,
+			mapChunk.dimension.height);
 
 	int sizeX = 0;
 	int sizeY = 0;
@@ -1390,12 +1377,6 @@ LivingLifePage::~LivingLifePage()
     readyPendingReceivedMessages.deallocateStringElements();
 
     serverFrameMessages.deallocateStringElements();
-    
-    if( pendingMapChunkMessage != NULL )
-	{
-        delete [] pendingMapChunkMessage;
-        pendingMapChunkMessage = NULL;
-	}
 
     clearLiveObjects();
 
@@ -1667,7 +1648,6 @@ LiveObject *LivingLifePage::getLiveObject( int inID )
     return obj;
 }
 
-
 bool LivingLifePage::tileBlocked( int x, int y ) {
 	int oid = getObjId( x, y );
 	int oid_right = getObjId( x + 1, y );
@@ -1743,7 +1723,6 @@ void LivingLifePage::drunkWalk( GridPos *path, int pathLen, bool actionMove ) {
 		}
 	
 	}
-	
 
 bool LivingLifePage::isTripping()
 {
@@ -2778,8 +2757,6 @@ void LivingLifePage::sendBugReport( int inBugNumber ) {
     
     }
 
-
-
 void LivingLifePage::endExtraObjectMove( int inExtraIndex ) {
     int i = inExtraIndex;
 
@@ -2815,8 +2792,6 @@ void LivingLifePage::endExtraObjectMove( int inExtraIndex ) {
     mMapExtraMovingObjectsDestWorldPos.deleteElement( i );
     mMapExtraMovingObjectsDestObjectIDs.deleteElement( i );
     }
-
-
 
 void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     char *foodDescription = 
@@ -2860,7 +2835,6 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     mCravingExtraOffset[ mLiveCravingSheetIndex ].x = longestLine;
     }
 
-        
 void LivingLifePage::step()
 {
     if(this->isAnySignalSet())return;
@@ -2900,7 +2874,6 @@ void LivingLifePage::step()
 			}
 		}
 	}
-    
 
 	if( mouseDown )
 	{
@@ -3222,8 +3195,6 @@ void LivingLifePage::step()
             }
         }
 
-
-
     // update yum slip positions
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
         
@@ -3261,9 +3232,7 @@ void LivingLifePage::step()
                 }        
             }
         }
-    
 
-    
     // update home slip positions
     if( ! equal( mHomeSlipPosOffset, mHomeSlipPosTargetOffset ) ) {
         doublePair delta = 
@@ -3305,9 +3274,6 @@ void LivingLifePage::step()
                 }
             }
         }
-    
-    
-    
 
     if( ourObject != NULL ) {
         char newTrigger = false;
@@ -3322,8 +3288,7 @@ void LivingLifePage::step()
             addNewAnim( ourObject, ground );
             }
         }
-    
-    
+
     if( ourObject != NULL && mNextHintObjectID != 0 &&
         getNumHints( mNextHintObjectID ) > 0 ) {
         
@@ -3396,9 +3361,7 @@ void LivingLifePage::step()
         
         mCurrentHintObjectID = mNextHintObjectID;
         }
-    
-    
-        
+
     int lastSheet = NUM_HINT_SHEETS - 1;
     if( mPendingFilterString != NULL &&
         ( mHintMessage[ lastSheet ] == NULL ||
@@ -3440,7 +3403,6 @@ void LivingLifePage::step()
             mHintMessage[ lastSheet ] = NULL;
             }
         }
-    
 
     for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
         
@@ -3478,7 +3440,6 @@ void LivingLifePage::step()
             
             }
         }
-
 
     // should new tutorial sheet be shown?
     if( ( mTutorialNumber > 0 || mGlobalMessageShowing ) 
@@ -3620,8 +3581,6 @@ void LivingLifePage::step()
         }
     
 
-
-
     // pos for tutorial sheets
     // don't start sliding first sheet until map loaded
     if( ( mTutorialNumber > 0 || mGlobalMessageShowing )
@@ -3683,9 +3642,6 @@ void LivingLifePage::step()
             }
         }
 
-
-
-
     // pos for craving sheets
     // don't start sliding first sheet until map loaded
     if( mLiveCravingSheetIndex >= 0 && mDoneLoadingFirstObjectSet )
@@ -3725,11 +3681,7 @@ void LivingLifePage::step()
                 }
             }
         }
-    
 
-
-
-    
     char anySlipsMovingDown = false;
     for( int i=0; i<3; i++ ) {
         if( i != mHungerSlipVisible &&
@@ -3747,7 +3699,6 @@ void LivingLifePage::step()
                 mHungerSlipShowOffsets[ mHungerSlipVisible ];
             }
         }
-
 
     // move all toward their targets
     for( int i=0; i<3; i++ ) {
@@ -3804,9 +3755,7 @@ void LivingLifePage::step()
             }
         }
 
-
     double curTime = game_getCurrentTime();
-
 
     // after 5 seconds of waiting, send PING
     if( playerActionPending && 
@@ -3947,9 +3896,7 @@ void LivingLifePage::step()
 	
 	minitech::livingLifeStep();
 
-    char *message = getNextServerMessage();
-
-
+    char *message = this->socket->getNextMessage();
     while( message != NULL )
 	{
 		OneLife::debug::Console::write("Got length %d message\n%s\n", (int)strlen( message ), message);
@@ -4239,17 +4186,17 @@ void LivingLifePage::step()
             delete [] message;
             return;
             }
-        else if( type == MESSAGE_TYPE::ACCEPTED ) {
+        else if( type == MESSAGE_TYPE::ACCEPTED )
+		{
             // logged in successfully, wait for next message
-            
             // subsequent messages should all be part of FRAME batches
-            waitForFrameMessages = true;
+			this->socket->enablePendingMode(true);
 
             SettingsManager::setSetting( "loginSuccess", 1 );
 
             delete [] message;
             return;
-            }
+		}
         else if( type == MESSAGE_TYPE::REJECTED ) {
             this->socket->close();
             
@@ -4264,7 +4211,7 @@ void LivingLifePage::step()
             
             setWaiting( false );
             setSignal( "noLifeTokens" );
-            
+
             delete [] message;
             return;
             }
@@ -4753,7 +4700,8 @@ void LivingLifePage::step()
             }
         else if( type == MESSAGE_TYPE::MAP_CHUNK )
 		{
-			this->readMessage(message);
+			OneLife::data::type::message::MapChunk mapChunk;
+			this->readMessage(mapChunk, message);
 		}
         else if( type == MESSAGE_TYPE::MAP_CHANGE ) {
             int numLines;
@@ -8858,7 +8806,8 @@ void LivingLifePage::step()
                 pongDeltaTime = game_getCurrentTime() - pingSentTime;
                 }
             }
-        else if( type == MESSAGE_TYPE::NAMES ) {
+        else if( type == MESSAGE_TYPE::NAMES )
+		{
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8917,8 +8866,9 @@ void LivingLifePage::step()
                 delete [] lines[i];
                 }
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::DYING ) {
+		}
+        else if( type == MESSAGE_TYPE::DYING )
+		{
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8953,8 +8903,9 @@ void LivingLifePage::step()
                 delete [] lines[i];
                 }
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::HEALED ) {
+		}
+        else if( type == MESSAGE_TYPE::HEALED )
+		{
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -9002,8 +8953,9 @@ void LivingLifePage::step()
                 delete [] lines[i];
                 }
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::PLAYER_OUT_OF_RANGE ) {
+		}
+        else if( type == MESSAGE_TYPE::PLAYER_OUT_OF_RANGE )
+		{
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -9040,8 +8992,9 @@ void LivingLifePage::step()
                 delete [] lines[i];
                 }
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::FOOD_CHANGE ) {
+		}
+        else if( type == MESSAGE_TYPE::FOOD_CHANGE )
+		{
             
             LiveObject *ourLiveObject = getOurLiveObject();
             
@@ -9346,7 +9299,7 @@ void LivingLifePage::step()
 
         delete [] message;
         // process next message if there is one
-        message = getNextServerMessage();
+        message = this->socket->getNextMessage();
 	}
     
 
@@ -10716,8 +10669,6 @@ void LivingLifePage::makeActive( char inFresh ) {
     showNet = false;
     showPing = false;
 	showHelp = false;
-    
-    waitForFrameMessages = false;
 
     this->socket->disconnect();
     connectionMessageFade = 1.0f;
@@ -10896,10 +10847,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     readyPendingReceivedMessages.deallocateStringElements();
     serverFrameMessages.deallocateStringElements();
 
-    if( pendingMapChunkMessage != NULL ) {
-        delete [] pendingMapChunkMessage;
-        pendingMapChunkMessage = NULL;
-        }
+	this->socket->reset();
     pendingCMData = false;
     
 
@@ -10914,9 +10862,6 @@ void LivingLifePage::makeActive( char inFresh ) {
     waitingForPong = false;
     lastPingSent = 0;
     lastPongReceived = 0;
-    
-
-	this->socket->deleteAllMessages();
 
     if( nextActionMessageToSend != NULL ) {    
         delete [] nextActionMessageToSend;
