@@ -5,8 +5,8 @@
 #ifndef ONELIFE_PROCEDURE_CONVERSION_MESSAGE_H
 #define ONELIFE_PROCEDURE_CONVERSION_MESSAGE_H
 
-#include "OneLife/gameSource/dataTypes/types/message.h"
 #include "OneLife/gameSource/dataTypes/values/message.h"
+#include "OneLife/gameSource/dataTypes/types/message.h"
 
 namespace OneLife::procedure::conversion
 {

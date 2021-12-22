@@ -190,7 +190,7 @@ void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::sock
  * @param message
  * @return
  */
-OneLife::game::dataType::Message OneLife::game::component::Socket::getMessage(const char* message)
+OneLife::data::type::Message OneLife::game::component::Socket::getMessage(const char* message)
 {
 	int sizeX = 0;
 	int sizeY = 0;

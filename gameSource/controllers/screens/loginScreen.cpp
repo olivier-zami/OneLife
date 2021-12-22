@@ -12,6 +12,7 @@
 #include "minorGems/crypto/hashes/sha1.h"
 #include "OneLife/gameSource/accountHmac.h"
 #include "OneLife/gameSource/application.h"
+#include "OneLife/gameSource/dataTypes/type.h"
 #include "OneLife/gameSource/debug/console.h"
 
 extern int versionNumber;
@@ -165,6 +166,10 @@ void OneLife::game::LoginScreen::readMessage(OneLife::data::type::message::Login
 	delete [] keyHash;
 
 	livingLifePage->sendToServerSocket( outMessage );
+	OneLife::data::type::ClientRequest clientRequest = {
+			outMessage
+	};
+	this->send(clientRequest);
 
 	delete [] outMessage;
 }

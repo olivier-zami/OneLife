@@ -8,7 +8,7 @@
 #include <SDL/SDL.h>
 #include <vector>
 #include <cstdint>
-#include "../../dataTypes/message.h"
+#include "OneLife/gameSource/dataTypes/message.h"
 
 namespace OneLife::game
 {

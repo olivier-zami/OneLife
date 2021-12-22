@@ -7,6 +7,7 @@
 #include "minorGems/game/gameGraphics.h"
 #include "OneLife/gameSource/components/socket.h"
 #include "OneLife/gameSource/dataTypes/ui.h"
+#include "OneLife/gameSource/dataTypes/type.h"
 
 
 class Controller :
@@ -19,6 +20,8 @@ class Controller :
 		virtual void handle(OneLife::dataType::UiComponent* screen);
 
 		void setServerSocket(OneLife::game::component::Socket* socket);
+		void send(OneLife::data::type::ClientRequest request);
+
 
 	protected:
 		OneLife::game::component::Socket* socket;

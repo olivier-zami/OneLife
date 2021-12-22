@@ -698,7 +698,7 @@ void LivingLifePage::readMessage(OneLife::data::type::message::MapChunk mapChunk
 	sscanf(message, "MC\n%d %d %d %d\n%d %d\n", &sizeX, &sizeY, &x, &y, &binarySize, &compressedSize );
 	printf("Got map chunk with bin size %d, compressed size %d\n", binarySize, compressedSize );
 
-	OneLife::game::dataType::Message serverMessage = this->socket->getMessage(message);
+	OneLife::data::type::Message serverMessage = this->socket->getMessage(message);
 	if( serverMessage.content == NULL )
 	{
 		printf( "Decompressing chunk failed\n" );

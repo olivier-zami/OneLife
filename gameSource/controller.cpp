@@ -1,39 +1,29 @@
 #include "controller.h"
 
 #include "minorGems/util/stringUtils.h"
+#include "OneLife/gameSource/application.h"
 #include "OneLife/gameSource/serialWebRequests.h"
 #include "OneLife/gameSource/whiteSprites.h"
 #include "OneLife/gameSource/game.h"
 #include "OneLife/gameSource/procedures/graphics/sprites/drawMessage.h"
 #include "OneLife/gameSource/procedures/graphics/screens.h"
 #include "OneLife/gameSource/dataTypes/uiComponent/screens.h"
-
-
+#include "OneLife/gameSource/debug/console.h"
 
 int Controller::sPageCount = 0;
-
 SpriteHandle Controller::sWaitingSprites[3] = { NULL, NULL, NULL };
 SpriteHandle Controller::sResponseWarningSprite = NULL;
-
 int Controller::sCurrentWaitingSprite = 0;
 int Controller::sLastWaitingSprite = -1;
 int Controller::sWaitingSpriteDirection = 1;
 double Controller::sCurrentWaitingSpriteFade = 0;
-
 char Controller::sResponseWarningShowing = false;
 doublePair Controller::sResponseWarningPosition = { 0, 0 };
-
-
 double Controller::sWaitingFade = 0;
 char Controller::sWaiting = false;
 char Controller::sShowWaitingWarningOnly = false;
-
 char Controller::sShutdownPendingWarning = false;
-
-
 extern int currentActiveSerialWebRequest;
-
-
 
 Controller::Controller()
         : PageComponent( 0, 0 ),
@@ -98,6 +88,11 @@ void Controller::handle(OneLife::dataType::UiComponent* screen)
 void Controller::setServerSocket(OneLife::game::component::Socket *socket)
 {
 	this->socket = socket;
+}
+
+void Controller::send(OneLife::data::type::ClientRequest request)
+{
+	OneLife::game::Application::addInstruction(request);
 }
 
 void Controller::skipDrawingSubComponents( char inSkip ) {

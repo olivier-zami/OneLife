@@ -536,6 +536,13 @@ OneLife::game::component::Socket* OneLife::game::Application::getConnection()
 	return this->socket;
 }
 
+/**********************************************************************************************************************/
+
+void OneLife::game::Application::addInstruction(OneLife::data::type::ClientRequest clientRequest)
+{
+	OneLife::debug::Console::showFunction("OneLife::game::Application::addInstruction(clientRequest) => %s", clientRequest.message);
+}
+
 /**
 * Starts the GLUT main loop.
 *

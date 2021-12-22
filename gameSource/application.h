@@ -6,7 +6,6 @@
 #define ONELIFE_GAME_APPLICATION_H
 
 //#include "minorGems/graphics/openGL/ScreenGL.h"
-
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 #include "minorGems/graphics/openGL/MouseHandlerGL.h"
 #include "minorGems/graphics/openGL/SceneHandlerGL.h"
@@ -21,8 +20,10 @@
 #include "OneLife/gameSource/components/engines/deviceListener.h"
 #include "OneLife/gameSource/components/engines/screenRenderer.h"
 #include "OneLife/gameSource/components/socket.h"
-#include "OneLife/gameSource/settings.h"
 #include "OneLife/gameSource/components/pages/initializationScreen.h"
+#include "OneLife/gameSource/dataTypes/type.h"
+#include "OneLife/gameSource/settings.h"
+
 
 namespace OneLife::game
 {
@@ -46,17 +47,17 @@ namespace OneLife::game
 			void init(OneLife::game::Settings settings);
 			void setConnection(const char* ip, int port);
 			OneLife::game::component::Socket* getConnection();
-
 			static void setLastServerVersion(unsigned int version);
 
+			static void addInstruction(OneLife::data::type::ClientRequest clientRequest);
 			void start();
 
+		public:
 			const char *getCustomRecordedGameData();
 			char isPlayingBack();
 			float getPlaybackDoneFraction();
 			char shouldShowPlaybackDisplay();
 			char isMinimized();
-
 
 			// can avoid recording/playback during certain "front matter"
 			// activities like menu navigation
@@ -71,7 +72,6 @@ namespace OneLife::game
 			// speed control key adjustments are relative to this full rate
 			void setFullFrameRate( unsigned int inFullFrameRate );
 
-
 			unsigned int getMaxFramerate();
 
 			// set to true to enable frame sleeping to enforce max frame rate
@@ -80,24 +80,19 @@ namespace OneLife::game
 			// to depend on vsync to enforce it for us)
 			void useFrameSleep( char inUse );
 
-
-
 			// should ^ and % be allowed to slowdown and resume normal speed
 			// during event playback?
 			// setMaxFrameRate also can be used to create a slowdown, but
 			// ^ and % keys are not passed through during playback
 			void allowSlowdownKeysDuringPlayback( char inAllow );
 
-
 			// enables rand seed to be recorded and played back with
 			// event playback
 			unsigned int getRandSeed();
 
-
 			// enables Time::timeSec() values to be recorded and played back
 			timeSec_t getTimeSec();
 			double getCurrentTime();
-
 
 			// to save FPS in recording files
 			void registerActualFrameRate( double inFrameRate );
@@ -105,17 +100,13 @@ namespace OneLife::game
 			// these can be played back
 			double getRecordedFrameRate();
 
-
 			// sets mapping so that when inFromKey is pressed, an
 			// event for inToKey is generated instead
 			void setKeyMapping( unsigned char inFromKey,
 								unsigned char inToKey );
 
-
 			// turns key mapping on (default) or off
 			void toggleKeyMapping( char inMappingOn );
-
-
 
 			// passes in a web event to be (possibly) added to the current
 			// game recording
@@ -133,7 +124,6 @@ namespace OneLife::game
 					// provide length for binary bodies
 								   int inBodyLength = -1 );
 
-
 			// gets the type of the next pending web event (from playback)
 			// if the event has no result body, this call removes the event
 			// from the list.
@@ -149,10 +139,6 @@ namespace OneLife::game
 			char *getWebEventResultBody( int inHandle,
 										 int *outSize = NULL );
 
-
-
-
-
 			// passes in a socket event to be (possibly) added to the current
 			// game recording
 			// type encodes :
@@ -164,7 +150,6 @@ namespace OneLife::game
 									  int inType,
 									  int inNumBodyBytes,
 									  unsigned char *inBodyBytes = NULL );
-
 
 			// gets the type of the next pending socket event (from playback)
 			// if the event has no body bytes
@@ -190,12 +175,8 @@ namespace OneLife::game
 			// This call removes the socket event from the list of pending events.
 			unsigned char *getSocketEventBodyBytes( int inHandle );
 
-
 			void registerAsyncFileDone( int inHandle );
-
 			char getAsyncFileDone( int inHandle );
-
-
 
 			/**
 			 * Switches to 2D mode, where no view transforms are applied
@@ -203,8 +184,6 @@ namespace OneLife::game
 			 * Must be called before start();
 			 */
 			void switchTo2DMode();
-
-
 
 			/**
 			 * Moves the view position.
@@ -214,7 +193,6 @@ namespace OneLife::game
 			 */
 			void moveView( Vector3D *inPositionChange );
 
-
 			/**
 			 * Rotates the view.
 			 *
@@ -222,7 +200,6 @@ namespace OneLife::game
 			 *   Must be destroyed by caller.
 			 */
 			void rotateView( Angle3D *inOrientationChange );
-
 
 			/**
 			 * Gets the angle of the current view direction.
@@ -464,8 +441,6 @@ namespace OneLife::game
 			//SimpleVector<SceneHandlerGL*> *mSceneHandlerVector;
 			SimpleVector<RedrawListenerGL*> *mRedrawListenerVector;
 
-
-
 			/**
 			 * Gets whether at least one of our keyboard handlers is focused.
 			 *
@@ -491,7 +466,6 @@ namespace OneLife::game
 			char *mCustomRecordedGameData;
 			char *mHashSalt;
 
-
 			void writeEventBatchToFile();
 			void writeEventBatchToFile( SimpleVector<char*> *inBatch );
 			void playNextEventBatch();
@@ -505,7 +479,6 @@ namespace OneLife::game
 
 			SimpleVector<WebEvent> mPendingWebEvents;
 			SimpleVector<SocketEvent> mPendingSocketEvents;
-
 
 			// since async file reads happen to handles in order
 			// only need to track largest handle done so far
@@ -545,7 +518,13 @@ namespace OneLife::game
 			void render(OneLife::dataType::UiComponent* dataScreen);
 			void sendClientMessage();
 
+			struct{
+				bool pauseOnMinimize;
+			}option;
+
 			static unsigned int lastServerVersion;
+
+
 
 			bool isNewSystemEnable;//TODO: delete this after new system implementation done ...
 			unsigned int idScreen;
@@ -555,10 +534,6 @@ namespace OneLife::game
 			OneLife::game::component::Socket* socket;
 			OneLife::game::DeviceListener* deviceListener;
 			OneLife::game::ScreenRenderer* screenRenderer;
-
-			struct{
-				bool pauseOnMinimize;
-			}option;
 
 			bool quit;
 	};

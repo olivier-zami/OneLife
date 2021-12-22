@@ -7,7 +7,7 @@
 
 #include "../../../minorGems/util/SimpleVector.h"
 #include "minorGems/network/SocketClient.h"
-#include "OneLife/gameSource/dataTypes/message.h"
+#include "OneLife/gameSource/dataTypes/type.h"
 #include "OneLife/gameSource/dataTypes/game.h"
 #include "OneLife/gameSource/dataTypes/socket.h"
 
@@ -32,7 +32,7 @@ namespace OneLife::game::component
 			bool isConnected();
 			char readMessage();
 			void sendMessage(OneLife::game::dataType::socket::Message message);
-			OneLife::game::dataType::Message getMessage(const char* message = nullptr);
+			OneLife::data::type::Message getMessage(const char* message = nullptr);
 			char *getNextMessage();
 			void disconnect();
 			void reset(int mask = 0);
@@ -54,7 +54,7 @@ namespace OneLife::game::component
 				bool isPendingModeEnabled;
 			}status;
 			OneLife::game::dataType::socket::Address address;
-			OneLife::game::dataType::Message currentMessage;
+			OneLife::data::type::Message currentMessage;
 			char serverSocketConnected;
 			double connectedTime;
 			double timeLastMessageSent;
