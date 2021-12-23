@@ -115,7 +115,6 @@ extern SimpleVector<HomePos> homePosStack;
 extern SimpleVector<HomePos> oldHomePosStack;
 extern int pathFindingD;// should match limit on server
 extern bool isTrippingEffectOn;
-extern SimpleVector<unsigned char> serverSocketBuffer;
 extern char autoAdjustFramerate;
 extern int baseFramesPerSecond;
 extern SimpleVector<OffScreenSound> offScreenSounds;
@@ -1042,9 +1041,7 @@ void LivingLifePage::readMessage(OneLife::data::type::message::MapChunk mapChunk
 void LivingLifePage::setServerSocket(OneLife::game::component::Socket *socket)
 {
 	this->socket = socket;
-	this->socket->handle(
-			&serverSocketBuffer,
-			&bytesInCount);
+	this->socket->handle(&bytesInCount);
 }
 
 void LivingLifePage::sendToServerSocket( char *inMessage )

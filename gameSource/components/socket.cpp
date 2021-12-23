@@ -24,7 +24,6 @@ using MESSAGE_TYPE = OneLife::data::value::message::Type;
 extern OneLife::game::Application *screen;
 
 SimpleVector<SocketConnectionRecord> socketConnectionRecords;
-SimpleVector<unsigned char> serverSocketBuffer;
 char *pendingMapChunkMessage = NULL;
 int pendingCompressedChunkSize;
 int pendingCMDecompressedSize = 0;
@@ -62,11 +61,8 @@ OneLife::game::component::Socket::~Socket()
 
 /**********************************************************************************************************************/
 
-void OneLife::game::component::Socket::handle(
-		SimpleVector<unsigned char>* serverSocketBuffer, //serverSocketBuffer
-		int* bytesInCount)//bytesInCount
+void OneLife::game::component::Socket::handle(int* bytesInCount)//bytesInCount
 {
-	this->serverSocketBuffer = serverSocketBuffer;
 	this->bytesInCount = bytesInCount;
 	this->id = -1;
 }
@@ -142,7 +138,7 @@ char OneLife::game::component::Socket::readMessage()
 			this->connectedTime = game_getCurrentTime();
 		}
 
-		(*(this->serverSocketBuffer)).appendArray( buffer, numRead );
+		this->serverSocketBuffer.appendArray( buffer, numRead );
 		this->numServerBytesRead += numRead;
 		*(this->bytesInCount) += numRead;
 
@@ -206,9 +202,9 @@ OneLife::data::type::Message OneLife::game::component::Socket::getMessage(const 
 	unsigned char *compressedChunk = new unsigned char[ compressedSize ];
 	for( int i=0; i<compressedSize; i++ )
 	{
-		compressedChunk[i] = (*(this->serverSocketBuffer)).getElementDirect( i );
+		compressedChunk[i] = this->serverSocketBuffer.getElementDirect( i );
 	}
-	(*(this->serverSocketBuffer)).deleteStartElements( compressedSize );
+	this->serverSocketBuffer.deleteStartElements( compressedSize );
 	//unsigned char *decompressedChunk = zipDecompress(compressedChunk, compressedSize, binarySize);
 	this->currentMessage.size = binarySize;
 	this->currentMessage.content = zipDecompress(compressedChunk, compressedSize, binarySize);
@@ -230,7 +226,6 @@ OneLife::data::type::Message OneLife::game::component::Socket::getMessage(const 
  */
 char* OneLife::game::component::Socket::getNextMessage()
 {
-
 	if( readyPendingReceivedMessages.size() > 0 )
 	{
 		char *message = readyPendingReceivedMessages.getElementDirect( 0 );
@@ -238,7 +233,6 @@ char* OneLife::game::component::Socket::getNextMessage()
 		printf( "Playing a held pending message\n" );
 		return message;
 	}
-
 	if(this->isPendingModeEnabled())
 	{
 		if( !serverFrameReady )
@@ -311,7 +305,7 @@ char* OneLife::game::component::Socket::getNextMessage()
 
 void OneLife::game::component::Socket::deleteAllMessages()
 {
-	(*(this->serverSocketBuffer)).deleteAll();
+	this->serverSocketBuffer.deleteAll();
 }
 
 /**
@@ -357,6 +351,121 @@ void OneLife::game::component::Socket::close()
 	{
 		closeSocket(this->id);
 		this->id = -1;//TODO: close socket before
+	}
+}
+
+/**
+ *
+// NULL if there's no full message available
+ */
+char* OneLife::game::component::Socket::getNextServerMessageRaw()
+{
+	if( pendingMapChunkMessage != NULL )
+	{
+		// wait for full binary data chunk to arrive completely
+		// after message before we report that the message is ready
+
+		if( this->serverSocketBuffer.size() >= pendingCompressedChunkSize )
+		{
+			char *returnMessage = pendingMapChunkMessage;
+			pendingMapChunkMessage = NULL;
+			messagesInCount++;
+			return returnMessage;
+		}
+		else {
+			// wait for more data to arrive before saying this MC message
+			// is ready
+			return NULL;
+		}
+	}
+	if( pendingCMData )
+	{
+		OneLife::debug::Console::write("#############################################################################");
+		if( this->serverSocketBuffer.size() >= pendingCMCompressedSize )
+		{
+			pendingCMData = false;
+
+			unsigned char *compressedData =
+					new unsigned char[ pendingCMCompressedSize ];
+
+			for( int i=0; i<pendingCMCompressedSize; i++ ) {
+				compressedData[i] = this->serverSocketBuffer.getElementDirect( i );
+			}
+			this->serverSocketBuffer.deleteStartElements( pendingCMCompressedSize );
+
+			unsigned char *decompressedMessage =
+					zipDecompress( compressedData,
+							pendingCMCompressedSize,
+							pendingCMDecompressedSize );
+
+			delete [] compressedData;
+
+			if( decompressedMessage == NULL )
+			{
+				printf( "Decompressing CM message failed\n" );
+				return NULL;
+			}
+			else
+			{
+				char *textMessage = new char[ pendingCMDecompressedSize + 1 ];
+				memcpy( textMessage, decompressedMessage,
+						pendingCMDecompressedSize );
+				textMessage[ pendingCMDecompressedSize ] = '\0';
+
+				delete [] decompressedMessage;
+
+				messagesInCount++;
+				return textMessage;
+			}
+		}
+		else {
+			// wait for more data to arrive
+			return NULL;
+		}
+	}
+
+	// find first terminal character #
+	int index = this->serverSocketBuffer.getElementIndex( '#' );
+	if( index == -1 ) return NULL;// terminal character means message arrived
+
+	double curTime = game_getCurrentTime();
+	double gap = curTime - lastServerMessageReceiveTime;
+	if( gap > largestPendingMessageTimeGap )
+	{
+		largestPendingMessageTimeGap = gap;
+	}
+	lastServerMessageReceiveTime = curTime;
+
+	char *message = new char[ index + 1 ];
+	for( int i=0; i<index; i++ )
+	{
+		message[i] = (char)( this->serverSocketBuffer.getElementDirect( i ) );
+	}
+	// delete message and terminal character
+	this->serverSocketBuffer.deleteStartElements( index + 1 );
+	message[ index ] = '\0';
+
+	if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::MAP_CHUNK )
+	{
+		pendingMapChunkMessage = message;
+		int sizeX, sizeY, x, y, binarySize;
+		sscanf( message, "MC\n%d %d %d %d\n%d %d\n",
+				&sizeX, &sizeY,
+				&x, &y, &binarySize, &pendingCompressedChunkSize );
+		return getNextServerMessageRaw();
+	}
+	else if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::COMPRESSED_MESSAGE )
+	{
+		pendingCMData = true;
+		printf( "Got compressed message header:\n%s\n\n", message );
+		sscanf( message, "CM\n%d %d\n", &pendingCMDecompressedSize, &pendingCMCompressedSize );
+		delete [] message;
+		return NULL;
+	}
+	else
+	{
+		messagesInCount++;
+		return message;
 	}
 }
 
@@ -476,8 +585,8 @@ int sendToSocket( int inHandle, unsigned char *inData, int inDataLength )
 	return -1;
 }
 
-void closeSocket( int inHandle ) {
-
+void closeSocket( int inHandle )
+{
 	if( screen->isPlayingBack() ) {
 		// not a real socket, do nothing
 		return;
@@ -501,7 +610,8 @@ void closeSocket( int inHandle ) {
 				   "Requested Socket handle not found\n" );
 }
 
-Socket *getSocketByHandle( int inHandle ) {
+Socket *getSocketByHandle( int inHandle )
+{
 	for( int i=0; i<socketConnectionRecords.size(); i++ ) {
 		SocketConnectionRecord *r = socketConnectionRecords.getElement( i );
 
@@ -518,8 +628,8 @@ Socket *getSocketByHandle( int inHandle ) {
 
 // non-blocking read
 // returns number of bytes read (maybe 0), -1 on error
-int readFromSocket( int inHandle, unsigned char *inDataBuffer, int inBytesToRead ) {
-
+int readFromSocket( int inHandle, unsigned char *inDataBuffer, int inBytesToRead )
+{
 	if( screen->isPlayingBack() ) {
 		// play back result of this read
 
@@ -588,131 +698,6 @@ int readFromSocket( int inHandle, unsigned char *inDataBuffer, int inBytesToRead
 	}
 
 	return -1;
-}
-
-// NULL if there's no full message available
-char *getNextServerMessageRaw() {
-
-	if( pendingMapChunkMessage != NULL )
-	{
-		// wait for full binary data chunk to arrive completely
-		// after message before we report that the message is ready
-
-		if( serverSocketBuffer.size() >= pendingCompressedChunkSize )
-		{
-			char *returnMessage = pendingMapChunkMessage;
-			pendingMapChunkMessage = NULL;
-			messagesInCount++;
-			return returnMessage;
-		}
-		else {
-			// wait for more data to arrive before saying this MC message
-			// is ready
-			return NULL;
-		}
-	}
-
-	if( pendingCMData )
-	{
-		OneLife::debug::Console::write("#############################################################################");
-		if( serverSocketBuffer.size() >= pendingCMCompressedSize )
-		{
-			pendingCMData = false;
-
-			unsigned char *compressedData =
-					new unsigned char[ pendingCMCompressedSize ];
-
-			for( int i=0; i<pendingCMCompressedSize; i++ ) {
-				compressedData[i] = serverSocketBuffer.getElementDirect( i );
-		}
-			serverSocketBuffer.deleteStartElements( pendingCMCompressedSize );
-
-			unsigned char *decompressedMessage =
-					zipDecompress( compressedData,
-							pendingCMCompressedSize,
-							pendingCMDecompressedSize );
-
-			delete [] compressedData;
-
-			if( decompressedMessage == NULL )
-			{
-				printf( "Decompressing CM message failed\n" );
-				return NULL;
-			}
-			else
-			{
-				char *textMessage = new char[ pendingCMDecompressedSize + 1 ];
-				memcpy( textMessage, decompressedMessage,
-						pendingCMDecompressedSize );
-				textMessage[ pendingCMDecompressedSize ] = '\0';
-
-				delete [] decompressedMessage;
-
-				messagesInCount++;
-				return textMessage;
-			}
-		}
-		else {
-			// wait for more data to arrive
-			return NULL;
-		}
-	}
-
-	// find first terminal character #
-	int index = serverSocketBuffer.getElementIndex( '#' );
-	if( index == -1 )
-	{
-		return NULL;
-	}
-
-	// terminal character means message arrived
-
-	double curTime = game_getCurrentTime();
-
-	double gap = curTime - lastServerMessageReceiveTime;
-
-	if( gap > largestPendingMessageTimeGap )
-	{
-		largestPendingMessageTimeGap = gap;
-	}
-	lastServerMessageReceiveTime = curTime;
-
-	char *message = new char[ index + 1 ];
-	for( int i=0; i<index; i++ )
-	{
-		message[i] = (char)( serverSocketBuffer.getElementDirect( i ) );
-	}
-	// delete message and terminal character
-	serverSocketBuffer.deleteStartElements( index + 1 );
-
-	message[ index ] = '\0';
-
-	if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::MAP_CHUNK ) {
-		pendingMapChunkMessage = message;
-
-		int sizeX, sizeY, x, y, binarySize;
-		sscanf( message, "MC\n%d %d %d %d\n%d %d\n",
-				&sizeX, &sizeY,
-				&x, &y, &binarySize, &pendingCompressedChunkSize );
-
-
-		return getNextServerMessageRaw();
-	}
-	else if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::COMPRESSED_MESSAGE ) {
-		pendingCMData = true;
-
-		printf( "Got compressed message header:\n%s\n\n", message );
-
-		sscanf( message, "CM\n%d %d\n",
-				&pendingCMDecompressedSize, &pendingCMCompressedSize );
-
-		delete [] message;
-		return NULL;
-	}
-	else {
-		messagesInCount++;
-		return message;
-	}
 }
 
 // destroyed internally if not NULL

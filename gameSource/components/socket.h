@@ -19,9 +19,7 @@ namespace OneLife::game::component
 			Socket();
 			~Socket();
 
-			void handle(
-					SimpleVector<unsigned char>* serverSocketBuffer = nullptr,
-					int* bytesInCount = nullptr);
+			void handle(int* bytesInCount = nullptr);
 
 			void setAddress(OneLife::game::dataType::socket::Address address);
 			OneLife::game::dataType::socket::Address getAddress();
@@ -38,6 +36,7 @@ namespace OneLife::game::component
 			void reset(int mask = 0);
 			void close();
 
+			char *getNextServerMessageRaw();
 			double getLastQueryLifeTime();
 			double getTimeLastMessageSent();
 			void deleteAllMessages();
@@ -55,10 +54,10 @@ namespace OneLife::game::component
 			}status;
 			OneLife::game::dataType::socket::Address address;
 			OneLife::data::type::Message currentMessage;
-			char serverSocketConnected;
+			SimpleVector<unsigned char> serverSocketBuffer;
+
 			double connectedTime;
 			double timeLastMessageSent;
-			SimpleVector<unsigned char>* serverSocketBuffer;
 			int numServerBytesRead;
 			int numServerBytesSent;
 			int overheadServerBytesRead;
@@ -75,7 +74,6 @@ int sendToSocket( int inHandle, unsigned char *inData, int inDataLength );
 void closeSocket( int inHandle );
 Socket *getSocketByHandle( int inHandle );
 int readFromSocket( int inHandle, unsigned char *inDataBuffer, int inBytesToRead );
-char *getNextServerMessageRaw();
 void replaceLastMessageSent( char *inNewMessage );
 void startConnecting();
 void playPendingReceivedMessages( LiveObject *inPlayer );
