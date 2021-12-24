@@ -39,14 +39,26 @@ char *lastMessageSentToServer = NULL;
 
 static int nextSocketConnectionHandle = 0;
 
+/**********************************************************************************************************************/
+//!constructor/destructor
+
 OneLife::game::component::Socket::Socket()
 {
 	this->status.isConnected = false;
 	this->status.isPendingModeEnabled = false;
+	this->status.isTerminalCharacterFound = false;
+	this->status.isStartMessageReading = false;
+	this->lastMessageMaxSize = 1024;
+	this->lastMessage.type = 0;
+	this->lastMessage.size = 0;
+	this->lastMessage.content = malloc(this->lastMessageMaxSize*sizeof(char));
+	memset(this->lastMessage.content, 0, 1024*sizeof(char));
+
 	this->currentMessage.type = 0;
 	this->currentMessage.size = 0;
 	this->currentMessage.content = malloc(1024*sizeof(char));
 	memset(this->currentMessage.content, 0, 1024*sizeof(char));
+
 	this->numServerBytesRead = 0;
 	this->numServerBytesSent = 0;
 	this->overheadServerBytesRead = 0;
@@ -71,7 +83,7 @@ void OneLife::game::component::Socket::handle(int* bytesInCount)//bytesInCount
 
 void OneLife::game::component::Socket::setAddress(OneLife::game::dataType::socket::Address address)
 {
-	printf("\n===>OneLife::game::component::Socket::setAddress({%s:%i})", address.ip, address.port);
+	OneLife::debug::Console::write("OneLife::game::component::Socket::setAddress({%s:%i})", address.ip, address.port);
 	strcpy(this->address.ip, address.ip);
 	this->address.port = address.port;
 }
@@ -129,9 +141,8 @@ char OneLife::game::component::Socket::readMessage()
 	unsigned char buffer[512];
 	int numRead = readFromSocket( this->id, buffer, 512 );
 	if(numRead > 0)OneLife::debug::Console::showFunction("OneLife::game::component::Socket::readMessage()");
-	while( numRead > 0 )
+	while(numRead > 0)
 	{
-		OneLife::debug::Console::write("read(%i)", numRead);
 		if(!this->status.isConnected )
 		{
 			this->status.isConnected = true;
@@ -165,7 +176,7 @@ void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::sock
 	replaceLastMessageSent(stringDuplicate( message.body ) );//TODO: if lastMessageSentToServer used create method getlastMessageSent()
 	int len = strlen( message.body );
 	//TODO: test id
-	int numSent = sendToSocket( this->id, (unsigned char*)(message.body), len );
+	int numSent = sendToSocket(this->id, (unsigned char*)(message.body), len);
 
 	if( numSent == len )
 	{
@@ -188,6 +199,8 @@ void OneLife::game::component::Socket::sendMessage(OneLife::game::dataType::sock
  */
 OneLife::data::type::Message OneLife::game::component::Socket::getMessage(const char* message)
 {
+	//char* test = this->getNextMessage();
+	//OneLife::debug::Console::write("getMessage() => %s", test);
 	int sizeX = 0;
 	int sizeY = 0;
 	int x = 0;
@@ -197,13 +210,14 @@ OneLife::data::type::Message OneLife::game::component::Socket::getMessage(const 
 	int compressedSize = 0;
 
 	sscanf(message, "MC\n%d %d %d %d\n%d %d\n", &sizeX, &sizeY, &x, &y, &binarySize, &compressedSize );
-	printf("Got map chunk with bin size %d, compressed size %d\n", binarySize, compressedSize );
+	//printf("Got map chunk with bin size %d, compressed size %d\n", binarySize, compressedSize );
 
 	unsigned char *compressedChunk = new unsigned char[ compressedSize ];
 	for( int i=0; i<compressedSize; i++ )
 	{
 		compressedChunk[i] = this->serverSocketBuffer.getElementDirect( i );
 	}
+
 	this->serverSocketBuffer.deleteStartElements( compressedSize );
 	//unsigned char *decompressedChunk = zipDecompress(compressedChunk, compressedSize, binarySize);
 	this->currentMessage.size = binarySize;
@@ -228,9 +242,11 @@ char* OneLife::game::component::Socket::getNextMessage()
 {
 	if( readyPendingReceivedMessages.size() > 0 )
 	{
+		//memset(this->lastMessage.content, 0, (this->lastMessageMaxSize*sizeof(char)));
 		char *message = readyPendingReceivedMessages.getElementDirect( 0 );
 		readyPendingReceivedMessages.deleteElement( 0 );
 		printf( "Playing a held pending message\n" );
+		OneLife::debug::Console::write("###(1)#######################> %i", this->serverSocketBuffer.size());
 		return message;
 	}
 	if(this->isPendingModeEnabled())
@@ -238,7 +254,8 @@ char* OneLife::game::component::Socket::getNextMessage()
 		if( !serverFrameReady )
 		{
 			// read more and look for end of frame
-			char *message = getNextServerMessageRaw();
+			this->status.isStartMessageReading = true;
+			char *message = this->getNextServerMessageRaw();
 			while( message != NULL )
 			{
 				OneLife::data::value::message::Type t = OneLife::procedure::conversion::getMessageType( message );
@@ -271,6 +288,7 @@ char* OneLife::game::component::Socket::getNextMessage()
 					// for the new location.
 					// which will invalidate the map around player's old
 					// location
+					OneLife::debug::Console::write("###(2)#######################> %i", this->serverSocketBuffer.size());
 					return message;
 				}
 				else
@@ -282,7 +300,7 @@ char* OneLife::game::component::Socket::getNextMessage()
 
 				// keep reading messages, until we either see the
 				// end of the frame or read all available messages
-				message = getNextServerMessageRaw();
+				message = this->getNextServerMessageRaw();
 			}
 		}
 		if( serverFrameReady )
@@ -293,14 +311,16 @@ char* OneLife::game::component::Socket::getNextMessage()
 			{
 				serverFrameReady = false;
 			}
+			OneLife::debug::Console::write("###(3)#######################> %i", this->serverSocketBuffer.size());
 			return message;
 		}
 		else
 		{
+			//OneLife::debug::Console::write("###(4)#######################> %i", this->serverSocketBuffer.size());
 			return NULL;
 		}
 	}
-	else return getNextServerMessageRaw();
+	else return this->getNextServerMessageRaw();
 }
 
 void OneLife::game::component::Socket::deleteAllMessages()
@@ -358,7 +378,7 @@ void OneLife::game::component::Socket::close()
  *
 // NULL if there's no full message available
  */
-char* OneLife::game::component::Socket::getNextServerMessageRaw()
+char* OneLife::game::component::Socket::getNextServerMessageRaw() //TODO: rename readXXX()
 {
 	if( pendingMapChunkMessage != NULL )
 	{
@@ -380,7 +400,6 @@ char* OneLife::game::component::Socket::getNextServerMessageRaw()
 	}
 	if( pendingCMData )
 	{
-		OneLife::debug::Console::write("#############################################################################");
 		if( this->serverSocketBuffer.size() >= pendingCMCompressedSize )
 		{
 			pendingCMData = false;
@@ -424,29 +443,13 @@ char* OneLife::game::component::Socket::getNextServerMessageRaw()
 		}
 	}
 
-	// find first terminal character #
-	int index = this->serverSocketBuffer.getElementIndex( '#' );
-	if( index == -1 ) return NULL;// terminal character means message arrived
+	this->computeLastMessageLength();
+	if(!this->status.isTerminalCharacterFound) return NULL;
+	char* message = this->_read();
 
-	double curTime = game_getCurrentTime();
-	double gap = curTime - lastServerMessageReceiveTime;
-	if( gap > largestPendingMessageTimeGap )
+	/*if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::MAP_CHUNK )
 	{
-		largestPendingMessageTimeGap = gap;
-	}
-	lastServerMessageReceiveTime = curTime;
-
-	char *message = new char[ index + 1 ];
-	for( int i=0; i<index; i++ )
-	{
-		message[i] = (char)( this->serverSocketBuffer.getElementDirect( i ) );
-	}
-	// delete message and terminal character
-	this->serverSocketBuffer.deleteStartElements( index + 1 );
-	message[ index ] = '\0';
-
-	if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::MAP_CHUNK )
-	{
+		OneLife::debug::Console::write("build MAP_CHUNK");
 		pendingMapChunkMessage = message;
 		int sizeX, sizeY, x, y, binarySize;
 		sscanf( message, "MC\n%d %d %d %d\n%d %d\n",
@@ -454,7 +457,7 @@ char* OneLife::game::component::Socket::getNextServerMessageRaw()
 				&x, &y, &binarySize, &pendingCompressedChunkSize );
 		return getNextServerMessageRaw();
 	}
-	else if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::COMPRESSED_MESSAGE )
+	else*/ if( OneLife::procedure::conversion::getMessageType( message ) == MESSAGE_TYPE::COMPRESSED_MESSAGE )
 	{
 		pendingCMData = true;
 		printf( "Got compressed message header:\n%s\n\n", message );
@@ -469,8 +472,51 @@ char* OneLife::game::component::Socket::getNextServerMessageRaw()
 	}
 }
 
+char* OneLife::game::component::Socket::_read()
+{
+	double curTime = game_getCurrentTime();
+	double gap = curTime - lastServerMessageReceiveTime;
+	if( gap > largestPendingMessageTimeGap )
+	{
+		largestPendingMessageTimeGap = gap;
+	}
+	lastServerMessageReceiveTime = curTime;
+
+	char *message = new char[this->lastMessage.size+1];
+	for(int i=0; i<this->lastMessage.size; i++)
+	{
+		message[i] = (char)(this->serverSocketBuffer.getElementDirect(i));
+	}
+	// delete message and terminal character
+	this->serverSocketBuffer.deleteStartElements(this->lastMessage.size+1);
+	message[this->lastMessage.size] = '\0';
+	if(this->status.isStartMessageReading)OneLife::debug::Console::write("=====>read:%c%c", message[0], message[1]);
+	OneLife::debug::Console::write("readBuffer:\n<[![CDATA[%s]]>", message);
+	this->status.isStartMessageReading = false;
+	return message;
+}
+
 /**********************************************************************************************************************/
 //!private
+/**
+ * @note: find first terminal character # => terminal character means message arrived
+ */
+void OneLife::game::component::Socket::computeLastMessageLength()
+{
+	int index = this->serverSocketBuffer.getElementIndex( '#' );
+	if(index==-1)
+	{
+		this->status.isTerminalCharacterFound = false;
+		this->lastMessage.size = index;//TODO: count temporary char number
+	}
+	else
+	{
+		this->status.isTerminalCharacterFound = true;
+		this->lastMessage.size = index;
+	}
+}
+
+/**********************************************************************************************************************/
 
 int OneLife::game::component::Socket::getTotalServerBytesRead()
 {

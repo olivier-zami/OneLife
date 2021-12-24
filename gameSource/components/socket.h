@@ -35,6 +35,7 @@ namespace OneLife::game::component
 			void disconnect();
 			void reset(int mask = 0);
 			void close();
+			char* _read();
 
 			char *getNextServerMessageRaw();
 			double getLastQueryLifeTime();
@@ -47,14 +48,21 @@ namespace OneLife::game::component
 			int getTotalServerMessageSent();
 
 		private:
+			void computeLastMessageLength();
 			int id;
 			struct{
 				bool isConnected;
 				bool isPendingModeEnabled;
+				bool isTerminalCharacterFound;
+				bool isStartMessageReading;
 			}status;
 			OneLife::game::dataType::socket::Address address;
-			OneLife::data::type::Message currentMessage;
+			size_t lastMessageMaxSize;
+			OneLife::data::type::Message lastMessage;
+		public:
 			SimpleVector<unsigned char> serverSocketBuffer;
+		private:
+			OneLife::data::type::Message currentMessage;
 
 			double connectedTime;
 			double timeLastMessageSent;

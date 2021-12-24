@@ -192,6 +192,4 @@ void OneLife::procedure::conversion::setMapChunkMessage(OneLife::data::type::mes
 			&((*mapChunk).dimension.height),
 			&((*mapChunk).topLeftPosition.x),
 			&((*mapChunk).topLeftPosition.y), &binarySize, &compressedSize);
-
-	OneLife::debug::Console::write("Got map chunk with bin size %d, compressed size %d\n", binarySize, compressedSize);
 }

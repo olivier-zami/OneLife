@@ -125,14 +125,14 @@ void OneLife::game::Map::setGlobalOffset(GridPos offset)
 
 	if( offset.x < maxOK && offset.x > -maxOK && offset.y < maxOK && offset.y > -maxOK )
 	{
-		OneLife::debug::Console::write("First chunk isn't too far from center, using 0,0 as our global offset\n" );
+		//OneLife::debug::Console::write("First chunk isn't too far from center, using 0,0 as our global offset\n" );
 		(*this->mMapGlobalOffset).x = 0;
 		(*this->mMapGlobalOffset).y = 0;
 		(*this->mMapGlobalOffsetSet) = true;
 	}
 	else
 	{
-		OneLife::debug::Console::write("Using this first chunk center as our global offset:  %d, %d\n", offset.x, offset.y );
+		//OneLife::debug::Console::write("Using this first chunk center as our global offset:  %d, %d\n", offset.x, offset.y );
 		(*this->mMapGlobalOffset).x = offset.x;
 		(*this->mMapGlobalOffset).y = offset.y;
 		(*this->mMapGlobalOffsetSet) = true;

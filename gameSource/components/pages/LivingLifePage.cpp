@@ -680,11 +680,12 @@ void LivingLifePage::readMessage(const char *message)//TODO: use message = socke
 void LivingLifePage::readMessage(OneLife::data::type::message::MapChunk mapChunk, const char* message)
 {
 	OneLife::procedure::conversion::setMapChunkMessage(&mapChunk, message);
-	OneLife::debug::Console::write("===>read MapChunk message : position(%i, %i) dimension(%i, %i)",
+	/*
+	OneLife::debug::Console::write("read MapChunk message : position(%i, %i) dimension(%i, %i)",
 			mapChunk.topLeftPosition.x,
 			mapChunk.topLeftPosition.y,
 			mapChunk.dimension.width,
-			mapChunk.dimension.height);
+			mapChunk.dimension.height);*/
 
 	int sizeX = 0;
 	int sizeY = 0;
@@ -695,9 +696,28 @@ void LivingLifePage::readMessage(OneLife::data::type::message::MapChunk mapChunk
 	int compressedSize = 0;
 
 	sscanf(message, "MC\n%d %d %d %d\n%d %d\n", &sizeX, &sizeY, &x, &y, &binarySize, &compressedSize );
-	printf("Got map chunk with bin size %d, compressed size %d\n", binarySize, compressedSize );
+	//printf("Got map chunk with bin size %d, compressed size %d\n", binarySize, compressedSize );
 
-	OneLife::data::type::Message serverMessage = this->socket->getMessage(message);
+	//OneLife::data::type::Message serverMessage = this->socket->getMessage(message);
+	/******************************************************************************************************************/
+	unsigned char *compressedChunk = new unsigned char[ compressedSize ];
+	OneLife::debug::Console::write("############################## size = %i", this->socket->serverSocketBuffer.size());
+	for( int i=0; i<compressedSize; i++ )
+	{
+		compressedChunk[i] = this->socket->serverSocketBuffer.getElementDirect( i );
+	}
+
+	this->socket->serverSocketBuffer.deleteStartElements( compressedSize );
+	//unsigned char *decompressedChunk = zipDecompress(compressedChunk, compressedSize, binarySize);
+	OneLife::data::type::Message serverMessage;
+	serverMessage.size = binarySize;
+	serverMessage.content = zipDecompress(compressedChunk, compressedSize, binarySize);
+	delete [] compressedChunk;
+	/******************************************************************************************************************/
+
+
+
+
 	if( serverMessage.content == NULL )
 	{
 		printf( "Decompressing chunk failed\n" );
@@ -814,7 +834,7 @@ void LivingLifePage::readMessage(OneLife::data::type::message::MapChunk mapChunk
 
 			int mapCenterY = y + sizeY / 2;
 			int mapCenterX = x + sizeX / 2;
-			printf( "Map center = %d,%d\n", mapCenterX, mapCenterY );
+			//printf( "Map center = %d,%d\n", mapCenterX, mapCenterY );
 
 			for( int mapY=0; mapY < mMapD; mapY++ ) {
 				for( int mapX=0; mapX < mMapD; mapX++ ) {
@@ -848,8 +868,7 @@ void LivingLifePage::readMessage(OneLife::data::type::message::MapChunk mapChunk
 				}
 
 			if( found ) {
-				printf( "Found starting home marker at %d,%d\n",
-						closestX, closestY );
+				//printf( "Found starting home marker at %d,%d\n", closestX, closestY );
 				addHomeLocation( closestX, closestY );
 				}
 			}
@@ -3740,14 +3759,12 @@ void LivingLifePage::step()
                 
             }
         
-        if( ! equal( mHungerSlipPosOffset[i],
-                     mHungerSlipHideOffsets[i] ) ) {
-            
+        if(!equal(mHungerSlipPosOffset[i], mHungerSlipHideOffsets[i]))
+		{
             // advance wiggle time
-            mHungerSlipWiggleTime[i] += 
-                frameRateFactor * mHungerSlipWiggleSpeed[i];
-            }
-        }
+            mHungerSlipWiggleTime[i] += frameRateFactor * mHungerSlipWiggleSpeed[i];
+		}
+	}
 
     double curTime = game_getCurrentTime();
 
@@ -3757,8 +3774,8 @@ void LivingLifePage::step()
         curTime - lastServerMessageReceiveTime < 1 &&
         curTime - ourObject->pendingActionAnimationStartTime > 
         5 + largestPendingMessageTimeGap &&
-        ! waitingForPong ) {
-
+        ! waitingForPong )
+	{
         printf( "Been waiting for response to our action request "
                 "from server for %.2f seconds, and last server message "
                 "received %.2f sec ago, saw a message time gap along the way "
@@ -3773,12 +3790,13 @@ void LivingLifePage::step()
         
         sendToServerSocket( pingMessage );
         delete [] pingMessage;
-        }
+	}
     else if( playerActionPending &&
              ourObject != NULL &&
              curTime - ourObject->pendingActionAnimationStartTime > 5 &&
              curTime - lastServerMessageReceiveTime > 10 &&
-             ! waitingForPong ) {
+             ! waitingForPong )
+	{
         // we're waiting for a response from the server, and
         // we haven't heard ANYTHING from the server in a long time
         // a full, two-way network connection break
@@ -3796,15 +3814,15 @@ void LivingLifePage::step()
         mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
             
         handleOurDeath( true );
-        }
-    
+	}
 
     // after 10 seconds of waiting, if we HAVE received our PONG back
     if( playerActionPending && 
         ourObject != NULL && 
         curTime - lastServerMessageReceiveTime < 1 &&
         curTime - ourObject->pendingActionAnimationStartTime > 
-        10 + largestPendingMessageTimeGap ) {
+        10 + largestPendingMessageTimeGap )
+	{
 
         // been bouncing for five seconds with no answer from server
         // in the mean time, we have seen other messages arrive from server
@@ -3878,7 +3896,7 @@ void LivingLifePage::step()
             
             handleOurDeath( true );
             }
-        }
+	}
     
     
     if( this->socket->isConnected() && this->socket->getTimeLastMessageSent() > 15 ) // more than 15 seconds without client making a move// send KA to keep connection open
@@ -3893,8 +3911,7 @@ void LivingLifePage::step()
     char *message = this->socket->getNextMessage();
     while( message != NULL )
 	{
-		OneLife::debug::Console::write("Got length %d message\n%s\n", (int)strlen( message ), message);
-
+		//OneLife::debug::Console::write("Got length %d message\n%s\n", (int)strlen( message ), message);
 		overheadServerBytesRead += 52;
         OneLife::data::value::message::Type type = OneLife::procedure::conversion::getMessageType( message );
         
@@ -3907,6 +3924,7 @@ void LivingLifePage::step()
         
         if( type == MESSAGE_TYPE::SHUTDOWN  || type == MESSAGE_TYPE::FORCED_SHUTDOWN )
 		{
+			//OneLife::debug::Console::write("=====> process SHUTDOWN");
             this->socket->close();
             
             setWaiting( false );
@@ -3917,6 +3935,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::SERVER_FULL )
 		{
+			//OneLife::debug::Console::write("=====> process SERVER_FULL");
             this->socket->close();
             
             setWaiting( false );
@@ -3927,6 +3946,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::GLOBAL_MESSAGE )
 		{
+			//OneLife::debug::Console::write("=====> process GLOBAL MESSAGE");
             if( mTutorialNumber <= 0 ) {
                 // not in tutorial
                 // display this message
@@ -3981,6 +4001,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::FLIP )
 		{
+			//OneLife::debug::Console::write("=====> process FLIP");
             int numLines;
             char **lines = split( message, "\n", &numLines );
 
@@ -4027,6 +4048,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::CRAVING )
 		{
+			//OneLife::debug::Console::write("=====> process CRAVING");
             int foodID = -1;
             int bonus = 0;
             
@@ -4039,6 +4061,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::SEQUENCE_NUMBER )
 		{
+			//OneLife::debug::Console::write("=====> process SEQUENCE NUMBER");
 			OneLife::data::type::message::LoginPrerequisite loginPrerequisite;
 
 			sscanf( message, "SN\n%d/%d\n%199s\n%d\n",
@@ -4054,6 +4077,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::ACCEPTED )
 		{
+			//OneLife::debug::Console::write("=====> process ACCEPTED");
             // logged in successfully, wait for next message
             // subsequent messages should all be part of FRAME batches
 			this->socket->enablePendingMode(true);
@@ -4063,7 +4087,9 @@ void LivingLifePage::step()
             delete [] message;
             return;
 		}
-        else if( type == MESSAGE_TYPE::REJECTED ) {
+        else if( type == MESSAGE_TYPE::REJECTED )
+		{
+			//OneLife::debug::Console::write("=====> process REJECTED");
             this->socket->close();
             
             setWaiting( false );
@@ -4071,8 +4097,10 @@ void LivingLifePage::step()
             
             delete [] message;
             return;
-            }
-        else if( type == MESSAGE_TYPE::NO_LIFE_TOKENS ) {
+		}
+        else if( type == MESSAGE_TYPE::NO_LIFE_TOKENS )
+		{
+			//OneLife::debug::Console::write("=====> process NO_LIFE");
             this->socket->close();
             
             setWaiting( false );
@@ -4080,12 +4108,16 @@ void LivingLifePage::step()
 
             delete [] message;
             return;
-            }
-        else if( type == MESSAGE_TYPE::APOCALYPSE ) {
+		}
+        else if( type == MESSAGE_TYPE::APOCALYPSE )
+		{
+			//OneLife::debug::Console::write("=====> process APOCALYPSE");
             apocalypseDisplayProgress = 0;
             apocalypseInProgress = true;
-            }
-        else if( type == MESSAGE_TYPE::APOCALYPSE_DONE ) {
+		}
+        else if( type == MESSAGE_TYPE::APOCALYPSE_DONE )
+		{
+			//OneLife::debug::Console::write("=====> process APOCALYPSE DONE");
             apocalypseDisplayProgress = 0;
             apocalypseInProgress = false;
             homePosStack.deleteAll();
@@ -4095,8 +4127,10 @@ void LivingLifePage::step()
                 LiveObject *p = gameObjects.getElement( i );
                 p->currentEmot = NULL;
                 }
-            }
-        else if( type == MESSAGE_TYPE::MONUMENT_CALL ) {
+		}
+        else if( type == MESSAGE_TYPE::MONUMENT_CALL )
+		{
+			//OneLife::debug::Console::write("=====> process MONUMENT CALL");
             int posX, posY, monumentID;
             
             int numRead = sscanf( message, "MN\n%d %d %d",
@@ -4134,8 +4168,10 @@ void LivingLifePage::step()
                         }
                     }
                 }            
-            }
-        else if( type == MESSAGE_TYPE::GRAVE ) {
+		}
+        else if( type == MESSAGE_TYPE::GRAVE )
+		{
+			//OneLife::debug::Console::write("=====> process GRAVE");
             int posX, posY, playerID;
             
             int numRead = sscanf( message, "GV\n%d %d %d",
@@ -4197,8 +4233,10 @@ void LivingLifePage::step()
                     mGraveInfo.push_back( g );
                     }
                 }            
-            }
-        else if( type == MESSAGE_TYPE::GRAVE_MOVE ) {
+		}
+        else if( type == MESSAGE_TYPE::GRAVE_MOVE )
+		{
+			//OneLife::debug::Console::write("=====> process GRAVE_MOVE");
             int posX, posY, posXNew, posYNew;
 
             int swapDest = 0;
@@ -4261,8 +4299,10 @@ void LivingLifePage::step()
                         }
                     }
                 }            
-            }
-        else if( type == MESSAGE_TYPE::GRAVE_OLD ) {
+		}
+        else if( type == MESSAGE_TYPE::GRAVE_OLD )
+		{
+			//OneLife::debug::Console::write("=====> process GRAVE_OLD");
             int posX, posY, playerID, displayID;
             double age;
             
@@ -4410,8 +4450,10 @@ void LivingLifePage::step()
                 
                 mGraveInfo.push_back( g );
                 }
-            }
-        else if( type == MESSAGE_TYPE::OWNER ) {
+		}
+        else if( type == MESSAGE_TYPE::OWNER )
+		{
+			//OneLife::debug::Console::write("=====> process OWNER");
             SimpleVector<char*> *tokens = tokenizeString( message );
             
             if( tokens->size() >= 3 ) {
@@ -4567,9 +4609,35 @@ void LivingLifePage::step()
         else if( type == MESSAGE_TYPE::MAP_CHUNK )
 		{
 			OneLife::data::type::message::MapChunk mapChunk;
+
+			int binarySize, compressedBinarySize;
+			sscanf( message, "MC\n%d %d %d %d\n%d %d\n",
+				&(mapChunk.dimension.width),
+				&(mapChunk.dimension.height),
+				&(mapChunk.topLeftPosition.x),
+				&(mapChunk.topLeftPosition.y),
+				&binarySize,
+				&compressedBinarySize);
+
 			this->readMessage(mapChunk, message);
+
+			/*
+			OneLife::data::type::message::LoginPrerequisite loginPrerequisite;
+
+			sscanf( message, "SN\n%d/%d\n%199s\n%d\n",
+					&(loginPrerequisite.currentPlayer),
+					&(loginPrerequisite.maxPlayers),
+					loginPrerequisite.challengeString,
+                    &(loginPrerequisite.requiredVersion));
+
+			loginScreen->readMessage(loginPrerequisite);
+			delete [] message;
+			message = nullptr;
+			*/
 		}
-        else if( type == MESSAGE_TYPE::MAP_CHANGE ) {
+        else if( type == MESSAGE_TYPE::MAP_CHANGE )
+		{
+			//OneLife::debug::Console::write("=====> process MAP_CHANGE");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -5460,9 +5528,10 @@ void LivingLifePage::step()
                 }
             
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::PLAYER_UPDATE ) {
-            
+		}
+        else if( type == MESSAGE_TYPE::PLAYER_UPDATE )
+		{
+            //OneLife::debug::Console::write("=====> process PLAYER UPDATE");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -5636,13 +5705,13 @@ void LivingLifePage::step()
                     applyReceiveOffset( &heldOriginX, &heldOriginY );
                     applyReceiveOffset( &( o.xd ), &( o.yd ) );
                     
-                    printf( "PLAYER_UPDATE with heldOrVal=%d, "
+                    /*printf( "PLAYER_UPDATE with heldOrVal=%d, "
                             "heldOrx=%d, heldOry=%d, "
                             "pX=%d, pY=%d, heldTransSrcID=%d, "
                             "holdingString=%s\n",
                             heldOriginValid, heldOriginX, heldOriginY,
                             o.xd, o.yd, heldTransitionSourceID, 
-                            holdingIDBuffer );
+                            holdingIDBuffer );*/
                     if( forced ) {
                         printf( "  POSITION FORCED\n" );
                         }
@@ -7660,9 +7729,10 @@ void LivingLifePage::step()
                 }
             
             mFirstServerMessagesReceived |= 2;
-            }
-        else if( type == MESSAGE_TYPE::PLAYER_MOVES_START ) {
-            
+		}
+        else if( type == MESSAGE_TYPE::PLAYER_MOVES_START )
+		{
+            //OneLife::debug::Console::write("=====> process PLAYER_MOVE_START");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8268,8 +8338,10 @@ void LivingLifePage::step()
             
 
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::PLAYER_SAYS ) {
+		}
+        else if( type == MESSAGE_TYPE::PLAYER_SAYS )
+		{
+			//OneLife::debug::Console::write("=====> process PLAYER_SAYS");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8350,8 +8422,10 @@ void LivingLifePage::step()
                 delete [] lines[i];
                 }
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::LOCATION_SAYS ) {
+		}
+        else if( type == MESSAGE_TYPE::LOCATION_SAYS )
+		{
+			//OneLife::debug::Console::write("=====> process LOCATION_SAYS");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8401,8 +8475,10 @@ void LivingLifePage::step()
                 delete [] lines[i];
                 }
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::PLAYER_EMOT ) {
+		}
+        else if( type == MESSAGE_TYPE::PLAYER_EMOT )
+		{
+			//OneLife::debug::Console::write("=====> process PLAYER_EMOT");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8501,8 +8577,10 @@ void LivingLifePage::step()
                 delete [] lines[i];
                 }
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::LINEAGE ) {
+		}
+        else if( type == MESSAGE_TYPE::LINEAGE )
+		{
+			//OneLife::debug::Console::write("=====> process LINEAGE");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8613,8 +8691,10 @@ void LivingLifePage::step()
                         }
                     }
                 }
-            }
-        else if( type == MESSAGE_TYPE::CURSED ) {
+		}
+        else if( type == MESSAGE_TYPE::CURSED )
+		{
+			//OneLife::debug::Console::write("=====> process CURSED");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8646,8 +8726,10 @@ void LivingLifePage::step()
                 delete [] lines[i];
                 }
             delete [] lines;
-            }
-        else if( type == MESSAGE_TYPE::CURSE_TOKEN_CHANGE ) {
+		}
+        else if( type == MESSAGE_TYPE::CURSE_TOKEN_CHANGE )
+		{
+			//OneLife::debug::Console::write("=====> process CURSE_TOKEN_CHANGE");
             LiveObject *ourLiveObject = getOurLiveObject();
             
             if( ourLiveObject != NULL ) {
@@ -8655,8 +8737,10 @@ void LivingLifePage::step()
                 sscanf( message, "CX\n%d", 
                         &( ourLiveObject->curseTokenCount ) );
                 }
-            }
-        else if( type == MESSAGE_TYPE::CURSE_SCORE ) {
+		}
+        else if( type == MESSAGE_TYPE::CURSE_SCORE )
+		{
+			//OneLife::debug::Console::write("=====> process CURSE_SCORE");
             LiveObject *ourLiveObject = getOurLiveObject();
             
             if( ourLiveObject != NULL ) {
@@ -8664,16 +8748,19 @@ void LivingLifePage::step()
                 sscanf( message, "CS\n%d", 
                         &( ourLiveObject->excessCursePoints ) );
                 }
-            }
-        else if( type == MESSAGE_TYPE::PONG ) {
+		}
+        else if( type == MESSAGE_TYPE::PONG )
+		{
+			//OneLife::debug::Console::write("=====> process PONG");
             sscanf( message, "PONG\n%d", 
                     &( lastPongReceived ) );
             if( lastPongReceived == lastPingSent ) {
                 pongDeltaTime = game_getCurrentTime() - pingSentTime;
                 }
-            }
+		}
         else if( type == MESSAGE_TYPE::NAMES )
 		{
+			//OneLife::debug::Console::write("=====> process NAMES");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8735,6 +8822,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::DYING )
 		{
+			//OneLife::debug::Console::write("=====> process DYING");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8772,6 +8860,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::HEALED )
 		{
+			//OneLife::debug::Console::write("=====> process HEALED");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8822,6 +8911,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::PLAYER_OUT_OF_RANGE )
 		{
+			//OneLife::debug::Console::write("=====> process PLAYER_OUT_OF_RANGE");
             int numLines;
             char **lines = split( message, "\n", &numLines );
             
@@ -8861,7 +8951,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::FOOD_CHANGE )
 		{
-            
+            //OneLife::debug::Console::write("=====> process FOOD_CHANGE");
             LiveObject *ourLiveObject = getOurLiveObject();
             
             if( ourLiveObject != NULL ) {
@@ -9156,6 +9246,7 @@ void LivingLifePage::step()
 		}
         else if( type == MESSAGE_TYPE::HEAT_CHANGE )
 		{
+			//OneLife::debug::Console::write("=====> process HEAT_CHANGE");
             LiveObject *ourLiveObject = getOurLiveObject();
             if( ourLiveObject != NULL )
 			{
