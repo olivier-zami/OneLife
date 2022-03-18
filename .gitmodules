@@ -1,3 +1,6 @@
 [submodule "third_party/minorGems"]
 	path = third_party/minorGems
 	url = https://github.com/twohoursonelife/minorGems.git
+[submodule "third_party/openLife"]
+	path = third_party/openLife
+	url = https://github.com/olivier-zami/openlife.git
