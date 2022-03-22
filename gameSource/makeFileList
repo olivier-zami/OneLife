@@ -15,6 +15,7 @@ ROOT_PATH = ../third_party
 
 LAYER_SOURCE = \
 Application.cpp \
+component/Socket.cpp \
 minitech.cpp \
 game.cpp \
 spriteBank.cpp \

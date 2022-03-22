@@ -431,10 +431,12 @@ typedef struct ExtraMapObject {
         
         
 
+#include "component/Socket.h"
 
-
-class LivingLifePage : public GamePage, public ActionListener {
-        
+class LivingLifePage :
+		public GamePage,
+		public ActionListener
+{
     public:
 
         LivingLifePage();
@@ -522,6 +524,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         
 
     protected:
+		OneLife::game::component::Socket* socket;
 
         int mServerSocket;
         
