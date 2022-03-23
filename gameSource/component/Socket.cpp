@@ -4,15 +4,17 @@
 
 #include "Socket.h"
 
-OneLife::game::component::Socket::Socket() {}
-OneLife::game::component::Socket::~Socket() {}
+#include "../../commonSource/Debug.h"
+
+oneLife::game::component::Socket::Socket() {}
+oneLife::game::component::Socket::~Socket() {}
 
 /**
  *
  * @param message
  * @note: allow to add hand crafted socketMessage in the queue for test or anything else
  */
-void OneLife::game::component::Socket::readMessage(const char* message)
+void oneLife::game::component::Socket::readMessage(const char* message)
 {
-
+	oneLife::Debug::write(message);
 }

@@ -524,7 +524,7 @@ class LivingLifePage :
         
 
     protected:
-		OneLife::game::component::Socket* socket;
+		oneLife::game::component::Socket* socket;
 
         int mServerSocket;
         

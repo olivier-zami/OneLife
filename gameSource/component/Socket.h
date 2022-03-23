@@ -5,7 +5,7 @@
 #ifndef ONELIFE_GAME_COMPONENT_SOCKET_H
 #define ONELIFE_GAME_COMPONENT_SOCKET_H
 
-namespace OneLife::game::component
+namespace oneLife::game::component
 {
 	class Socket
 	{

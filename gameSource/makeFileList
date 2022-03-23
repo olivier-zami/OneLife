@@ -14,6 +14,10 @@ ROOT_PATH = ../third_party
 
 
 LAYER_SOURCE = \
+../third_party/openLife/src/debug/Console.cpp \
+../third_party/openLife/src/Debug.cpp \
+../third_party/openLife/src/system/Console.cpp \
+../commonSource/Debug.cpp \
 Application.cpp \
 component/Socket.cpp \
 minitech.cpp \

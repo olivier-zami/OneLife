@@ -2454,7 +2454,7 @@ LivingLifePage::LivingLifePage()
           mZKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 )
 {
-	this->socket = new OneLife::game::component::Socket();
+	this->socket = new oneLife::game::component::Socket();
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
