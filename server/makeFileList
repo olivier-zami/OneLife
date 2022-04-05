@@ -23,6 +23,7 @@ CUSTOM_LINUX_LINK_FLAGS =
 
 
 LAYER_SOURCE = \
+../third_party/openLife/src/Debug.cpp \
 server.cpp \
 map.cpp \
 ../gameSource/transitionBank.cpp \
