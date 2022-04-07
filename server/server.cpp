@@ -9892,11 +9892,10 @@ void apocalypseStep() {
                                Time::getCurrentTime() - startTime );
                 
                 reseedMap( true );
+
+				OneLife::server::database::Map::init();
                 
-                initMap();
-                
-                AppLog::infoF( "Apocalypse initMap took %f sec",
-                               Time::getCurrentTime() - startTime );
+                AppLog::infoF( "Apocalypse initMap took %f sec", Time::getCurrentTime() - startTime );
                 
                 peaceTreaties.deleteAll();
                 warPeaceRecords.deleteAll();
@@ -11845,7 +11844,7 @@ int main() {
     initTriggers();
 
 
-    if( initMap() != true ) {
+    if( OneLife::server::database::Map::init() != true ) {
         // cannot continue after map init fails
         return 1;
         }

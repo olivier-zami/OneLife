@@ -2497,7 +2497,13 @@ void reseedMap(char inForceFresh)
 	}
 }
 
-char initMap()
+/**
+ *
+ * @return
+ * @note from initMap in map.cpp
+ * returns true on success
+ */
+bool OneLife::server::database::Map::init()
 {
 
 	reseedMap(false);

@@ -36,6 +36,7 @@ namespace OneLife::server::database
 	class Map
 	{
 		public:
+			static bool init();
 			static void writeRegion(
 					SimpleVector<unsigned char>* chunkDataBuffer,
 					int inStartX,
@@ -44,11 +45,6 @@ namespace OneLife::server::database
 					int inHeight);
 	};
 }
-
-
-
-// returns true on success
-char initMap();
 
 
 void freeMap( char inSkipCleanup = false );
