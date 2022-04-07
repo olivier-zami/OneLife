@@ -31,6 +31,20 @@ typedef struct ChangePosition {
 
 #include "minorGems/util/SimpleVector.h"
 
+namespace OneLife::server::database
+{
+	class Map
+	{
+		public:
+			static void writeRegion(
+					SimpleVector<unsigned char>* chunkDataBuffer,
+					int inStartX,
+					int inStartY,
+					int inWidth,
+					int inHeight);
+	};
+}
+
 
 
 // returns true on success

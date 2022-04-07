@@ -68,6 +68,8 @@
 
 #include "minorGems/util/random/JenkinsRandomSource.h"
 
+#include "Debug.h"
+
 
 //#define IGNORE_PRINTF
 
@@ -14343,529 +14345,490 @@ int main() {
                         // right now
                         playerIndicesToSendUpdatesAbout.push_back( i );
                         }
-                    else if( m.type == MOVE ) {
-                        //Thread::staticSleep( 1000 );
+                    else if( m.type == MOVE )
+                    {
+						OneLife::server::Debug::write("move agent");
+// Thread::staticSleep( 1000 );
 
-                        /*
-                        printf( "  Processing move, "
-                                "we think player at old start pos %d,%d\n",
-                                nextPlayer->xs,
-                                nextPlayer->ys );
-                        printf( "  Player's last path = " );
-                        for( int p=0; p<nextPlayer->pathLength; p++ ) {
-                            printf( "(%d, %d) ",
-                                    nextPlayer->pathToDest[p].x, 
-                                    nextPlayer->pathToDest[p].y );
-                            }
-                        printf( "\n" );
-                        */
-                        
-                        char interrupt = false;
-                        char pathPrefixAdded = false;
-                        
-                        // first, construct a path from any existing
-                        // path PLUS path that player is suggesting
-                        SimpleVector<GridPos> unfilteredPath;
+/*
+printf( "  Processing move, "
+		"we think player at old start pos %d,%d\n",
+		nextPlayer->xs,
+		nextPlayer->ys );
+printf( "  Player's last path = " );
+for( int p=0; p<nextPlayer->pathLength; p++ ) {
+	printf( "(%d, %d) ",
+			nextPlayer->pathToDest[p].x,
+			nextPlayer->pathToDest[p].y );
+	}
+printf( "\n" );
+*/
 
-                        if( nextPlayer->xs != m.x ||
-                            nextPlayer->ys != m.y ) {
-                            
-                            // start pos of their submitted path
-                            // donesn't match where we think they are
+					char interrupt       = false;
+					char pathPrefixAdded = false;
 
-                            // it could be an interrupt to past move
-                            // OR, if our server sees move as done but client 
-                            // doesn't yet, they may be sending a move
-                            // from the middle of their last path.
+// first, construct a path from any existing
+// path PLUS path that player is suggesting
+					SimpleVector<GridPos> unfilteredPath;
 
-                            // treat this like an interrupt to last move
-                            // in both cases.
+					if (nextPlayer->xs != m.x || nextPlayer->ys != m.y)
+					{
 
-                            // a new move interrupting a non-stationary object
-                            interrupt = true;
+					// start pos of their submitted path
+					// donesn't match where we think they are
 
-                            // where we think they are along last move path
-                            GridPos cPos;
-                            
-                            if( nextPlayer->xs != nextPlayer->xd 
-                                ||
-                                nextPlayer->ys != nextPlayer->yd ) {
-                                
-                                // a real interrupt to a move that is
-                                // still in-progress on server
-                                cPos = computePartialMoveSpot( nextPlayer );
-                                }
-                            else {
-                                // we think their last path is done
-                                cPos.x = nextPlayer->xs;
-                                cPos.y = nextPlayer->ys;
-                                }
-                            
-                            /*
-                            printf( "   we think player in motion or "
-                                    "done moving at %d,%d\n",
-                                    cPos.x,
-                                    cPos.y );
-                            */
-                            nextPlayer->xs = cPos.x;
-                            nextPlayer->ys = cPos.y;
-                            
-                            
-                            char cOnTheirNewPath = false;
-                            
+					// it could be an interrupt to past move
+					// OR, if our server sees move as done but client
+					// doesn't yet, they may be sending a move
+					// from the middle of their last path.
 
-                            for( int p=0; p<m.numExtraPos; p++ ) {
-                                if( equal( cPos, m.extraPos[p] ) ) {
-                                    cOnTheirNewPath = true;
-                                    break;
-                                    }
-                                }
-                            
-                            if( cPos.x == m.x && cPos.y == m.y ) {
-                                // also if equal to their start pos
-                                cOnTheirNewPath = true;
-                                }
-                            
+					// treat this like an interrupt to last move
+					// in both cases.
 
+					// a new move interrupting a non-stationary object
+					interrupt = true;
 
-                            if( !cOnTheirNewPath &&
-                                nextPlayer->pathLength > 0 ) {
+					// where we think they are along last move path
+					GridPos cPos;
 
-                                // add prefix to their path from
-                                // c to the start of their path
-                                
-                                // index where they think they are
+					if (nextPlayer->xs != nextPlayer->xd || nextPlayer->ys != nextPlayer->yd)
+					{
 
-                                // could be ahead or behind where we think
-                                // they are
-                                
-                                int theirPathIndex = -1;
-                            
-                                for( int p=0; p<nextPlayer->pathLength; p++ ) {
-                                    GridPos pos = nextPlayer->pathToDest[p];
-                                    
-                                    if( m.x == pos.x && m.y == pos.y ) {
-                                        // reached point along old path
-                                        // where player thinks they 
-                                        // actually are
-                                        theirPathIndex = p;
-                                        break;
-                                        }
-                                    }
-                                
-                                char theirIndexNotFound = false;
-                                
-                                if( theirPathIndex == -1 ) {
-                                    // if not found, assume they think they
-                                    // are at start of their old path
-                                    
-                                    theirIndexNotFound = true;
-                                    theirPathIndex = 0;
-                                    }
-                                
-                                /*
-                                printf( "They are on our path at index %d\n",
-                                        theirPathIndex );
-                                */
+					// a real interrupt to a move that is
+					// still in-progress on server
+					cPos = computePartialMoveSpot(nextPlayer);
+					}
+					else
+					{
+					// we think their last path is done
+					cPos.x = nextPlayer->xs;
+					cPos.y = nextPlayer->ys;
+					}
 
-                                // okay, they think they are on last path
-                                // that we had for them
+					/*
+					printf( "   we think player in motion or "
+							"done moving at %d,%d\n",
+							cPos.x,
+							cPos.y );
+					*/
+					nextPlayer->xs = cPos.x;
+					nextPlayer->ys = cPos.y;
 
-                                // step through path from where WE
-                                // think they should be to where they
-                                // think they are and add this as a prefix
-                                // to the path they submitted
-                                // (we may walk backward along the old
-                                //  path to do this)
-                                
-                                int c = computePartialMovePathStep( 
-                                    nextPlayer );
-                                    
-                                // -1 means starting, pre-path 
-                                // pos is closest
-                                // but okay to leave c at -1, because
-                                // we will add pathStep=1 to it
+					char cOnTheirNewPath = false;
 
-                                int pathStep = 0;
-                                    
-                                if( theirPathIndex < c ) {
-                                    pathStep = -1;
-                                    }
-                                else if( theirPathIndex > c ) {
-                                    pathStep = 1;
-                                    }
-                                    
-                                if( pathStep != 0 ) {
+					for (int p = 0; p < m.numExtraPos; p++)
+					{
+					if (equal(cPos, m.extraPos[p]))
+					{
+					cOnTheirNewPath = true;
+					break;
+					}
+					}
 
-                                    if( c == -1 ) {
-                                        // fix weird case where our start
-                                        // pos is on our path
-                                        // not sure what causes this
-                                        // but it causes the valid path
-                                        // check to fail below
-                                        int firstStep = c + pathStep;
-                                        GridPos firstPos =
-                                            nextPlayer->pathToDest[ firstStep ];
-                                        
-                                        if( firstPos.x == nextPlayer->xs &&
-                                            firstPos.y == nextPlayer->ys ) {
-                                            c = 0;
-                                            }
-                                        }
-                                    
-                                    for( int p = c + pathStep; 
-                                         p != theirPathIndex + pathStep; 
-                                         p += pathStep ) {
-                                        GridPos pos = 
-                                            nextPlayer->pathToDest[p];
-                                            
-                                        unfilteredPath.push_back( pos );
-                                        }
-                                    }
+					if (cPos.x == m.x && cPos.y == m.y)
+					{
+					// also if equal to their start pos
+					cOnTheirNewPath = true;
+					}
 
-                                if( theirIndexNotFound ) {
-                                    // add their path's starting pos
-                                    // at the end of the prefix
-                                    GridPos pos = { m.x, m.y };
-                                    
-                                    unfilteredPath.push_back( pos );
-                                    }
-                                
-                                // otherwise, they are where we think
-                                // they are, and we don't need to prefix
-                                // their path
+					if (!cOnTheirNewPath && nextPlayer->pathLength > 0)
+					{
 
-                                /*
-                                printf( "Prefixing their path "
-                                        "with %d steps\n",
-                                        unfilteredPath.size() );
-                                */
-                                }
-                            }
-                        
-                        if( unfilteredPath.size() > 0 ) {
-                            pathPrefixAdded = true;
-                            }
+					// add prefix to their path from
+					// c to the start of their path
 
-                        // now add path player says they want to go down
+					// index where they think they are
 
-                        for( int p=0; p < m.numExtraPos; p++ ) {
-                            unfilteredPath.push_back( m.extraPos[p] );
-                            }
-                        
-                        /*
-                        printf( "Unfiltered path = " );
-                        for( int p=0; p<unfilteredPath.size(); p++ ) {
-                            printf( "(%d, %d) ",
-                                    unfilteredPath.getElementDirect(p).x, 
-                                    unfilteredPath.getElementDirect(p).y );
-                            }
-                        printf( "\n" );
-                        */
+					// could be ahead or behind where we think
+					// they are
 
-                        // remove any duplicate spots due to doubling back
+					int theirPathIndex = -1;
 
-                        for( int p=1; p<unfilteredPath.size(); p++ ) {
-                            
-                            if( equal( unfilteredPath.getElementDirect(p-1),
-                                       unfilteredPath.getElementDirect(p) ) ) {
-                                unfilteredPath.deleteElement( p );
-                                p--;
-                                //printf( "FOUND duplicate path element\n" );
-                                }
-                            }
-                            
-                                
-                                       
-                        
-                        nextPlayer->xd = m.extraPos[ m.numExtraPos - 1].x;
-                        nextPlayer->yd = m.extraPos[ m.numExtraPos - 1].y;
-                        
-                        
-                        if( nextPlayer->xd == nextPlayer->xs &&
-                            nextPlayer->yd == nextPlayer->ys ) {
-                            // this move request truncates to where
-                            // we think player actually is
+					for (int p = 0; p < nextPlayer->pathLength; p++)
+								{
+								GridPos pos = nextPlayer->pathToDest[p];
 
-                            // send update to terminate move right now
-                            playerIndicesToSendUpdatesAbout.push_back( i );
-                            /*
-                            printf( "A move that takes player "
-                                    "where they already are, "
-                                    "ending move now\n" );
-                            */
-                            }
-                        else {
-                            // an actual move away from current xs,ys
+								if (m.x == pos.x && m.y == pos.y)
+								{
+								// reached point along old path
+								// where player thinks they
+								// actually are
+								theirPathIndex = p;
+								break;
+								}
+								}
 
-                            if( interrupt ) {
-                                //printf( "Got valid move interrupt\n" );
-                                }
-                                
+								char theirIndexNotFound = false;
 
-                            // check path for obstacles
-                            // and make sure it contains the location
-                            // where we think they are
-                            
-                            char truncated = 0;
-                            
-                            SimpleVector<GridPos> validPath;
+								if (theirPathIndex == -1)
+								{
+								// if not found, assume they think they
+								// are at start of their old path
 
-                            char startFound = false;
-                            
-                            
-                            int startIndex = 0;
-                            // search from end first to find last occurrence
-                            // of start pos
-                            for( int p=unfilteredPath.size() - 1; p>=0; p-- ) {
-                                
-                                if( unfilteredPath.getElementDirect(p).x 
-                                      == nextPlayer->xs
-                                    &&
-                                    unfilteredPath.getElementDirect(p).y 
-                                      == nextPlayer->ys ) {
-                                    
-                                    startFound = true;
-                                    startIndex = p;
-                                    break;
-                                    }
-                                }
-                            /*
-                            printf( "Start index = %d (startFound = %d)\n", 
-                                    startIndex, startFound );
-                            */
+								theirIndexNotFound = true;
+								theirPathIndex     = 0;
+								}
 
-                            if( ! startFound &&
-                                ! isGridAdjacentDiag( 
-                                    unfilteredPath.
-                                      getElementDirect(startIndex).x,
-                                    unfilteredPath.
-                                      getElementDirect(startIndex).y,
-                                    nextPlayer->xs,
-                                    nextPlayer->ys ) ) {
-                                // path start jumps away from current player 
-                                // start
-                                // ignore it
-                                }
-                            else {
-                                
-                                GridPos lastValidPathStep =
-                                    { m.x, m.y };
-                                
-                                if( pathPrefixAdded ) {
-                                    lastValidPathStep.x = nextPlayer->xs;
-                                    lastValidPathStep.y = nextPlayer->ys;
-                                    }
-                                
-                                // we know where we think start
-                                // of this path should be,
-                                // but player may be behind this point
-                                // on path (if we get their message late)
-                                // So, it's not safe to pre-truncate
-                                // the path
+								/*
+								printf( "They are on our path at index %d\n",
+										theirPathIndex );
+								*/
 
-                                // However, we will adjust timing, below,
-                                // to match where we think they should be
-                                
-                                // enforce client behavior of not walking
-                                // down through objects in our cell that are
-                                // blocking us
-                                char currentBlocked = false;
-                                
-                                if( isMapSpotBlocking( lastValidPathStep.x,
-                                                       lastValidPathStep.y ) ) {
-                                    currentBlocked = true;
-                                    }
-                                
+								// okay, they think they are on last path
+								// that we had for them
 
-                                for( int p=0; 
-                                     p<unfilteredPath.size(); p++ ) {
-                                
-                                    GridPos pos = 
-                                        unfilteredPath.getElementDirect(p);
+								// step through path from where WE
+								// think they should be to where they
+								// think they are and add this as a prefix
+								// to the path they submitted
+								// (we may walk backward along the old
+								//  path to do this)
 
-                                    if( isMapSpotBlocking( pos.x, pos.y ) ) {
-                                        // blockage in middle of path
-                                        // terminate path here
-                                        truncated = 1;
-                                        break;
-                                        }
-                                    
-                                    if( currentBlocked && p == 0 &&
-                                        pos.y == lastValidPathStep.y - 1 ) {
-                                        // attempt to walk down through
-                                        // blocking object at starting location
-                                        truncated = 1;
-                                        break;
-                                        }
-                                    
+								int c = computePartialMovePathStep(nextPlayer);
 
-                                    // make sure it's not more
-                                    // than one step beyond
-                                    // last step
+								// -1 means starting, pre-path
+								// pos is closest
+								// but okay to leave c at -1, because
+								// we will add pathStep=1 to it
 
-                                    if( ! isGridAdjacentDiag( 
-                                            pos, lastValidPathStep ) ) {
-                                        // a path with a break in it
-                                        // terminate it here
-                                        truncated = 1;
-                                        break;
-                                        }
-                                    
-                                    // no blockage, no gaps, add this step
-                                    validPath.push_back( pos );
-                                    lastValidPathStep = pos;
-                                    }
-                                }
-                            
-                            if( validPath.size() == 0 ) {
-                                // path not permitted
-                                AppLog::info( "Path submitted by player "
-                                              "not valid, "
-                                              "ending move now" );
-                                //assert( false );
-                                nextPlayer->xd = nextPlayer->xs;
-                                nextPlayer->yd = nextPlayer->ys;
-                                
-                                nextPlayer->posForced = true;
+								int pathStep = 0;
 
-                                // send update about them to end the move
-                                // right now
-                                playerIndicesToSendUpdatesAbout.push_back( i );
-                                }
-                            else {
-                                // a good path
-                                
-                                if( nextPlayer->pathToDest != NULL ) {
-                                    delete [] nextPlayer->pathToDest;
-                                    nextPlayer->pathToDest = NULL;
-                                    }
+								if (theirPathIndex < c) { pathStep = -1; }
+								else if (theirPathIndex > c)
+								{
+								pathStep = 1;
+								}
 
-                                nextPlayer->pathTruncated = truncated;
-                                
-                                nextPlayer->pathLength = validPath.size();
-                                
-                                nextPlayer->pathToDest = 
-                                    validPath.getElementArray();
-                                    
-                                // path may be truncated from what was 
-                                // requested, so set new d
-                                nextPlayer->xd = 
-                                    nextPlayer->pathToDest[ 
-                                        nextPlayer->pathLength - 1 ].x;
-                                nextPlayer->yd = 
-                                    nextPlayer->pathToDest[ 
-                                        nextPlayer->pathLength - 1 ].y;
+								if (pathStep != 0)
+								{
 
-                                // distance is number of orthogonal steps
-                            
-                                double dist = 
-                                    measurePathLength( nextPlayer->xs,
-                                                       nextPlayer->ys,
-                                                       nextPlayer->pathToDest,
-                                                       nextPlayer->pathLength );
- 
-                                double distAlreadyDone =
-                                    measurePathLength( nextPlayer->xs,
-                                                       nextPlayer->ys,
-                                                       nextPlayer->pathToDest,
-                                                       startIndex );
-                             
-                                double moveSpeed = computeMoveSpeed( 
-                                    nextPlayer ) *
-                                    getPathSpeedModifier( 
-                                        nextPlayer->pathToDest,
-                                        nextPlayer->pathLength );
-                                
-                                nextPlayer->moveTotalSeconds = dist / 
-                                    moveSpeed;
-                           
-                                double secondsAlreadyDone = distAlreadyDone / 
-                                    moveSpeed;
-                                /*
-                                printf( "Skipping %f seconds along new %f-"
-                                        "second path\n",
-                                        secondsAlreadyDone, 
-                                        nextPlayer->moveTotalSeconds );
-                                */
-                                nextPlayer->moveStartTime = 
-                                    Time::getCurrentTime() - 
-                                    secondsAlreadyDone;
-                            
-                                nextPlayer->newMove = true;
-                                
-                                
-                                // check if path passes over
-                                // an object with autoDefaultTrans
-                                for( int p=0; p< nextPlayer->pathLength; p++ ) {
-                                    int x = nextPlayer->pathToDest[p].x;
-                                    int y = nextPlayer->pathToDest[p].y;
-                                    
-                                    int oID = getMapObject( x, y );
-                                    
-                                    if( oID > 0 &&
-                                        getObject( oID )->autoDefaultTrans ) {
-                                        TransRecord *t = getPTrans( -2, oID );
-                                        
-                                        if( t == NULL ) {
-                                            // also consider applying bare-hand
-                                            // action, if defined and if
-                                            // it produces nothing in the hand
-                                            t = getPTrans( 0, oID );
-                                            
-                                            if( t != NULL &&
-                                                t->newActor > 0 ) {
-                                                t = NULL;
-                                                }
-                                            }
+								if (c == -1)
+								{
+								// fix weird case where our start
+								// pos is on our path
+								// not sure what causes this
+								// but it causes the valid path
+								// check to fail below
+								int     firstStep = c + pathStep;
+								GridPos firstPos  = nextPlayer->pathToDest[firstStep];
 
-                                        if( t != NULL && t->newTarget > 0 ) {
-                                            int newTarg = t->newTarget;
-                                            setMapObject( x, y, newTarg );
+								if (firstPos.x == nextPlayer->xs && firstPos.y == nextPlayer->ys) { c = 0; }
+								}
 
-                                            TransRecord *timeT =
-                                                getPTrans( -1, newTarg );
-                                            
-                                            if( timeT != NULL &&
-                                                timeT->autoDecaySeconds < 20 ) {
-                                                // target will decay to
-                                                // something else in a short
-                                                // time
-                                                // Likely meant to reset
-                                                // after person passes through
-                                                
-                                                // fix the time based on our
-                                                // pass-through time
-                                                double timeLeft =
-                                                    nextPlayer->moveTotalSeconds
-                                                    - secondsAlreadyDone;
-                                                
-                                                double plannedETADecay =
-                                                    Time::getCurrentTime()
-                                                    + timeLeft 
-                                                    // pad with extra second
-                                                    + 1;
-                                                
-                                                timeSec_t actual =
-                                                    getEtaDecay( x, y );
-                                                
-                                                // don't ever shorten
-                                                // we could be interrupting
-                                                // another player who
-                                                // is on a longer path
-                                                // through the same object
-                                                if( plannedETADecay >
-                                                    actual ) {
-                                                    setEtaDecay( 
-                                                        x, y, plannedETADecay );
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+								for (int p = c + pathStep; p != theirPathIndex + pathStep; p += pathStep)
+								{
+								GridPos pos = nextPlayer->pathToDest[p];
+
+								unfilteredPath.push_back(pos);
+								}
+								}
+
+								if (theirIndexNotFound)
+								{
+								// add their path's starting pos
+								// at the end of the prefix
+								GridPos pos = {m.x, m.y};
+
+								unfilteredPath.push_back(pos);
+								}
+
+								// otherwise, they are where we think
+								// they are, and we don't need to prefix
+								// their path
+
+								/*
+								printf( "Prefixing their path "
+										"with %d steps\n",
+										unfilteredPath.size() );
+								*/
+								}
+								}
+
+								if (unfilteredPath.size() > 0) { pathPrefixAdded = true; }
+
+// now add path player says they want to go down
+
+								for (int p = 0; p < m.numExtraPos; p++)
+								{
+								unfilteredPath.push_back(m.extraPos[p]);
+								}
+
+/*
+printf( "Unfiltered path = " );
+for( int p=0; p<unfilteredPath.size(); p++ ) {
+	printf( "(%d, %d) ",
+			unfilteredPath.getElementDirect(p).x,
+			unfilteredPath.getElementDirect(p).y );
+	}
+printf( "\n" );
+*/
+
+// remove any duplicate spots due to doubling back
+
+								for (int p = 1; p < unfilteredPath.size(); p++)
+								{
+
+								if (equal(unfilteredPath.getElementDirect(p - 1), unfilteredPath.getElementDirect(p)))
+								{
+								unfilteredPath.deleteElement(p);
+								p--;
+								// printf( "FOUND duplicate path element\n" );
+								}
+								}
+
+								nextPlayer->xd = m.extraPos[m.numExtraPos - 1].x;
+								nextPlayer->yd = m.extraPos[m.numExtraPos - 1].y;
+
+								if (nextPlayer->xd == nextPlayer->xs && nextPlayer->yd == nextPlayer->ys)
+								{
+								// this move request truncates to where
+								// we think player actually is
+
+								// send update to terminate move right now
+								playerIndicesToSendUpdatesAbout.push_back(i);
+								/*
+								printf( "A move that takes player "
+										"where they already are, "
+										"ending move now\n" );
+								*/
+								}
+								else
+								{
+								// an actual move away from current xs,ys
+
+								if (interrupt)
+								{
+								// printf( "Got valid move interrupt\n" );
+								}
+
+								// check path for obstacles
+								// and make sure it contains the location
+								// where we think they are
+
+								char truncated = 0;
+
+								SimpleVector<GridPos> validPath;
+
+								char startFound = false;
+
+								int startIndex = 0;
+								// search from end first to find last occurrence
+								// of start pos
+								for (int p = unfilteredPath.size() - 1; p >= 0; p--)
+								{
+
+								if (unfilteredPath.getElementDirect(p).x == nextPlayer->xs
+								&& unfilteredPath.getElementDirect(p).y == nextPlayer->ys)
+								{
+
+								startFound = true;
+								startIndex = p;
+								break;
+								}
+								}
+								/*
+								printf( "Start index = %d (startFound = %d)\n",
+										startIndex, startFound );
+								*/
+
+								if (!startFound
+								&& !isGridAdjacentDiag(unfilteredPath.getElementDirect(startIndex).x,
+								unfilteredPath.getElementDirect(startIndex).y,
+								nextPlayer->xs,
+								nextPlayer->ys))
+								{
+								// path start jumps away from current player
+								// start
+								// ignore it
+								}
+								else
+								{
+
+								GridPos lastValidPathStep = {m.x, m.y};
+
+								if (pathPrefixAdded)
+								{
+								lastValidPathStep.x = nextPlayer->xs;
+								lastValidPathStep.y = nextPlayer->ys;
+								}
+
+								// we know where we think start
+								// of this path should be,
+								// but player may be behind this point
+								// on path (if we get their message late)
+								// So, it's not safe to pre-truncate
+								// the path
+
+								// However, we will adjust timing, below,
+								// to match where we think they should be
+
+								// enforce client behavior of not walking
+								// down through objects in our cell that are
+								// blocking us
+								char currentBlocked = false;
+
+								if (isMapSpotBlocking(lastValidPathStep.x, lastValidPathStep.y)) { currentBlocked = true; }
+
+								for (int p = 0; p < unfilteredPath.size(); p++)
+								{
+
+								GridPos pos = unfilteredPath.getElementDirect(p);
+
+								if (isMapSpotBlocking(pos.x, pos.y))
+								{
+								// blockage in middle of path
+								// terminate path here
+								truncated = 1;
+								break;
+								}
+
+								if (currentBlocked && p == 0 && pos.y == lastValidPathStep.y - 1)
+								{
+								// attempt to walk down through
+								// blocking object at starting location
+								truncated = 1;
+								break;
+								}
+
+								// make sure it's not more
+								// than one step beyond
+								// last step
+
+								if (!isGridAdjacentDiag(pos, lastValidPathStep))
+								{
+								// a path with a break in it
+								// terminate it here
+								truncated = 1;
+								break;
+								}
+
+								// no blockage, no gaps, add this step
+								validPath.push_back(pos);
+								lastValidPathStep = pos;
+								}
+								}
+
+								if (validPath.size() == 0)
+								{
+								// path not permitted
+								AppLog::info("Path submitted by player "
+								"not valid, "
+								"ending move now");
+								// assert( false );
+								nextPlayer->xd = nextPlayer->xs;
+								nextPlayer->yd = nextPlayer->ys;
+
+								nextPlayer->posForced = true;
+
+								// send update about them to end the move
+								// right now
+								playerIndicesToSendUpdatesAbout.push_back(i);
+								}
+								else
+								{
+								// a good path
+
+								if (nextPlayer->pathToDest != NULL)
+								{
+								delete[] nextPlayer->pathToDest;
+								nextPlayer->pathToDest = NULL;
+								}
+
+								nextPlayer->pathTruncated = truncated;
+
+								nextPlayer->pathLength = validPath.size();
+
+								nextPlayer->pathToDest = validPath.getElementArray();
+
+								// path may be truncated from what was
+								// requested, so set new d
+								nextPlayer->xd = nextPlayer->pathToDest[nextPlayer->pathLength - 1].x;
+								nextPlayer->yd = nextPlayer->pathToDest[nextPlayer->pathLength - 1].y;
+
+								// distance is number of orthogonal steps
+
+								double dist = measurePathLength(nextPlayer->xs, nextPlayer->ys, nextPlayer->pathToDest, nextPlayer->pathLength);
+
+								double distAlreadyDone = measurePathLength(nextPlayer->xs, nextPlayer->ys, nextPlayer->pathToDest, startIndex);
+
+								double moveSpeed =
+								computeMoveSpeed(nextPlayer) * getPathSpeedModifier(nextPlayer->pathToDest, nextPlayer->pathLength);
+
+								nextPlayer->moveTotalSeconds = dist / moveSpeed;
+
+								double secondsAlreadyDone = distAlreadyDone / moveSpeed;
+								/*
+								printf( "Skipping %f seconds along new %f-"
+										"second path\n",
+										secondsAlreadyDone,
+										nextPlayer->moveTotalSeconds );
+								*/
+								nextPlayer->moveStartTime = Time::getCurrentTime() - secondsAlreadyDone;
+
+								nextPlayer->newMove = true;
+
+								// check if path passes over
+								// an object with autoDefaultTrans
+								for (int p = 0; p < nextPlayer->pathLength; p++)
+								{
+								int x = nextPlayer->pathToDest[p].x;
+								int y = nextPlayer->pathToDest[p].y;
+
+								int oID = getMapObject(x, y);
+
+								if (oID > 0 && getObject(oID)->autoDefaultTrans)
+								{
+								TransRecord *t = getPTrans(-2, oID);
+
+								if (t == NULL)
+								{
+								// also consider applying bare-hand
+								// action, if defined and if
+								// it produces nothing in the hand
+								t = getPTrans(0, oID);
+
+								if (t != NULL && t->newActor > 0) { t = NULL; }
+								}
+
+								if (t != NULL && t->newTarget > 0)
+								{
+								int newTarg = t->newTarget;
+								setMapObject(x, y, newTarg);
+
+								TransRecord *timeT = getPTrans(-1, newTarg);
+
+								if (timeT != NULL && timeT->autoDecaySeconds < 20)
+								{
+								// target will decay to
+								// something else in a short
+								// time
+								// Likely meant to reset
+								// after person passes through
+
+								// fix the time based on our
+								// pass-through time
+								double timeLeft = nextPlayer->moveTotalSeconds - secondsAlreadyDone;
+
+								double plannedETADecay = Time::getCurrentTime()
+								+ timeLeft
+								// pad with extra second
+								+ 1;
+
+								timeSec_t actual = getEtaDecay(x, y);
+
+								// don't ever shorten
+								// we could be interrupting
+								// another player who
+								// is on a longer path
+								// through the same object
+								if (plannedETADecay > actual) { setEtaDecay(x, y, plannedETADecay); }
+								}
+								}
+								}
+								}
+								}
+								}
+					}
                     else if( m.type == SAY && m.saidText != NULL &&
                              Time::getCurrentTime() - 
                              nextPlayer->lastSayTimeSeconds > 
