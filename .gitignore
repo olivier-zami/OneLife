@@ -6,6 +6,7 @@
 *~
 *.orig
 Makefile*
+!mapManager/Makefile
 
 callgrind.out*
 leak.out*
