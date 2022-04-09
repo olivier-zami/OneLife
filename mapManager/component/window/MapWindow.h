@@ -7,6 +7,8 @@
 
 #include "../Window.h"
 
+#include <SDL.h>
+
 namespace OneLife::mapManager
 {
 	class MapWindow
@@ -15,10 +17,14 @@ namespace OneLife::mapManager
 			MapWindow();
 			~MapWindow();
 
-			void render();
+			void render(SDL_Renderer* renderer);
 
 		private:
 			bool showWindow;
+			SDL_Texture* mapTexture;
+			struct{
+				struct{int width; int height;}dimension;
+			}map;
 	};
 };
 

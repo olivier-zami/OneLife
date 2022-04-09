@@ -159,10 +159,9 @@ void OneLife::mapManager::Application::start()
 			ImGui::End();
 		}
 
-		this->mapWindow->render();
+		this->mapWindow->render(renderer);
 
 		//this->worldMap->test();
-
 		//this->renderer->render(renderer, &done);
 
 		// Rendering
