@@ -76,6 +76,7 @@ BUILD_RULE_INIT=
 SOURCE_FILE=${DIR_SRC}/mapManager/main.cpp
 SOURCE_FILE+=${DIR_SRC}/mapManager/Application.cpp
 SOURCE_FILE+=${DIR_SRC}/mapManager/component/window/MapWindow.cpp
+SOURCE_FILE+=${DIR_SRC}/mapManager/component/window/WorldMap.cpp
 SOURCE_FILE+=$(DIR_IMGUI)/imgui.cpp $(DIR_IMGUI)/imgui_demo.cpp $(DIR_IMGUI)/imgui_draw.cpp $(DIR_IMGUI)/imgui_tables.cpp $(DIR_IMGUI)/imgui_widgets.cpp
 SOURCE_FILE+=$(DIR_IMGUI)/backends/imgui_impl_sdl.cpp $(DIR_IMGUI)/backends/imgui_impl_sdlrenderer.cpp
 SOURCE_FILE+=$(DIR_IMGUI)/backends/imgui_impl_opengl3.cpp

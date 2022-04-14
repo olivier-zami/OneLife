@@ -14,10 +14,6 @@
 #include "Application.h"
 
 #include <stdio.h>
-#include <SDL.h>
-#include "../third_party/imgui/imgui.h"
-#include "../third_party/imgui/backends/imgui_impl_sdl.h"
-#include "../third_party/imgui/backends/imgui_impl_sdlrenderer.h"
 
 
 #if !SDL_VERSION_ATLEAST(2,0,17)
@@ -26,18 +22,7 @@
 
 OneLife::mapManager::Application::Application()
 {
-	this->mapWindow = new OneLife::mapManager::MapWindow();
-	//this->worldMap = new OneLife::server::WorldMap();
-	//this->renderer = new OneLife::server::Renderer();
-}
-
-OneLife::mapManager::Application::~Application() {}
-
-/**********************************************************************************************************************/
-
-void OneLife::mapManager::Application::start()
-{
-// Setup SDL
+	// Setup SDL
 	// (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
 	// depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled.. updating to latest version of SDL is recommended!)
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -48,17 +33,33 @@ void OneLife::mapManager::Application::start()
 
 	// Setup window
 	SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-	SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+SDL_Renderer example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+	this->window = SDL_CreateWindow("Dear ImGui SDL2+SDL_Renderer example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
 
 	// Setup SDL_Renderer instance
-	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
-	if (renderer == NULL)
+	this->renderer = SDL_CreateRenderer(this->window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
+	if (this->renderer == NULL)
 	{
 		SDL_Log("Error creating SDL_Renderer!");
 		return ;//false;
 	}
+
+	this->mapWindow = new OneLife::mapManager::MapWindow(this->renderer);
+	this->worldMap = new OneLife::mapManager::WorldMap(this->renderer);
+}
+
+OneLife::mapManager::Application::~Application()
+{
+	SDL_DestroyRenderer(this->renderer);
+	SDL_DestroyWindow(this->window);
+	SDL_Quit();
+}
+
+/**********************************************************************************************************************/
+
+void OneLife::mapManager::Application::start()
+{
 	//SDL_RendererInfo info;
-	//SDL_GetRendererInfo(renderer, &info);
+	//SDL_GetRendererInfo(this->renderer, &info);
 	//SDL_Log("Current SDL_Renderer: %s", info.name);
 
 	// Setup Dear ImGui context
@@ -73,8 +74,8 @@ void OneLife::mapManager::Application::start()
 	//ImGui::StyleColorsClassic();
 
 	// Setup Platform/Renderer backends
-	ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-	ImGui_ImplSDLRenderer_Init(renderer);
+	ImGui_ImplSDL2_InitForSDLRenderer(this->window, this->renderer);
+	ImGui_ImplSDLRenderer_Init(this->renderer);
 
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -100,7 +101,7 @@ void OneLife::mapManager::Application::start()
 	bool done = false;
 	while (!done)
 	{
-		// Poll and handle events (inputs, window resize, etc.)
+		// Poll and handle events (inputs, this->window resize, etc.)
 		// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 		// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
 		// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
@@ -111,7 +112,7 @@ void OneLife::mapManager::Application::start()
 			ImGui_ImplSDL2_ProcessEvent(&event);
 			if (event.type == SDL_QUIT)
 				done = true;
-			if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
+			if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(this->window))
 				done = true;
 			if (event.type == SDL_KEYDOWN)
 				printf("\nkey pressed ...");
@@ -119,7 +120,7 @@ void OneLife::mapManager::Application::start()
 
 		// Start the Dear ImGui frame
 		ImGui_ImplSDLRenderer_NewFrame();
-		ImGui_ImplSDL2_NewFrame(window);
+		ImGui_ImplSDL2_NewFrame(this->window);
 		ImGui::NewFrame();
 
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
@@ -159,25 +160,19 @@ void OneLife::mapManager::Application::start()
 			ImGui::End();
 		}
 
-		this->mapWindow->render(renderer);
-
-		//this->worldMap->test();
-		//this->renderer->render(renderer, &done);
+		this->mapWindow->render();
+		this->worldMap->render();
 
 		// Rendering
 		ImGui::Render();
-		SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
-		SDL_RenderClear(renderer);
+		SDL_SetRenderDrawColor(this->renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
+		SDL_RenderClear(this->renderer);
 		ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
-		SDL_RenderPresent(renderer);
+		SDL_RenderPresent(this->renderer);
 	}
 
 	// Cleanup
 	ImGui_ImplSDLRenderer_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
-
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
-	SDL_Quit();
 }

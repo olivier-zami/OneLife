@@ -11,18 +11,19 @@
 
 #include <stdio.h>
 
-OneLife::mapManager::MapWindow::MapWindow()
+OneLife::mapManager::MapWindow::MapWindow(SDL_Renderer* renderer)
 {
 	this->showWindow = true;
+	if(renderer) this->renderer = renderer;
 	this->mapTexture = nullptr;
 }
 
 OneLife::mapManager::MapWindow::~MapWindow() {}
 
-void OneLife::mapManager::MapWindow::render(SDL_Renderer* renderer)
+void OneLife::mapManager::MapWindow::render()
 {
 	if(!this->showWindow) return;
-	ImGui::Begin("World Map", &(this->showWindow));   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+	ImGui::Begin("Map Picture", &(this->showWindow));   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
 	ImGui::Text("Hello from world map window!");
 
 	//if (ImGui::Button("Close Me")) this->showWindow = false;
@@ -66,8 +67,8 @@ void OneLife::mapManager::MapWindow::render(SDL_Renderer* renderer)
 		SDL_Surface* image = SDL_LoadBMP("../src/mapManager/data/mini_map.bmp");
 		if(image)
 		{
-			this->mapTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, image->w, image->h);
-			//this->mapTexture = SDL_CreateTextureFromSurface(renderer, image);
+			this->mapTexture = SDL_CreateTexture(this->renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, image->w, image->h);
+			//this->mapTexture = SDL_CreateTextureFromSurface(this->renderer, image);
 			if(!this->mapTexture)
 			{
 				printf("failed to create texture : %s", SDL_GetError());
@@ -90,7 +91,7 @@ void OneLife::mapManager::MapWindow::render(SDL_Renderer* renderer)
 	SDL_Rect rct2;
 	rct2.x = rct2.y = 200;
 	rct2.w = rct2.h = 400;
-	SDL_RenderCopy(renderer, this->mapTexture, 0, &rct2);
+	SDL_RenderCopy(this->renderer, this->mapTexture, 0, &rct2);
 	*/
 	ImGui::End();
 }

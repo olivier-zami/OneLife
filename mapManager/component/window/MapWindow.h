@@ -14,13 +14,14 @@ namespace OneLife::mapManager
 	class MapWindow
 	{
 		public:
-			MapWindow();
+			MapWindow(SDL_Renderer* renderer=nullptr);
 			~MapWindow();
 
-			void render(SDL_Renderer* renderer);
+			void render();
 
 		private:
 			bool showWindow;
+			SDL_Renderer* renderer;
 			SDL_Texture* mapTexture;
 			struct{
 				struct{int width; int height;}dimension;
