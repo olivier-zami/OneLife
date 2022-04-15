@@ -3,7 +3,7 @@
 
 
 
-#include "minorGems/system/Time.h"
+#include "../third_party/minorGems/system/Time.h"
 
 #include "../gameSource/GridPos.h"
 #include "../gameSource/transitionBank.h"
@@ -28,23 +28,18 @@ typedef struct ChangePosition {
         
     } ChangePosition;
 
-
-#include "minorGems/util/SimpleVector.h"
-
-namespace OneLife::server::database
+typedef struct GlobalTriggerState
 {
-	class Map
-	{
-		public:
-			static bool init();
-			static void writeRegion(
-					SimpleVector<unsigned char>* chunkDataBuffer,
-					int inStartX,
-					int inStartY,
-					int inWidth,
-					int inHeight);
-	};
-}
+	SimpleVector<GridPos> triggerOnLocations;
+
+	// receivers for this trigger that are waiting to be turned on
+	SimpleVector<GridPos> receiverLocations;
+
+	SimpleVector<GridPos> triggeredLocations;
+	SimpleVector<int>     triggeredIDs;
+	// what we revert to when global trigger turns off (back to receiver)
+	SimpleVector<int> triggeredRevertIDs;
+} GlobalTriggerState;
 
 
 void freeMap( char inSkipCleanup = false );
@@ -319,6 +314,9 @@ void setGravePlayerID( int inX, int inY, int inPlayerID );
 
 // culling regions of map that haven't been seen in a long time
 void stepMapLongTermCulling( int inNumCurrentPlayers );
+
+
+void setupMapChangeLogFile();
 
 
 

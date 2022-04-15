@@ -35,6 +35,7 @@ map.cpp \
 ../gameSource/SoundUsage.cpp \
 ../gameSource/objectMetadata.cpp \
 ../gameSource/GridPos.cpp \
+../commonSource/math/GridPos.cpp \
 ../commonSource/fractalNoise.cpp \
 ../commonSource/sayLimit.cpp \
 kissdb.cpp \
@@ -62,6 +63,7 @@ CoordinateTimeTracking.cpp \
 arcReport.cpp \
 curseDB.cpp \
 cravings.cpp \
+component/database/Map.cpp \
 
 
 

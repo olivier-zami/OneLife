@@ -1,4 +1,5 @@
-
+#ifndef ONELIFE_SERVER_LINEARDB_H
+#define ONELIFE_SERVER_LINEARDB_H
 
 // some compilers require this to access UINT64_MAX
 #define __STDC_LIMIT_MACROS
@@ -293,3 +294,5 @@ uint32_t LINEARDB3_getPerfectTableSize( double inMaxLoad,
  */
 unsigned int LINEARDB3_getShrinkSize( LINEARDB3 *inDB,
                                       unsigned int inNewNumRecords );
+
+#endif //ONELIFE_SERVER_LINEARDB_H
