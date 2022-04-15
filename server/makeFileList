@@ -63,7 +63,7 @@ CoordinateTimeTracking.cpp \
 arcReport.cpp \
 curseDB.cpp \
 cravings.cpp \
-component/database/Map.cpp \
+component/Map.cpp \
 
 
 

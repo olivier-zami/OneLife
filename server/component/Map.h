@@ -6,9 +6,9 @@
 #define ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H
 
 #include "minorGems/util/SimpleVector.h"
-#include "../../../gameSource/GridPos.h"
-#include "../../../third_party/minorGems/system/Time.h"
-#include "../../lineardb3.h"
+#include "../../gameSource/GridPos.h"
+#include "../../third_party/minorGems/system/Time.h"
+#include "../lineardb3.h"
 
 #define NUM_RECENT_PLACEMENTS 100
 #define BASE_MAP_CACHE_SIZE 256 // should be a power of 2 cache will contain squared number of records
@@ -81,7 +81,7 @@ typedef struct BaseMapCacheRecord
 	char gridPlacement;
 } BaseMapCacheRecord;
 
-namespace OneLife::server::database
+namespace OneLife::server
 {
 	class Map
 	{

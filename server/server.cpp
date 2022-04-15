@@ -38,7 +38,7 @@
 
 
 #include "map.h"
-#include "component/database/Map.h"
+#include "component/Map.h"
 #include "../gameSource/transitionBank.h"
 #include "../gameSource/objectBank.h"
 #include "../gameSource/objectMetadata.h"
@@ -9895,7 +9895,7 @@ void apocalypseStep() {
                 reseedMap( true );
 
                 //!
-				OneLife::server::database::Map::init();
+				OneLife::server::Map::init();
                 
                 AppLog::infoF( "Apocalypse initMap took %f sec", Time::getCurrentTime() - startTime );
                 
@@ -11846,7 +11846,7 @@ int main() {
     initTriggers();
 
 
-    if( OneLife::server::database::Map::init() != true ) {
+    if( OneLife::server::Map::init() != true ) {
         // cannot continue after map init fails
         return 1;
         }

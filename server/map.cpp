@@ -8,7 +8,7 @@
 // cell pixel dimension on client
 #define CELL_D 128
 
-#include "component/database/Map.h"
+#include "component/Map.h"
 
 #include "minorGems/util/random/CustomRandomSource.h"
 #include "minorGems/util/random/JenkinsRandomSource.h"
@@ -98,7 +98,7 @@
 
 #include "../gameSource/GridPos.h"
 #include "../gameSource/objectMetadata.h"
-#include "component/database/Map.h"
+#include "component/Map.h"
 
 #include "Debug.h"
 
@@ -4155,7 +4155,7 @@ getChunkMessage(int inStartX, int inStartY, int inWidth, int inHeight, GridPos i
 	OneLife::server::Debug::write("getChunkMessage");
 
 	SimpleVector<unsigned char> chunkDataBuffer;
-	OneLife::server::database::Map::writeRegion(&chunkDataBuffer, inStartX, inStartY, inWidth, inHeight);
+	OneLife::server::Map::writeRegion(&chunkDataBuffer, inStartX, inStartY, inWidth, inHeight);
 
 	unsigned char *chunkData = chunkDataBuffer.getElementArray();
 

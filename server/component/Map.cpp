@@ -4,17 +4,17 @@
 
 #include "Map.h"
 
-#include "../../../third_party/minorGems/util/stringUtils.h"
-#include "../../../third_party/minorGems/util/SettingsManager.h"
-#include "../../../third_party/minorGems/util/log/AppLog.h"
-#include "../../../third_party/minorGems/io/file/File.h"
-#include "../../../third_party/minorGems/util/random/CustomRandomSource.h"
-#include "../../../gameSource/objectBank.h"
-#include "../../../gameSource/objectMetadata.h"
-#include "../../map.h"
-#include "../../dbCommon.h"
+#include "../../third_party/minorGems/util/stringUtils.h"
+#include "../../third_party/minorGems/util/SettingsManager.h"
+#include "../../third_party/minorGems/util/log/AppLog.h"
+#include "../../third_party/minorGems/io/file/File.h"
+#include "../../third_party/minorGems/util/random/CustomRandomSource.h"
+#include "../../gameSource/objectBank.h"
+#include "../../gameSource/objectMetadata.h"
+#include "../map.h"
+#include "../dbCommon.h"
 
-#include "LinearDB.h"
+#include "database/LinearDB.h"
 
 // can replace with frozenTime to freeze time
 // or slowTime to slow it down
@@ -23,7 +23,7 @@
 static int mapCacheBitMask = BASE_MAP_CACHE_SIZE - 1;// if BASE_MAP_CACHE_SIZE is a power of 2, then this is the bit mask of solid 1's that can limit an integer to that range
 BaseMapCacheRecord baseMapCache[BASE_MAP_CACHE_SIZE][BASE_MAP_CACHE_SIZE];
 
-#include "Map_speech.cpp" //TODO: refacto
+#include "database/Map_speech.cpp" //TODO: refacto
 
 // object ids that occur naturally on map at random, per biome
 int numBiomes;
@@ -118,7 +118,7 @@ static inline void changeContained(int inX, int inY, int inSlot, int inSubCont, 
  * @note from initMap in map.cpp
  * returns true on success
  */
-bool OneLife::server::database::Map::init()
+bool OneLife::server::Map::init()
 {
 
 	reseedMap(false);
@@ -1057,7 +1057,7 @@ bool OneLife::server::database::Map::init()
  * @param inHeight
  * @note from getChunkMessage(...) in map.cpp
  */
-void OneLife::server::database::Map::writeRegion(SimpleVector<unsigned char> *chunkDataBuffer,
+void OneLife::server::Map::writeRegion(SimpleVector<unsigned char> *chunkDataBuffer,
 	 int inStartX,
 	 int inStartY,
 	 int inWidth,
