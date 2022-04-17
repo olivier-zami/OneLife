@@ -19,17 +19,23 @@
 #include "../dbCommon.h"
 
 #include "database/LinearDB.h"
+#include "Speech.h"
 
 // can replace with frozenTime to freeze time
 // or slowTime to slow it down
 #define MAP_TIMESEC Time::timeSec()
 #define CELL_D 128// cell pixel dimension on client
 
+//!from Speech.cpp TODO: encapsulate this
+extern int numSpeechPipes;
+extern SimpleVector<GridPos> *speechPipesIn;
+extern SimpleVector<GridPos> *speechPipesOut;
+
 static int mapCacheBitMask = BASE_MAP_CACHE_SIZE - 1;// if BASE_MAP_CACHE_SIZE is a power of 2, then this is the bit mask of solid 1's that can limit an integer to that range
 BaseMapCacheRecord baseMapCache[BASE_MAP_CACHE_SIZE][BASE_MAP_CACHE_SIZE];
 
 
-#include "database/Map_speech.cpp" //TODO: refacto
+//#include "database/Map_speech.cpp" //TODO: refacto
 
 // object ids that occur naturally on map at random, per biome
 int numBiomes;

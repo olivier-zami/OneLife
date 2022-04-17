@@ -275,12 +275,6 @@ char getMetadata( int inMapID, unsigned char *inBuffer );
 
 // returns full map ID with embedded metadata ID for new metadata record
 int addMetadata( int inObjectID, unsigned char *inBuffer );
-    
-
-
-// gets speech pipe indices for IN pipes at or adjacent to inX,inY
-// vector passed in through outIndicies will be filled with indices
-void getSpeechPipesIn( int inX, int inY, SimpleVector<int> *outIndicies );
 
 
 // returned vector NOT destroyed or modified by caller
