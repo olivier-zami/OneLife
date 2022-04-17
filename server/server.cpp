@@ -36,9 +36,9 @@
 
 #include "minorGems/io/file/File.h"
 
-
 #include "map.h"
 #include "component/Map.h"
+#include "component/Speech.h"
 #include "../gameSource/transitionBank.h"
 #include "../gameSource/objectBank.h"
 #include "../gameSource/objectMetadata.h"

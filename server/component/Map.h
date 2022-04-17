@@ -5,7 +5,7 @@
 #ifndef ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H
 #define ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H
 
-#include "minorGems/util/SimpleVector.h"
+#include "../../third_party/minorGems/util/SimpleVector.h"
 #include "../../gameSource/GridPos.h"
 #include "../../third_party/minorGems/system/Time.h"
 #include "database/LinearDB.h"

@@ -1,22 +1,33 @@
 //
-// Created by olivier on 14/04/2022.
+// Created by olivier on 17/04/2022.
 //
 
-#include "../../../commonSource/math/GridPos.h"
+#include "Speech.h"
+
+#include "../../commonSource/math/GridPos.h"
+#include "../../gameSource/objectBank.h"
+#include "Map.h"
+
+int numSpeechPipes = 0;
 
 SimpleVector<GridPos> *speechPipesIn = NULL;
 SimpleVector<GridPos> *speechPipesOut = NULL;
 
-static int numSpeechPipes = 0;
-
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param outIndicies
+ * @note from server/map.cpp
+ * // gets speech pipe indices for IN pipes at or adjacent to inX,inY
+// vector passed in through outIndicies will be filled with indices
+ */
 void getSpeechPipesIn(int inX, int inY, SimpleVector<int> *outIndicies)
 {
 	for (int i = 0; i < numSpeechPipes; i++)
 	{
-
 		for (int p = 0; p < speechPipesIn[i].size(); p++)
 		{
-
 			GridPos inPos = speechPipesIn[i].getElementDirect(p);
 			if (isAdjacent(inPos, inX, inY))
 			{
