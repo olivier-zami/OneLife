@@ -8,30 +8,7 @@
 #include "minorGems/util/SimpleVector.h"
 #include "../../gameSource/GridPos.h"
 #include "../../third_party/minorGems/system/Time.h"
-#include "../lineardb3.h"
-
-#define NUM_RECENT_PLACEMENTS 100
-#define BASE_MAP_CACHE_SIZE 256 // should be a power of 2 cache will contain squared number of records
-#define BIOME_CACHE_SIZE 131072 // optimization:// cache biomeIndex results in RAM // 3.1 MB of RAM for this.
-#define DB_CACHE_SIZE 131072// optimization:// cache dbGet results in RAM// 2.6 MB of RAM for this.
-#define NUM_CONT_SLOT 2
-#define FIRST_CONT_SLOT 3
-
-#define KISSDB_OPEN_MODE_RWCREAT 3
-
-#define DB LINEARDB3
-#define DB_open LINEARDB3_open
-#define DB_close LINEARDB3_close
-#define DB_get LINEARDB3_get
-#define DB_put LINEARDB3_put
-#define DB_put_new LINEARDB3_put// no distinction between put and put_new in lineardb3
-#define DB_Iterator LINEARDB3_Iterator
-#define DB_Iterator_init LINEARDB3_Iterator_init
-#define DB_Iterator_next LINEARDB3_Iterator_next
-#define DB_maxStack db.maxOverflowDepth
-#define DB_getShrinkSize LINEARDB3_getShrinkSize
-#define DB_getCurrentSize LINEARDB3_getCurrentSize
-#define DB_getNumRecords LINEARDB3_getNumRecords
+#include "database/LinearDB.h"
 
 typedef struct MapGridPlacement
 {
@@ -61,12 +38,6 @@ typedef struct BiomeCacheRecord
 	int    biome, secondPlace;
 	double secondPlaceGap;
 } BiomeCacheRecord;
-
-typedef struct DBCacheRecord
-{
-	int x, y, slot, subCont;
-	int value;
-} DBCacheRecord;
 
 typedef struct RecentPlacement
 {
@@ -120,6 +91,11 @@ int DB_open_timeShrunk(
 void deleteFileByName(const char *inFileName);
 void setContained(int inX, int inY, int inNumContained, int *inContained, int inSubCont);
 void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont = 0);
-
+int getMapObjectRaw( int inX, int inY );
+int getPossibleBarrier(int inX, int inY);
+int getTweakedBaseMap(int inX, int inY);
+int getBaseMap(int inX, int inY, char *outGridPlacement = NULL);
+int mapCacheLookup(int inX, int inY, char *outGridPlacement = NULL);
+void mapCacheInsert(int inX, int inY, int inID, char inGridPlacement = false);
 
 #endif //ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H

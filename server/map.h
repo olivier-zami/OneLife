@@ -288,11 +288,6 @@ SimpleVector<GridPos> *getSpeechPipesOut( int inIndex );
 
 
 
-// for performance reasons, when the true decayed version of the object
-// doesn't matter, this skips some expensive steps
-int getMapObjectRaw( int inX, int inY );
-
-
 
 // next landing strip in line, in round-the-world circuit across all
 // landing positions

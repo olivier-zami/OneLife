@@ -23,9 +23,11 @@ CUSTOM_LINUX_LINK_FLAGS =
 
 
 LAYER_SOURCE = \
-../third_party/openLife/src/Debug.cpp \
 server.cpp \
 map.cpp \
+component/Map.cpp \
+component/database/LinearDB.cpp \
+../commonSource/math/misc.cpp \
 ../gameSource/transitionBank.cpp \
 ../gameSource/categoryBank.cpp \
 ../gameSource/objectBank.cpp \
@@ -38,6 +40,7 @@ map.cpp \
 ../commonSource/math/GridPos.cpp \
 ../commonSource/fractalNoise.cpp \
 ../commonSource/sayLimit.cpp \
+../third_party/openLife/src/Debug.cpp \
 kissdb.cpp \
 lineardb3.cpp \
 lifeLog.cpp \
@@ -63,7 +66,6 @@ CoordinateTimeTracking.cpp \
 arcReport.cpp \
 curseDB.cpp \
 cravings.cpp \
-component/Map.cpp \
 
 
 

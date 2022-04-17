@@ -5,9 +5,6 @@
 
 #include "CoordinateTimeTracking.h"
 
-// cell pixel dimension on client
-#define CELL_D 128
-
 #include "component/Map.h"
 
 #include "minorGems/util/random/CustomRandomSource.h"
@@ -98,9 +95,10 @@
 
 #include "../gameSource/GridPos.h"
 #include "../gameSource/objectMetadata.h"
-#include "component/Map.h"
 
 #include "Debug.h"
+
+extern int getBaseMapCallCount;
 
 timeSec_t startFrozenTime = -1;
 
@@ -488,40 +486,11 @@ static void eveDBPut(const char *inEmail, int inX, int inY, int inRadius)
 
 static void dbFloorPut(int inX, int inY, int inValue);
 
-// inKnee in 0..inf, smaller values make harder knees
-// intput in 0..1
-// output in 0..1
-
-// from Simplest AI trick in the book:
-// Normalized Tunable SIgmoid Function
-// Dino Dini, GDC 2013
-double sigmoid(double inInput, double inKnee)
-{
-
-	// in -1,-1
-	double shiftedInput = inInput * 2 - 1;
-
-	double sign = 1;
-	if (shiftedInput < 0) { sign = -1; }
-
-	double k = -1 - inKnee;
-
-	double absInput = fabs(shiftedInput);
-
-	// out in -1..1
-	double out = sign * absInput * k / (1 + k - absInput);
-
-	return (out + 1) * 0.5;
-}
-
 #define BIOME_CACHE_SIZE 131072
 
 extern BiomeCacheRecord biomeCache[BIOME_CACHE_SIZE];
 
-#define CACHE_PRIME_A 776509273
-#define CACHE_PRIME_B 904124281
-#define CACHE_PRIME_C 528383237
-#define CACHE_PRIME_D 148497157
+
 
 static int computeXYCacheHash(int inKeyA, int inKeyB)
 {
@@ -765,264 +734,6 @@ static int computeMapBiomeIndexOld(int inX, int inY, int *outSecondPlaceIndex = 
 extern int lastCheckedBiome;
 extern int lastCheckedBiomeX;
 extern int lastCheckedBiomeY;
-
-// 1671 shy of int max
-static int xLimit = 2147481977;
-static int yLimit = 2147481977;
-
-
-// returns -1 if not in cache
-static int mapCacheLookup(int inX, int inY, char *outGridPlacement = NULL)
-{
-	BaseMapCacheRecord *r = mapCacheRecordLookup(inX, inY);
-
-	if (r->x == inX && r->y == inY)
-	{
-		if (outGridPlacement != NULL) { *outGridPlacement = r->gridPlacement; }
-		return r->id;
-	}
-
-	return -1;
-}
-
-static void mapCacheInsert(int inX, int inY, int inID, char inGridPlacement = false)
-{
-	BaseMapCacheRecord *r = mapCacheRecordLookup(inX, inY);
-
-	r->x             = inX;
-	r->y             = inY;
-	r->id            = inID;
-	r->gridPlacement = inGridPlacement;
-}
-
-static int getBaseMapCallCount = 0;
-
-static int getBaseMap(int inX, int inY, char *outGridPlacement = NULL)
-{
-
-	if (inX > xLimit || inX < -xLimit || inY > yLimit || inY < -yLimit) { return edgeObjectID; }
-
-	int cachedID = mapCacheLookup(inX, inY, outGridPlacement);
-
-	if (cachedID != -1) { return cachedID; }
-
-	getBaseMapCallCount++;
-
-	if (outGridPlacement != NULL) { *outGridPlacement = false; }
-
-	// see if any of our grids apply
-	setXYRandomSeed(9753);
-
-	for (int g = 0; g < gridPlacements.size(); g++)
-	{
-		MapGridPlacement *gp = gridPlacements.getElement(g);
-
-		/*
-		double gridWiggleX = getXYFractal( inX / gp->spacing,
-										   inY / gp->spacing,
-										   0.1, 0.25 );
-
-		double gridWiggleY = getXYFractal( inX / gp->spacing,
-										   inY / gp->spacing + 392387,
-										   0.1, 0.25 );
-		*/
-		// turn wiggle off for now
-		double gridWiggleX = 0;
-		double gridWiggleY = 0;
-
-		if ((inX + gp->phase + lrint(gridWiggleX * gp->wiggleScale)) % gp->spacing == 0
-			&& (inY + gp->phase + lrint(gridWiggleY * gp->wiggleScale)) % gp->spacing == 0)
-		{
-
-			// hits this grid
-
-			// make sure this biome is on the list for this object
-			int    secondPlace;
-			double secondPlaceGap;
-
-			int pickedBiome = getMapBiomeIndex(inX, inY, &secondPlace, &secondPlaceGap);
-
-			if (pickedBiome == -1)
-			{
-				mapCacheInsert(inX, inY, 0);
-				return 0;
-			}
-
-			if (gp->permittedBiomes.getElementIndex(pickedBiome) != -1)
-			{
-				mapCacheInsert(inX, inY, gp->id, true);
-
-				if (outGridPlacement != NULL) { *outGridPlacement = true; }
-				return gp->id;
-			}
-		}
-	}
-
-	setXYRandomSeed(5379);
-
-	// first step:  save rest of work if density tells us that
-	// nothing is here anyway
-	double density = getXYFractal(inX, inY, 0.1, 0.25);
-
-	// correction
-	density = sigmoid(density, 0.1);
-
-	// scale
-	density *= .4;
-	// good for zoom in to map for teaser
-	// density = 1;
-
-	setXYRandomSeed(9877);
-	int    secondPlace;
-	double secondPlaceGap;
-
-	int pickedBiome = getMapBiomeIndex(inX, inY, &secondPlace, &secondPlaceGap);
-
-	if (biomes[pickedBiome] == 7) { density = 1; }
-	setXYRandomSeed(9877);
-	if (getXYRandom(inX, inY) < density)
-	{
-
-		// next step, pick top two biomes
-		int    secondPlace;
-		double secondPlaceGap;
-
-		int pickedBiome = getMapBiomeIndex(inX, inY, &secondPlace, &secondPlaceGap);
-
-		if (pickedBiome == -1)
-		{
-			mapCacheInsert(inX, inY, 0);
-			return 0;
-		}
-
-		// only override if it's not already set
-		// if it's already set, then we're calling getBaseMap for neighboring
-		// map cells (wide, tall, moving objects, etc.)
-		// getBaseMap is always called for our cell in question first
-		// before examining neighboring cells if needed
-		if (lastCheckedBiome == -1)
-		{
-			lastCheckedBiome  = biomes[pickedBiome];
-			lastCheckedBiomeX = inX;
-			lastCheckedBiomeY = inY;
-		}
-
-		// randomly let objects from second place biome peek through
-
-		// if gap is 0, this should happen 50 percent of the time
-
-		// if gap is 1.0, it should never happen
-
-		// larger values make second place less likely
-		// double secondPlaceReduction = 10.0;
-
-		// printf( "Second place gap = %f, random(%d,%d)=%f\n", secondPlaceGap,
-		//        inX, inY, getXYRandom( 2087 + inX, 793 + inY ) );
-
-		setXYRandomSeed(348763);
-
-		int numObjects = naturalMapIDs[pickedBiome].size();
-
-		if (numObjects == 0)
-		{
-			mapCacheInsert(inX, inY, 0);
-			return 0;
-		}
-
-		// something present here
-
-		// special object in this region is 10x more common than it
-		// would be otherwise
-
-		int    specialObjectIndex = -1;
-		double maxValue           = -DBL_MAX;
-
-		for (int i = 0; i < numObjects; i++)
-		{
-
-			setXYRandomSeed(793 * i + 123);
-
-			double randVal = getXYFractal(inX, inY, 0.3, 0.15 + 0.016666 * numObjects);
-
-			if (randVal > maxValue)
-			{
-				maxValue           = randVal;
-				specialObjectIndex = i;
-			}
-		}
-
-		float oldSpecialChance = naturalMapChances[pickedBiome].getElementDirect(specialObjectIndex);
-
-		float newSpecialChance = oldSpecialChance * 10;
-
-		*(naturalMapChances[pickedBiome].getElement(specialObjectIndex)) = newSpecialChance;
-
-		float oldTotalChanceWeight = totalChanceWeight[pickedBiome];
-
-		totalChanceWeight[pickedBiome] -= oldSpecialChance;
-		totalChanceWeight[pickedBiome] += newSpecialChance;
-
-		// pick one of our natural objects at random
-
-		// pick value between 0 and total weight
-
-		setXYRandomSeed(4593873);
-
-		double randValue = totalChanceWeight[pickedBiome] * getXYRandom(inX, inY);
-
-		// walk through objects, summing weights, until one crosses threshold
-		int   i         = 0;
-		float weightSum = 0;
-
-		while (weightSum < randValue && i < numObjects)
-		{
-
-			weightSum += naturalMapChances[pickedBiome].getElementDirect(i);
-			i++;
-		}
-		i--;
-
-		// restore chance of special object
-		*(naturalMapChances[pickedBiome].getElement(specialObjectIndex)) = oldSpecialChance;
-
-		totalChanceWeight[pickedBiome] = oldTotalChanceWeight;
-
-		if (i >= 0)
-		{
-			int returnID = naturalMapIDs[pickedBiome].getElementDirect(i);
-
-			if (pickedBiome == secondPlace)
-			{
-				// object peeking through from second place biome
-
-				// make sure it's not a moving object (animal)
-				// those are locked to their target biome only
-				TransRecord *t = getPTrans(-1, returnID);
-				if (t != NULL && t->move != 0)
-				{
-					// put empty tile there instead
-					returnID = 0;
-				}
-			}
-
-			mapCacheInsert(inX, inY, returnID);
-			return returnID;
-		}
-		else
-		{
-			mapCacheInsert(inX, inY, 0);
-			return 0;
-		}
-	}
-	else
-	{
-		if (biomes[pickedBiome] != 7)
-		{
-			mapCacheInsert(inX, inY, 0);
-			return 0;
-		}
-	}
-}
 
 #include "minorGems/graphics/Image.h"
 #include "minorGems/graphics/converters/TGAImageConverter.h"
@@ -1373,39 +1084,8 @@ void printObjectSamples()
 		(int)(count / sampleFraction));
 }
 
-extern DBCacheRecord dbCache[];
 extern DBTimeCacheRecord dbTimeCache[];
 extern BlockingCacheRecord blockingCache[];
-
-static int computeDBCacheHash(int inKeyA, int inKeyB, int inKeyC, int inKeyD)
-{
-
-	int hashKey = (inKeyA * CACHE_PRIME_A + inKeyB * CACHE_PRIME_B + inKeyC * CACHE_PRIME_C + inKeyD * CACHE_PRIME_D)
-				  % DB_CACHE_SIZE;
-	if (hashKey < 0) { hashKey += DB_CACHE_SIZE; }
-	return hashKey;
-}
-
-
-
-// returns -2 on miss
-static int dbGetCached(int inX, int inY, int inSlot, int inSubCont)
-{
-	DBCacheRecord r = dbCache[computeDBCacheHash(inX, inY, inSlot, inSubCont)];
-
-	if (r.x == inX && r.y == inY && r.slot == inSlot && r.subCont == inSubCont && r.value != -2) { return r.value; }
-	else
-	{
-		return -2;
-	}
-}
-
-static void dbPutCached(int inX, int inY, int inSlot, int inSubCont, int inValue)
-{
-	DBCacheRecord r = {inX, inY, inSlot, inSubCont, inValue};
-
-	dbCache[computeDBCacheHash(inX, inY, inSlot, inSubCont)] = r;
-}
 
 // returns 1 on miss
 static int dbTimeGetCached(int inX, int inY, int inSlot, int inSubCont)
@@ -2497,38 +2177,6 @@ void wipeMapFiles()
 	deleteFileByName("mapTime.db");
 	deleteFileByName("playerStats.db");
 	deleteFileByName("meta.db");
-}
-
-// returns -1 if not found
-static int dbGet(int inX, int inY, int inSlot, int inSubCont = 0)
-{
-
-	int cachedVal = dbGetCached(inX, inY, inSlot, inSubCont);
-	if (cachedVal != -2) { return cachedVal; }
-
-	unsigned char key[16];
-	unsigned char value[4];
-
-	// look for changes to default in database
-	intQuadToKey(inX, inY, inSlot, inSubCont, key);
-
-	int result = DB_get(&db, key, value);
-
-	int returnVal;
-
-	if (result == 0)
-	{
-		// found
-		returnVal = valueToInt(value);
-	}
-	else
-	{
-		returnVal = -1;
-	}
-
-	dbPutCached(inX, inY, inSlot, inSubCont, returnVal);
-
-	return returnVal;
 }
 
 // returns 0 if not found
@@ -3838,156 +3486,6 @@ void checkDecayContained(int inX, int inY, int inSubCont)
 	}
 
 	if (contained != NULL) { delete[] contained; }
-}
-
-int getTweakedBaseMap(int inX, int inY)
-{
-
-	// nothing in map
-	char wasGridPlacement = false;
-
-	int result = getBaseMap(inX, inY, &wasGridPlacement);
-
-	if (result > 0)
-	{
-		ObjectRecord *o = getObject(result);
-
-		if (o->wide)
-		{
-			// make sure there's not possibly another wide object too close
-			int maxR = getMaxWideRadius();
-
-			for (int dx = -(o->leftBlockingRadius + maxR); dx <= (o->rightBlockingRadius + maxR); dx++)
-			{
-
-				if (dx != 0)
-				{
-					int nID = getBaseMap(inX + dx, inY);
-
-					if (nID > 0)
-					{
-						ObjectRecord *nO = getObject(nID);
-
-						if (nO->wide)
-						{
-
-							int minDist;
-							int dist;
-
-							if (dx < 0)
-							{
-								minDist = nO->rightBlockingRadius + o->leftBlockingRadius;
-								dist    = -dx;
-							}
-							else
-							{
-								minDist = nO->leftBlockingRadius + o->rightBlockingRadius;
-								dist    = dx;
-							}
-
-							if (dist <= minDist)
-							{
-								// collision
-								// don't allow this wide object here
-								return 0;
-							}
-						}
-					}
-				}
-			}
-		}
-		else if (!wasGridPlacement && getObjectHeight(result) < CELL_D)
-		{
-			// a short object should be here
-			// and it wasn't forced by a grid placement
-
-			// make sure there's not any semi-short objects below already
-
-			// this avoids vertical stacking of short objects
-			// and ensures that the map is sparse with short object
-			// clusters, even in very dense map areas
-			// (we don't want the floor tiled with berry bushes)
-
-			// this used to be an unintentional bug, but it was in place
-			// for a year, and we got used to it.
-
-			// when the bug was fixed, the map became way too dense
-			// in short-object areas
-
-			// actually, fully replicate the bug for now
-			// only block short objects with objects to the south
-			// that extend above the tile midline
-
-			// So we can have clusters of very short objects, like stones
-			// but not less-short ones like berry bushes, rabbit holes, etc.
-
-			// use the old buggy "2 pixels" and "3 pixels" above the
-			// midline measure just to keep the map the same
-
-			// south
-			int sID = getBaseMap(inX, inY - 1);
-
-			if (sID > 0 && getObjectHeight(sID) >= 2) { return 0; }
-
-			int s2ID = getBaseMap(inX, inY - 2);
-
-			if (s2ID > 0 && getObjectHeight(s2ID) >= 3) { return 0; }
-		}
-	}
-	return result;
-}
-
-static int getPossibleBarrier(int inX, int inY)
-{
-	if (barrierOn)
-		if (inX == barrierRadius || inX == -barrierRadius || inY == barrierRadius || inY == -barrierRadius)
-		{
-
-			// along barrier line
-
-			// now make sure that we don't stick out beyond square
-
-			if (inX <= barrierRadius && inX >= -barrierRadius && inY <= barrierRadius && inY >= -barrierRadius)
-			{
-
-				setXYRandomSeed(9238597);
-
-				int numOptions = barrierItemList.size();
-
-				if (numOptions > 0)
-				{
-
-					// random doesn't always look good
-					int pick = floor(numOptions * getXYRandom(inX * 10, inY * 10));
-
-					if (pick >= numOptions) { pick = numOptions - 1; }
-
-					int barrierID = barrierItemList.getElementDirect(pick);
-
-					if (getObject(barrierID) != NULL)
-					{
-						// actually exists
-						return barrierID;
-					}
-				}
-			}
-		}
-
-	return 0;
-}
-
-int getMapObjectRaw(int inX, int inY)
-{
-
-	int barrier = getPossibleBarrier(inX, inY);
-
-	if (barrier != 0) { return barrier; }
-
-	int result = dbGet(inX, inY, 0);
-
-	if (result == -1) { result = getTweakedBaseMap(inX, inY); }
-
-	return result;
 }
 
 void lookAtRegion(int inXStart, int inYStart, int inXEnd, int inYEnd)
