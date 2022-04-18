@@ -19,32 +19,6 @@ typedef struct MapGridPlacement
 	SimpleVector<int> permittedBiomes;
 } MapGridPlacement;
 
-typedef struct DBTimeCacheRecord
-{
-	int       x, y, slot, subCont;
-	timeSec_t timeVal;
-} DBTimeCacheRecord;
-
-typedef struct BlockingCacheRecord
-{
-	int x, y;
-	// -1 if not present
-	char blocking;
-} BlockingCacheRecord;
-
-typedef struct BiomeCacheRecord
-{
-	int    x, y;
-	int    biome, secondPlace;
-	double secondPlaceGap;
-} BiomeCacheRecord;
-
-typedef struct RecentPlacement
-{
-	GridPos pos;
-	int depth;// depth of object in tech tree
-} RecentPlacement;
-
 typedef struct BaseMapCacheRecord
 {
 	int  x, y;
@@ -97,5 +71,6 @@ int getTweakedBaseMap(int inX, int inY);
 int getBaseMap(int inX, int inY, char *outGridPlacement = NULL);
 int mapCacheLookup(int inX, int inY, char *outGridPlacement = NULL);
 void mapCacheInsert(int inX, int inY, int inID, char inGridPlacement = false);
+void reseedMap(char inForceFresh);
 
 #endif //ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H

@@ -84,9 +84,8 @@ static FILE *familyDataLogFile = NULL;
 
 static JenkinsRandomSource randSource;
 
-
 #include "../gameSource/GridPos.h"
-
+#include "component/feature/apocalypse.h"
 
 #define HEAT_MAP_D 13
 
@@ -99,6 +98,9 @@ double secondsPerYear = 60.0;
 
 #define PERSON_OBJ_ID 12
 
+extern int apocalypsePossible;
+extern char apocalypseTriggered;
+extern GridPos apocalypseLocation;
 
 int minPickupBabyAge = 10;
 
@@ -115,13 +117,8 @@ double oldAge = 104;
 double fertileAge = 14;
 // End UncleGus Custom Variables
 double minSayGapInSeconds = 1.0;
-
 int maxLineageTracked = 20;
-
-int apocalypsePossible = 0;
-char apocalypseTriggered = false;
 char apocalypseRemote = false;
-GridPos apocalypseLocation = { 0, 0 };
 int lastApocalypseNumber = 0;
 double apocalypseStartTime = 0;
 char apocalypseStarted = false;

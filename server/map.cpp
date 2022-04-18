@@ -175,8 +175,7 @@ extern float minEveCampRespawnAge;
 extern int barrierRadius;
 extern int barrierOn;
 extern int longTermCullEnabled;
-
-static unsigned int biomeRandSeed = 723;
+extern unsigned int biomeRandSeed;
 
 extern SimpleVector<int> barrierItemList;
 
@@ -184,13 +183,9 @@ static FILE *mapChangeLogFile = NULL;
 
 static double mapChangeLogTimeStart = -1;
 
-extern int     apocalypsePossible;
-extern char    apocalypseTriggered;
-extern GridPos apocalypseLocation;
-
+extern char apocalypseTriggered;
 extern int edgeObjectID;// what object is placed on edge of map
-
-static int currentResponsiblePlayer = -1;
+extern int currentResponsiblePlayer;
 
 void setResponsiblePlayer(int inPlayerID)
 {
@@ -330,19 +325,17 @@ static HashTable<double> liveMovementEtaTimes(1024, 0);
 
 static MinPriorityQueue<MovementRecord> liveMovements;
 
-// track all map changes that happened since the last
-// call to stepMap
-static SimpleVector<ChangePosition> mapChangePosSinceLastStep;
 
+extern SimpleVector<ChangePosition> mapChangePosSinceLastStep;
 extern char anyBiomesInDB;
-extern int  maxBiomeXLoc;
-extern int  maxBiomeYLoc;
-extern int  minBiomeXLoc;
-extern int  minBiomeYLoc;
+extern int maxBiomeXLoc;
+extern int maxBiomeYLoc;
+extern int minBiomeXLoc;
+extern int minBiomeYLoc;
+extern int apocalypsePossible;
 
 // read from testMap.txt
 // unless testMapStale.txt is present
-
 // each line contains data in this order:
 // x y biome floor id_and_contained
 // id and contained are in CONTAINER OBJECT FORMAT described in protocol.txt
@@ -489,16 +482,6 @@ static void dbFloorPut(int inX, int inY, int inValue);
 #define BIOME_CACHE_SIZE 131072
 
 extern BiomeCacheRecord biomeCache[BIOME_CACHE_SIZE];
-
-
-
-static int computeXYCacheHash(int inKeyA, int inKeyB)
-{
-
-	int hashKey = (inKeyA * CACHE_PRIME_A + inKeyB * CACHE_PRIME_B) % BIOME_CACHE_SIZE;
-	if (hashKey < 0) { hashKey += BIOME_CACHE_SIZE; }
-	return hashKey;
-}
 
 // returns -2 on miss
 static int biomeGetCached(int inX, int inY, int *outSecondPlaceIndex, double *outSecondPlaceGap)
@@ -1123,14 +1106,6 @@ static void blockingPutCached(int inX, int inY, char inBlocking)
 	BlockingCacheRecord r = {inX, inY, inBlocking};
 
 	blockingCache[computeXYCacheHash(inX, inY)] = r;
-}
-
-static void blockingClearCached(int inX, int inY)
-{
-
-	BlockingCacheRecord *r = &(blockingCache[computeXYCacheHash(inX, inY)]);
-
-	if (r->x == inX && r->y == inY) { r->blocking = -1; }
 }
 
 extern char lookTimeDBEmpty;
@@ -1764,58 +1739,6 @@ void setupMapChangeLogFile()
 	fprintf(mapChangeLogFile, "startTime: %.2f\n", mapChangeLogTimeStart);
 }
 
-void reseedMap(char inForceFresh)
-{
-
-	FILE *seedFile = NULL;
-
-	if (!inForceFresh) { seedFile = fopen("biomeRandSeed.txt", "r"); }
-
-	if (seedFile != NULL)
-	{
-		fscanf(seedFile, "%d", &biomeRandSeed);
-		fclose(seedFile);
-		AppLog::infoF("Reading map rand seed from file: %u\n", biomeRandSeed);
-	}
-	else
-	{
-		// no seed set, or ignoring it, make a new one
-
-		if (!inForceFresh)
-		{
-			// not forced (not internal apocalypse)
-			// seed file wiped externally, so it's like a manual apocalypse
-			// report a fresh arc starting
-			reportArcEnd();
-		}
-
-		char *secret = SettingsManager::getStringSetting("statsServerSharedSecret", "secret");
-
-		unsigned int seedBase = crc32((unsigned char *)secret, strlen(secret));
-
-		unsigned int modTimeSeed = (unsigned int)fmod(Time::getCurrentTime() + seedBase, 4294967295U);
-
-		JenkinsRandomSource tempRandSource(modTimeSeed);
-
-		biomeRandSeed = tempRandSource.getRandomInt();
-
-		AppLog::infoF("Generating fresh map rand seed and saving to file: "
-					  "%u\n",
-			biomeRandSeed);
-
-		// and save it
-		seedFile = fopen("biomeRandSeed.txt", "w");
-		if (seedFile != NULL)
-		{
-
-			fprintf(seedFile, "%d", biomeRandSeed);
-			fclose(seedFile);
-		}
-	}
-}
-
-
-
 static void rememberDummy(FILE *inFile, int inX, int inY, ObjectRecord *inDummyO, int inSlot = -1, int inB = 0)
 {
 
@@ -2276,80 +2199,7 @@ timeSec_t dbLookTimeGet(int inX, int inY)
 	}
 }
 
-void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont)
-{
 
-	if (inSlot == 0 && inSubCont == 0)
-	{
-		// object has changed
-		// clear blocking cache
-		blockingClearCached(inX, inY);
-	}
-
-	if (!skipTrackingMapChanges)
-	{
-
-		// count all slot changes as changes, because we're storing
-		// time in a separate database now (so we don't need to worry
-		// about time changes being reported as map changes)
-
-		char found = false;
-		for (int i = 0; i < mapChangePosSinceLastStep.size(); i++)
-		{
-
-			ChangePosition *p = mapChangePosSinceLastStep.getElement(i);
-
-			if (p->x == inX && p->y == inY)
-			{
-				found = true;
-
-				// update it
-				p->responsiblePlayerID = currentResponsiblePlayer;
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			ChangePosition p = {inX, inY, false, currentResponsiblePlayer, 0, 0, 0.0};
-			mapChangePosSinceLastStep.push_back(p);
-		}
-	}
-
-	if (apocalypsePossible && inValue > 0 && inSlot == 0 && inSubCont == 0)
-	{
-		// a primary tile put
-		// check if this triggers the apocalypse
-		if (isApocalypseTrigger(inValue))
-		{
-			apocalypseTriggered  = true;
-			apocalypseLocation.x = inX;
-			apocalypseLocation.y = inY;
-		}
-	}
-	if (inValue > 0 && inSlot == 0 && inSubCont == 0)
-	{
-
-		int status = getMonumentStatus(inValue);
-
-		if (status > 0)
-		{
-			int player = currentResponsiblePlayer;
-			if (player < 0) { player = -player; }
-			monumentAction(inX, inY, inValue, player, status);
-		}
-	}
-
-	unsigned char key[16];
-	unsigned char value[4];
-
-	intQuadToKey(inX, inY, inSlot, inSubCont, key);
-	intToValue(inValue, value);
-
-	DB_put(&db, key, value);
-
-	dbPutCached(inX, inY, inSlot, inSubCont, inValue);
-}
 
 static void dbTimePut(int inX, int inY, int inSlot, timeSec_t inTime, int inSubCont = 0)
 {

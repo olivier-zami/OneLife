@@ -9,24 +9,7 @@
 #include "../gameSource/transitionBank.h"
 
 #include "minorGems/game/doublePair.h"
-
-
-
-typedef struct ChangePosition {
-        int x, y;
-        
-        // true if update should be sent to everyone regardless
-        // of distance (like position of a new player in the world,
-        // or the removal of a player).
-        char global;
-        
-        int responsiblePlayerID;
-
-        // for movement changes
-        int oldX, oldY;
-        float speed;
-        
-    } ChangePosition;
+#include "component/Map.h"
 
 typedef struct GlobalTriggerState
 {
