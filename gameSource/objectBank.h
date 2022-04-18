@@ -651,29 +651,11 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos,
                        SimpleVector<int> *inSubContained );
 
 
-
 void deleteObjectFromBank( int inID );
-
-
 char isSpriteUsed( int inSpriteID );
-
-
 char isSoundUsedByObject( int inSoundID );
-
-
 int getNumContainerSlots( int inID );
-
 char isContainable( int inID );
-
-char isApocalypseTrigger( int inID );
-
-
-// 0 for nothing
-// 1 for monumentStep
-// 2 for monumentDone
-// 3 for monumentCall
-int getMonumentStatus( int inID );
-
 
 // return vector NOT destroyed by caller
 SimpleVector<int> *getMonumentCallObjects();

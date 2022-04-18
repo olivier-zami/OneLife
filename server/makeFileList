@@ -28,6 +28,7 @@ map.cpp \
 component/Map.cpp \
 component/Speech.cpp \
 component/database/LinearDB.cpp \
+component/feature/apocalypse.cpp \
 ../commonSource/math/misc.cpp \
 ../gameSource/transitionBank.cpp \
 ../gameSource/categoryBank.cpp \

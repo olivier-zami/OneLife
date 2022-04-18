@@ -2642,40 +2642,6 @@ char isContainable( int inID ) {
     }
 
 
-char isApocalypseTrigger( int inID ) {
-    ObjectRecord *r = getObject( inID );
-    
-    if( r == NULL ) {
-        return false;
-        }
-    else {
-        return r->apocalypseTrigger;
-        }
-    }
-
-
-
-int getMonumentStatus( int inID ) {
-    ObjectRecord *r = getObject( inID );
-    
-    if( r == NULL ) {
-        return 0;
-        }
-    else {
-        if( r->monumentStep ) {
-            return 1;
-            }
-        if( r->monumentDone ) {
-            return 2;
-            }
-        if( r->monumentCall ) {
-            return 3;
-            }
-        return 0;
-        }
-    }
-
-
 SimpleVector<int> *getMonumentCallObjects() {
     return &monumentCallObjectIDs;
     }

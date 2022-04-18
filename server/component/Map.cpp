@@ -11,10 +11,13 @@
 #include "../../third_party/minorGems/util/log/AppLog.h"
 #include "../../third_party/minorGems/io/file/File.h"
 #include "../../third_party/minorGems/util/random/CustomRandomSource.h"
+#include "../../third_party/minorGems/util/crc32.h"
+#include "../../third_party/minorGems/util/random/JenkinsRandomSource.h"
 #include "../../gameSource/objectBank.h"
 #include "../../gameSource/objectMetadata.h"
 #include "../../commonSource/fractalNoise.h"
 #include "../../commonSource/math/misc.h"
+#include "../arcReport.h"
 #include "../map.h"
 #include "../dbCommon.h"
 
@@ -30,6 +33,11 @@
 extern int numSpeechPipes;
 extern SimpleVector<GridPos> *speechPipesIn;
 extern SimpleVector<GridPos> *speechPipesOut;
+extern BlockingCacheRecord blockingCache[];
+extern RecentPlacement recentPlacements[];
+extern BiomeCacheRecord biomeCache[];
+extern DBTimeCacheRecord dbTimeCache[];
+extern DBCacheRecord dbCache[];
 
 static int mapCacheBitMask = BASE_MAP_CACHE_SIZE - 1;// if BASE_MAP_CACHE_SIZE is a power of 2, then this is the bit mask of solid 1's that can limit an integer to that range
 BaseMapCacheRecord baseMapCache[BASE_MAP_CACHE_SIZE][BASE_MAP_CACHE_SIZE];
@@ -81,6 +89,7 @@ int randSeed = 124567;
 //JenkinsRandomSource randSource( randSeed );
 CustomRandomSource randSource(randSeed);
 int getBaseMapCallCount = 0;
+unsigned int biomeRandSeed = 723;
 
 SimpleVector<int> 		eveSecondaryLocObjectIDs;
 SimpleVector<GridPos> 	recentlyUsedPrimaryEvePositions;
@@ -92,11 +101,6 @@ SimpleVector<MapGridPlacement> gridPlacements;
 SimpleVector<int> allNaturalMapIDs;
 SimpleVector<int> *  naturalMapIDs;// one vector per biome
 SimpleVector<float> *naturalMapChances;
-
-BlockingCacheRecord blockingCache[DB_CACHE_SIZE];
-RecentPlacement recentPlacements[NUM_RECENT_PLACEMENTS];
-BiomeCacheRecord biomeCache[BIOME_CACHE_SIZE];
-DBTimeCacheRecord dbTimeCache[DB_CACHE_SIZE];
 
 DB db;
 char dbOpen = false;
@@ -1834,4 +1838,54 @@ void mapCacheInsert(int inX, int inY, int inID, char inGridPlacement)
 	r->y             = inY;
 	r->id            = inID;
 	r->gridPlacement = inGridPlacement;
+}
+
+void reseedMap(char inForceFresh)
+{
+
+	FILE *seedFile = NULL;
+
+	if (!inForceFresh) { seedFile = fopen("biomeRandSeed.txt", "r"); }
+
+	if (seedFile != NULL)
+	{
+		fscanf(seedFile, "%d", &biomeRandSeed);
+		fclose(seedFile);
+		AppLog::infoF("Reading map rand seed from file: %u\n", biomeRandSeed);
+	}
+	else
+	{
+		// no seed set, or ignoring it, make a new one
+
+		if (!inForceFresh)
+		{
+			// not forced (not internal apocalypse)
+			// seed file wiped externally, so it's like a manual apocalypse
+			// report a fresh arc starting
+			reportArcEnd();
+		}
+
+		char *secret = SettingsManager::getStringSetting("statsServerSharedSecret", "secret");
+
+		unsigned int seedBase = crc32((unsigned char *)secret, strlen(secret));
+
+		unsigned int modTimeSeed = (unsigned int)fmod(Time::getCurrentTime() + seedBase, 4294967295U);
+
+		JenkinsRandomSource tempRandSource(modTimeSeed);
+
+		biomeRandSeed = tempRandSource.getRandomInt();
+
+		AppLog::infoF("Generating fresh map rand seed and saving to file: "
+					  "%u\n",
+					  biomeRandSeed);
+
+		// and save it
+		seedFile = fopen("biomeRandSeed.txt", "w");
+		if (seedFile != NULL)
+		{
+
+			fprintf(seedFile, "%d", biomeRandSeed);
+			fclose(seedFile);
+		}
+	}
 }
