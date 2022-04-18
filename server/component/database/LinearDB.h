@@ -104,5 +104,6 @@ int computeDBCacheHash(int inKeyA, int inKeyB, int inKeyC, int inKeyD);
 void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont);
 void blockingClearCached(int inX, int inY);
 int computeXYCacheHash(int inKeyA, int inKeyB);
+int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius);
 
 #endif //INC_2HOL_LINEARDB_H

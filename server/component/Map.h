@@ -10,6 +10,8 @@
 #include "../../third_party/minorGems/system/Time.h"
 #include "database/LinearDB.h"
 
+#define MAP_METADATA_LENGTH 128
+
 typedef struct MapGridPlacement
 {
 	int               id;
@@ -39,6 +41,11 @@ namespace OneLife::server
 				int inWidth,
 				int inHeight);
 	};
+}
+
+inline void changeContained(int inX, int inY, int inSlot, int inSubCont, int inID)
+{
+	dbPut(inX, inY, FIRST_CONT_SLOT + inSlot, inID, inSubCont);
 }
 
 int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex = NULL, double *outSecondPlaceGap = NULL);
@@ -72,5 +79,23 @@ int getBaseMap(int inX, int inY, char *outGridPlacement = NULL);
 int mapCacheLookup(int inX, int inY, char *outGridPlacement = NULL);
 void mapCacheInsert(int inX, int inY, int inID, char inGridPlacement = false);
 void reseedMap(char inForceFresh);
+void setupMapChangeLogFile();
+void setMapObject( int inX, int inY, int inID );
+void logMapChange(int inX, int inY, int inID);
+void writeRecentPlacements();
+int findGridPos(SimpleVector<GridPos> *inList, GridPos inP);
+int applyTapoutGradientRotate(int inX, int inY, int inTargetX, int inTargetY, int inEastwardGradientID);
+char runTapoutOperation(int inX,
+						int                            inY,
+						int                            inRadiusX,
+						int                            inRadiusY,
+						int                            inSpacingX,
+						int                            inSpacingY,
+						int                            inTriggerID,
+						char                           inPlayerHasPrimaryHomeland,
+						char                           inIsPost = false);
+void getEvePosition( const char *inEmail, int inID, int *outX, int *outY,
+					 SimpleVector<GridPos> *inOtherPeoplePos,
+					 char inAllowRespawn = true );
 
 #endif //ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H

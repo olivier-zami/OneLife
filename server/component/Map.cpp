@@ -22,7 +22,6 @@
 #include "../dbCommon.h"
 
 #include "database/LinearDB.h"
-#include "Speech.h"
 
 // can replace with frozenTime to freeze time
 // or slowTime to slow it down
@@ -38,12 +37,12 @@ extern RecentPlacement recentPlacements[];
 extern BiomeCacheRecord biomeCache[];
 extern DBTimeCacheRecord dbTimeCache[];
 extern DBCacheRecord dbCache[];
-
-static int mapCacheBitMask = BASE_MAP_CACHE_SIZE - 1;// if BASE_MAP_CACHE_SIZE is a power of 2, then this is the bit mask of solid 1's that can limit an integer to that range
-BaseMapCacheRecord baseMapCache[BASE_MAP_CACHE_SIZE][BASE_MAP_CACHE_SIZE];
-
-
-//#include "database/Map_speech.cpp" //TODO: refacto
+extern FILE *mapChangeLogFile;
+extern double mapChangeLogTimeStart;
+extern int currentResponsiblePlayer;
+extern int evePrimaryLocObjectID;
+extern int evePrimaryLocSpacing;
+extern char doesEveLineExist(int inEveID);
 
 // object ids that occur naturally on map at random, per biome
 int numBiomes;
@@ -80,8 +79,6 @@ int  minBiomeXLoc  = 2000000000;
 int  minBiomeYLoc  = 2000000000;
 double gapIntScale = 1000000.0;
 char skipTrackingMapChanges = false;// for large inserts, like tutorial map loads, we don't want to// track individual map changes.
-int evePrimaryLocSpacing  = 0;
-int evePrimaryLocObjectID = -1;
 int eveHomeMarkerObjectID = -1;
 int cellsLookedAtToInit = 0;// if lookTimeDBEmpty, then we init all map cell look times to NOW
 float *totalChanceWeight;
@@ -90,6 +87,13 @@ int randSeed = 124567;
 CustomRandomSource randSource(randSeed);
 int getBaseMapCallCount = 0;
 unsigned int biomeRandSeed = 723;
+double recentlyUsedPrimaryEvePositionTimeout = 3600;
+GridPos eveStartSpiralPos = {0, 0};
+char eveStartSpiralPosSet = false;
+double eveAngle = 2 * M_PI;// eves are placed along an Archimedean spiral// we track the angle of the last Eve to compute the position on// the spiral of the next Eve
+int maxEveLocationUsage = 3;
+int eveLocationUsage = 0;
+GridPos lastEvePrimaryLocation = {0, 0};
 
 SimpleVector<int> 		eveSecondaryLocObjectIDs;
 SimpleVector<GridPos> 	recentlyUsedPrimaryEvePositions;
@@ -101,6 +105,7 @@ SimpleVector<MapGridPlacement> gridPlacements;
 SimpleVector<int> allNaturalMapIDs;
 SimpleVector<int> *  naturalMapIDs;// one vector per biome
 SimpleVector<float> *naturalMapChances;
+SimpleVector<GridPos> flightLandingPos;
 
 DB db;
 char dbOpen = false;
@@ -121,953 +126,18 @@ char eveDBOpen = false;
 DB   metaDB;
 char metaDBOpen = false;
 
-extern DBCacheRecord dbCache[];
+static int mapCacheBitMask = BASE_MAP_CACHE_SIZE - 1;// if BASE_MAP_CACHE_SIZE is a power of 2, then this is the bit mask of solid 1's that can limit an integer to that range
+BaseMapCacheRecord baseMapCache[BASE_MAP_CACHE_SIZE][BASE_MAP_CACHE_SIZE];
 
 // 1671 shy of int max
 static int xLimit = 2147481977;
 static int yLimit = 2147481977;
-static char useTestMap = false;// if true, rest of natural map is blank
 
-static inline void changeContained(int inX, int inY, int inSlot, int inSubCont, int inID)
+static char equal(GridPos inA, GridPos inB)
 {
-	dbPut(inX, inY, FIRST_CONT_SLOT + inSlot, inID, inSubCont);
+	if (inA.x == inB.x && inA.y == inB.y) { return true; }
+	return false;
 }
-
-/**
- *
- * @return
- * @note from initMap in map.cpp
- * returns true on success
- */
-bool OneLife::server::Map::init()
-{
-
-	reseedMap(false);
-
-	numSpeechPipes = getMaxSpeechPipeIndex() + 1;
-
-	speechPipesIn  = new SimpleVector<GridPos>[numSpeechPipes];
-	speechPipesOut = new SimpleVector<GridPos>[numSpeechPipes];
-
-	eveSecondaryLocObjectIDs.deleteAll();
-	recentlyUsedPrimaryEvePositionTimes.deleteAll();
-	recentlyUsedPrimaryEvePositions.deleteAll();
-	recentlyUsedPrimaryEvePositionPlayerIDs.deleteAll();
-
-	initDBCaches();
-	initBiomeCache();
-
-	mapCacheClear();
-
-	edgeObjectID = SettingsManager::getIntSetting("edgeObject", 0);
-
-	minEveCampRespawnAge = SettingsManager::getFloatSetting("minEveCampRespawnAge", 120.0f);
-
-	barrierRadius = SettingsManager::getIntSetting("barrierRadius", 250);
-	barrierOn     = SettingsManager::getIntSetting("barrierOn", 1);
-
-	longTermCullEnabled = SettingsManager::getIntSetting("longTermNoLookCullEnabled", 1);
-
-	SimpleVector<int> *list = SettingsManager::getIntSettingMulti("barrierObjects");
-
-	barrierItemList.deleteAll();
-	barrierItemList.push_back_other(list);
-	delete list;
-
-	for (int i = 0; i < NUM_RECENT_PLACEMENTS; i++)
-	{
-		recentPlacements[i].pos.x = 0;
-		recentPlacements[i].pos.y = 0;
-		recentPlacements[i].depth = 0;
-	}
-
-	nextPlacementIndex = 0;
-
-	FILE *placeFile = fopen("recentPlacements.txt", "r");
-	if (placeFile != NULL)
-	{
-		for (int i = 0; i < NUM_RECENT_PLACEMENTS; i++)
-		{
-			fscanf(placeFile,
-				   "%d,%d %d",
-				   &(recentPlacements[i].pos.x),
-				   &(recentPlacements[i].pos.y),
-				   &(recentPlacements[i].depth));
-		}
-		fscanf(placeFile, "\nnextPlacementIndex=%d", &nextPlacementIndex);
-
-		fclose(placeFile);
-	}
-
-	FILE *eveRadFile = fopen("eveRadius.txt", "r");
-	if (eveRadFile != NULL)
-	{
-
-		fscanf(eveRadFile, "%d", &eveRadius);
-
-		fclose(eveRadFile);
-	}
-
-	FILE *eveLocFile = fopen("lastEveLocation.txt", "r");
-	if (eveLocFile != NULL)
-	{
-
-		fscanf(eveLocFile, "%d,%d", &(eveLocation.x), &(eveLocation.y));
-
-		fclose(eveLocFile);
-
-		printf("Loading lastEveLocation %d,%d\n", eveLocation.x, eveLocation.y);
-	}
-
-	// override if shutdownLongLineagePos exists
-	FILE *lineagePosFile = fopen("shutdownLongLineagePos.txt", "r");
-	if (lineagePosFile != NULL)
-	{
-
-		fscanf(lineagePosFile, "%d,%d", &(eveLocation.x), &(eveLocation.y));
-
-		fclose(lineagePosFile);
-
-		printf("Overriding eveLocation with shutdownLongLineagePos %d,%d\n", eveLocation.x, eveLocation.y);
-	}
-	else
-	{
-		printf("No shutdownLongLineagePos.txt file exists\n");
-
-		// look for longest monument log file
-		// that has been touched in last 24 hours
-		// (ignore spots that may have been culled)
-		File f(NULL, "monumentLogs");
-		if (f.exists() && f.isDirectory())
-		{
-			int    numChildFiles;
-			File **childFiles = f.getChildFiles(&numChildFiles);
-
-			timeSec_t longTime = 0;
-			int       longLen  = 0;
-			int       longX    = 0;
-			int       longY    = 0;
-
-			timeSec_t curTime = Time::timeSec();
-
-			int secInDay = 3600 * 24;
-
-			for (int i = 0; i < numChildFiles; i++)
-			{
-				timeSec_t modTime = childFiles[i]->getModificationTime();
-
-				if (curTime - modTime < secInDay)
-				{
-					char *cont = childFiles[i]->readFileContents();
-
-					int numNewlines = countNewlines(cont);
-
-					delete[] cont;
-
-					if (numNewlines > longLen || (numNewlines == longLen && modTime > longTime))
-					{
-
-						char *name = childFiles[i]->getFileName();
-
-						int x, y;
-						int numRead = sscanf(name, "%d_%d_", &x, &y);
-
-						delete[] name;
-
-						if (numRead == 2)
-						{
-							longTime = modTime;
-							longLen  = numNewlines;
-							longX    = x;
-							longY    = y;
-						}
-					}
-				}
-				delete childFiles[i];
-			}
-			delete[] childFiles;
-
-			if (longLen > 0)
-			{
-				eveLocation.x = longX;
-				eveLocation.y = longY;
-
-				printf("Overriding eveLocation with "
-					   "tallest recent monument location %d,%d\n",
-					   eveLocation.x,
-					   eveLocation.y);
-			}
-		}
-	}
-
-	const char *lookTimeDBName = "lookTime.db";
-
-	char lookTimeDBExists = false;
-
-	File lookTimeDBFile(NULL, lookTimeDBName);
-
-	if (lookTimeDBFile.exists() && SettingsManager::getIntSetting("flushLookTimes", 0))
-	{
-
-		AppLog::info("flushLookTimes.ini set, deleting lookTime.db");
-
-		lookTimeDBFile.remove();
-	}
-
-	lookTimeDBExists = lookTimeDBFile.exists();
-
-	if (!lookTimeDBExists) { lookTimeDBEmpty = true; }
-
-	skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
-
-	if (skipLookTimeCleanup)
-	{
-		AppLog::info("skipLookTimeCleanup.ini flag set, "
-					 "not cleaning databases based on stale look times.");
-	}
-
-	LINEARDB3_setMaxLoad(0.80);
-
-	if (!skipLookTimeCleanup)
-	{
-		DB lookTimeDB_old;
-
-		int error = DB_open(&lookTimeDB_old,
-							lookTimeDBName,
-							KISSDB_OPEN_MODE_RWCREAT,
-							80000,
-							8, // two 32-bit ints, xy
-							8  // one 64-bit double, representing an ETA time
-				// in whatever binary format and byte order
-				// "double" on the server platform uses
-		);
-
-		if (error)
-		{
-			AppLog::errorF("Error %d opening look time KissDB", error);
-			return false;
-		}
-
-		int staleSec = SettingsManager::getIntSetting("mapCellForgottenSeconds", 0);
-
-		if (lookTimeDBExists && staleSec > 0)
-		{
-			AppLog::info("\nCleaning stale look times from map...");
-
-			static DB lookTimeDB_temp;
-
-			const char *lookTimeDBName_temp = "lookTime_temp.db";
-
-			File tempDBFile(NULL, lookTimeDBName_temp);
-
-			if (tempDBFile.exists()) { tempDBFile.remove(); }
-
-			DB_Iterator dbi;
-
-			DB_Iterator_init(&lookTimeDB_old, &dbi);
-
-			timeSec_t curTime = MAP_TIMESEC;
-
-			unsigned char key[8];
-			unsigned char value[8];
-
-			int total    = 0;
-			int stale    = 0;
-			int nonStale = 0;
-
-			// first, just count them
-			while (DB_Iterator_next(&dbi, key, value) > 0)
-			{
-				total++;
-
-				timeSec_t t = valueToTime(value);
-
-				if (curTime - t >= staleSec)
-				{
-					// stale cell
-					// ignore
-					stale++;
-				}
-				else
-				{
-					// non-stale
-					nonStale++;
-				}
-			}
-
-			// optimial size for DB of remaining elements
-			unsigned int newSize = DB_getShrinkSize(&lookTimeDB_old, nonStale);
-
-			AppLog::infoF("Shrinking hash table for lookTimes from "
-						  "%d down to %d",
-						  DB_getCurrentSize(&lookTimeDB_old),
-						  newSize);
-
-			error = DB_open(&lookTimeDB_temp,
-							lookTimeDBName_temp,
-							KISSDB_OPEN_MODE_RWCREAT,
-							newSize,
-							8, // two 32-bit ints, xy
-							8  // one 64-bit double, representing an ETA time
-					// in whatever binary format and byte order
-					// "double" on the server platform uses
-			);
-
-			if (error)
-			{
-				AppLog::errorF("Error %d opening look time temp KissDB", error);
-				return false;
-			}
-
-			// now that we have new temp db properly sized,
-			// iterate again and insert
-			DB_Iterator_init(&lookTimeDB_old, &dbi);
-
-			while (DB_Iterator_next(&dbi, key, value) > 0)
-			{
-				timeSec_t t = valueToTime(value);
-
-				if (curTime - t >= staleSec)
-				{
-					// stale cell
-					// ignore
-				}
-				else
-				{
-					// non-stale
-					// insert it in temp
-					DB_put_new(&lookTimeDB_temp, key, value);
-				}
-			}
-
-			AppLog::infoF("Cleaned %d / %d stale look times", stale, total);
-
-			printf("\n");
-
-			if (total == 0) { lookTimeDBEmpty = true; }
-
-			DB_close(&lookTimeDB_temp);
-			DB_close(&lookTimeDB_old);
-
-			tempDBFile.copy(&lookTimeDBFile);
-			tempDBFile.remove();
-		}
-		else
-		{
-			DB_close(&lookTimeDB_old);
-		}
-	}
-
-	int error = DB_open(&lookTimeDB,
-						lookTimeDBName,
-						KISSDB_OPEN_MODE_RWCREAT,
-						80000,
-						8, // two 32-bit ints, xy
-						8  // one 64-bit double, representing an ETA time
-			// in whatever binary format and byte order
-			// "double" on the server platform uses
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening look time KissDB", error);
-		return false;
-	}
-
-	lookTimeDBOpen = true;
-
-	// note that the various decay ETA slots in map.db
-	// are define but unused, because we store times separately
-	// in mapTime.db
-	error = DB_open_timeShrunk(&db,
-							   "map.db",
-							   KISSDB_OPEN_MODE_RWCREAT,
-							   80000,
-							   16, // four 32-bit ints, xysb
-			// s is the slot number
-			// s=0 for base object
-			// s=1 decay ETA seconds (wall clock time)
-			// s=2 for count of contained objects
-			// s=3 first contained object
-			// s=4 second contained object
-			// s=... remaining contained objects
-			// Then decay ETA for each slot, in order,
-			//   after that.
-			// s = -1
-			//  is a special flag slot set to 0 if NONE
-			//  of the contained items have ETA decay
-			//  or 1 if some of the contained items might
-			//  have ETA decay.
-			//  (this saves us from having to check each
-			//   one)
-			// If a contained object id is negative,
-			// that indicates that it sub-contains
-			// other objects in its corresponding b slot
-			//
-			// b is for indexing sub-container slots
-			// b=0 is the main object
-			// b=1 is the first sub-slot, etc.
-							   4 // one int, object ID at x,y in slot (s-3)
-			// OR contained count if s=2
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening map KissDB", error);
-		return false;
-	}
-
-	dbOpen = true;
-
-	// this DB uses the same slot numbers as the map.db
-	// however, only times are stored here, because they require 8 bytes
-	// so, slot 0 and 2 are never used, for example
-	error = DB_open_timeShrunk(&timeDB,
-							   "mapTime.db",
-							   KISSDB_OPEN_MODE_RWCREAT,
-							   80000,
-							   16, // four 32-bit ints, xysb
-			// s is the slot number
-			// s=0 for base object
-			// s=1 decay ETA seconds (wall clock time)
-			// s=2 for count of contained objects
-			// s=3 first contained object
-			// s=4 second contained object
-			// s=... remaining contained objects
-			// Then decay ETA for each slot, in order,
-			//   after that.
-			// If a contained object id is negative,
-			// that indicates that it sub-contains
-			// other objects in its corresponding b slot
-			//
-			// b is for indexing sub-container slots
-			// b=0 is the main object
-			// b=1 is the first sub-slot, etc.
-							   8 // one 64-bit double, representing an ETA time
-			// in whatever binary format and byte order
-			// "double" on the server platform uses
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening map time KissDB", error);
-		return false;
-	}
-
-	timeDBOpen = true;
-
-	error = DB_open_timeShrunk(&biomeDB,
-							   "biome.db",
-							   KISSDB_OPEN_MODE_RWCREAT,
-							   80000,
-							   8, // two 32-bit ints, xy
-							   12 // three ints,
-			// 1: biome number at x,y
-			// 2: second place biome number at x,y
-			// 3: second place biome gap as int (float gap
-			//    multiplied by 1,000,000)
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening biome KissDB", error);
-		return false;
-	}
-
-	biomeDBOpen = true;
-
-	// see if any biomes are listed in DB
-	// if not, we don't even need to check it when generating map
-	DB_Iterator biomeDBi;
-	DB_Iterator_init(&biomeDB, &biomeDBi);
-
-	unsigned char biomeKey[8];
-	unsigned char biomeValue[12];
-
-	while (DB_Iterator_next(&biomeDBi, biomeKey, biomeValue) > 0)
-	{
-		int x = valueToInt(biomeKey);
-		int y = valueToInt(&(biomeKey[4]));
-
-		anyBiomesInDB = true;
-
-		if (x > maxBiomeXLoc) { maxBiomeXLoc = x; }
-		if (x < minBiomeXLoc) { minBiomeXLoc = x; }
-		if (y > maxBiomeYLoc) { maxBiomeYLoc = y; }
-		if (y < minBiomeYLoc) { minBiomeYLoc = y; }
-	}
-
-	printf("Min (x,y) of biome in db = (%d,%d), "
-		   "Max (x,y) of biome in db = (%d,%d)\n",
-		   minBiomeXLoc,
-		   minBiomeYLoc,
-		   maxBiomeXLoc,
-		   maxBiomeYLoc);
-
-	error = DB_open_timeShrunk(&floorDB,
-							   "floor.db",
-							   KISSDB_OPEN_MODE_RWCREAT,
-							   80000,
-							   8, // two 32-bit ints, xy
-							   4  // one int, the floor object ID at x,y
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening floor KissDB", error);
-		return false;
-	}
-
-	floorDBOpen = true;
-
-	error = DB_open_timeShrunk(&floorTimeDB,
-							   "floorTime.db",
-							   KISSDB_OPEN_MODE_RWCREAT,
-							   80000,
-							   8, // two 32-bit ints, xy
-							   8  // one 64-bit double, representing an ETA time
-			// in whatever binary format and byte order
-			// "double" on the server platform uses
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening floor time KissDB", error);
-		return false;
-	}
-
-	floorTimeDBOpen = true;
-
-	// ALWAYS delete old grave DB at each server startup
-	// grave info is only player ID, and server only remembers players
-	// live, in RAM, while it is still running
-	deleteFileByName("grave.db");
-
-	error = DB_open(&graveDB,
-					"grave.db",
-					KISSDB_OPEN_MODE_RWCREAT,
-					80000,
-					8, // two 32-bit ints, xy
-					4  // one int, the grave player ID at x,y
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening grave KissDB", error);
-		return false;
-	}
-
-	graveDBOpen = true;
-
-	error = DB_open(&eveDB,
-					"eve.db",
-					KISSDB_OPEN_MODE_RWCREAT,
-			// this can be a lot smaller than other DBs
-			// it's not performance-critical, and the keys are
-			// much longer, so stackdb will waste disk space
-					5000,
-					50, // first 50 characters of email address
-			// append spaces to the end if needed
-					12 // three ints,  x_center, y_center, radius
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening eve KissDB", error);
-		return false;
-	}
-
-	eveDBOpen = true;
-
-	error = DB_open(&metaDB,
-					"meta.db",
-					KISSDB_OPEN_MODE_RWCREAT,
-			// starting size doesn't matter here
-					500,
-					4, // one 32-bit int as key
-			// data
-					MAP_METADATA_LENGTH);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening meta KissDB", error);
-		return false;
-	}
-
-	metaDBOpen = true;
-
-	DB_Iterator metaIterator;
-
-	DB_Iterator_init(&metaDB, &metaIterator);
-
-	unsigned char metaKey[4];
-
-	unsigned char metaValue[MAP_METADATA_LENGTH];
-
-	int maxMetaID      = 0;
-	int numMetaRecords = 0;
-
-	while (DB_Iterator_next(&metaIterator, metaKey, metaValue) > 0)
-	{
-		numMetaRecords++;
-
-		int metaID = valueToInt(metaKey);
-
-		if (metaID > maxMetaID) { maxMetaID = metaID; }
-	}
-
-	AppLog::infoF("MetadataDB:  Found %d records with max MetadataID of %d", numMetaRecords, maxMetaID);
-
-	setLastMetadataID(maxMetaID);
-
-	if (lookTimeDBEmpty && cellsLookedAtToInit > 0)
-	{
-		printf("Since lookTime db was empty, we initialized look times "
-			   "for %d cells to now.\n\n",
-			   cellsLookedAtToInit);
-	}
-
-	int            numObjects;
-	ObjectRecord **allObjects = getAllObjects(&numObjects);
-
-	// first, find all biomes
-	SimpleVector<int> biomeList;
-
-	for (int i = 0; i < numObjects; i++)
-	{
-		ObjectRecord *o = allObjects[i];
-
-		if (o->mapChance > 0)
-		{
-
-			for (int j = 0; j < o->numBiomes; j++)
-			{
-				int b = o->biomes[j];
-
-				if (biomeList.getElementIndex(b) == -1) { biomeList.push_back(b); }
-			}
-		}
-	}
-
-	// manually controll order
-	SimpleVector<int> *biomeOrderList = SettingsManager::getIntSettingMulti("biomeOrder");
-
-	SimpleVector<float> *biomeWeightList = SettingsManager::getFloatSettingMulti("biomeWeights");
-
-	for (int i = 0; i < biomeOrderList->size(); i++)
-	{
-		int b = biomeOrderList->getElementDirect(i);
-
-		if (biomeList.getElementIndex(b) == -1)
-		{
-			biomeOrderList->deleteElement(i);
-			biomeWeightList->deleteElement(i);
-			i--;
-		}
-	}
-
-	// now add any discovered biomes to end of list
-	for (int i = 0; i < biomeList.size(); i++)
-	{
-		int b = biomeList.getElementDirect(i);
-		if (biomeOrderList->getElementIndex(b) == -1)
-		{
-			biomeOrderList->push_back(b);
-			// default weight
-			biomeWeightList->push_back(0.1);
-		}
-	}
-
-	numBiomes        = biomeOrderList->size();
-	biomes           = biomeOrderList->getElementArray();
-	biomeWeights     = biomeWeightList->getElementArray();
-	biomeCumuWeights = new float[numBiomes];
-
-	biomeTotalWeight = 0;
-	for (int i = 0; i < numBiomes; i++)
-	{
-		biomeTotalWeight += biomeWeights[i];
-		biomeCumuWeights[i] = biomeTotalWeight;
-	}
-
-	delete biomeOrderList;
-	delete biomeWeightList;
-
-	SimpleVector<int> *specialBiomeList = SettingsManager::getIntSettingMulti("specialBiomes");
-
-	numSpecialBiomes = specialBiomeList->size();
-	specialBiomes    = specialBiomeList->getElementArray();
-
-	regularBiomeLimit = numBiomes - numSpecialBiomes;
-
-	delete specialBiomeList;
-
-	specialBiomeCumuWeights = new float[numSpecialBiomes];
-
-	specialBiomeTotalWeight = 0;
-	for (int i = regularBiomeLimit; i < numBiomes; i++)
-	{
-		specialBiomeTotalWeight += biomeWeights[i];
-		specialBiomeCumuWeights[i - regularBiomeLimit] = specialBiomeTotalWeight;
-	}
-
-	naturalMapIDs     = new SimpleVector<int>[numBiomes];
-	naturalMapChances = new SimpleVector<float>[numBiomes];
-	totalChanceWeight = new float[numBiomes];
-
-	for (int j = 0; j < numBiomes; j++)
-	{
-		totalChanceWeight[j] = 0;
-	}
-
-	CustomRandomSource phaseRandSource(randSeed);
-
-	for (int i = 0; i < numObjects; i++)
-	{
-		ObjectRecord *o = allObjects[i];
-
-		if (strstr(o->description, "eveSecondaryLoc") != NULL) { eveSecondaryLocObjectIDs.push_back(o->id); }
-		if (strstr(o->description, "eveHomeMarker") != NULL) { eveHomeMarkerObjectID = o->id; }
-
-		float p = o->mapChance;
-		if (p > 0)
-		{
-			int id = o->id;
-
-			allNaturalMapIDs.push_back(id);
-
-			char *gridPlacementLoc = strstr(o->description, "gridPlacement");
-
-			if (gridPlacementLoc != NULL)
-			{
-				// special grid placement
-
-				int spacing = 10;
-				sscanf(gridPlacementLoc, "gridPlacement%d", &spacing);
-
-				if (strstr(o->description, "evePrimaryLoc") != NULL)
-				{
-					evePrimaryLocObjectID = id;
-					evePrimaryLocSpacing  = spacing;
-				}
-
-				SimpleVector<int> permittedBiomes;
-				for (int b = 0; b < o->numBiomes; b++)
-				{
-					permittedBiomes.push_back(getBiomeIndex(o->biomes[b]));
-				}
-
-				int wiggleScale = 4;
-
-				if (spacing > 12) { wiggleScale = spacing / 3; }
-
-				MapGridPlacement gp = {id,
-									   spacing,
-									   0,
-						// phaseRandSource.getRandomBoundedInt( 0,
-						//                                     spacing - 1 ),
-									   wiggleScale,
-									   permittedBiomes};
-
-				gridPlacements.push_back(gp);
-			}
-			else
-			{
-				// regular fractal placement
-
-				for (int j = 0; j < o->numBiomes; j++)
-				{
-					int b = o->biomes[j];
-
-					int bIndex = getBiomeIndex(b);
-					naturalMapIDs[bIndex].push_back(id);
-					naturalMapChances[bIndex].push_back(p);
-
-					totalChanceWeight[bIndex] += p;
-				}
-			}
-		}
-	}
-
-	for (int j = 0; j < numBiomes; j++)
-	{
-		AppLog::infoF("Biome %d:  Found %d natural objects with total weight %f",
-					  biomes[j],
-					  naturalMapIDs[j].size(),
-					  totalChanceWeight[j]);
-	}
-
-	delete[] allObjects;
-
-	skipRemovedObjectCleanup = SettingsManager::getIntSetting("skipRemovedObjectCleanup", 0);
-
-	FILE *dummyFile = fopen("mapDummyRecall.txt", "r");
-
-	if (dummyFile != NULL)
-	{
-		AppLog::info("Found mapDummyRecall.txt file, restoring dummy objects "
-					 "on map");
-
-		skipTrackingMapChanges = true;
-
-		int numRead = 5;
-
-		int numSet = 0;
-
-		int numStale = 0;
-
-		while (numRead == 5 || numRead == 7)
-		{
-
-			int x, y, parentID, dummyIndex, slot, b;
-
-			char marker;
-
-			slot = -1;
-			b    = 0;
-
-			numRead =
-					fscanf(dummyFile, "(%d,%d) %c %d %d [%d %d]\n", &x, &y, &marker, &parentID, &dummyIndex, &slot, &b);
-			if (numRead == 5 || numRead == 7)
-			{
-
-				if (dbLookTimeGet(x, y) <= 0)
-				{
-					// stale area of map
-					numStale++;
-					continue;
-				}
-
-				ObjectRecord *parent = getObject(parentID);
-
-				int dummyID = -1;
-
-				if (parent != NULL)
-				{
-
-					if (marker == 'u' && parent->numUses - 1 > dummyIndex)
-					{ dummyID = parent->useDummyIDs[dummyIndex]; }
-					else if (marker == 'v' && parent->numVariableDummyIDs > dummyIndex)
-					{
-						dummyID = parent->variableDummyIDs[dummyIndex];
-					}
-				}
-				if (dummyID > 0)
-				{
-					if (numRead == 5) { setMapObjectRaw(x, y, dummyID); }
-					else
-					{
-						changeContained(x, y, slot, b, dummyID);
-					}
-					numSet++;
-				}
-			}
-		}
-		skipTrackingMapChanges = false;
-
-		fclose(dummyFile);
-
-		AppLog::infoF("Restored %d dummy objects to map "
-					  "(%d skipped as stale)",
-					  numSet,
-					  numStale);
-
-		remove("mapDummyRecall.txt");
-
-		printf("\n");
-	}
-
-	// clean map after restoring dummy objects
-	int totalSetCount = 1;
-
-	if (!skipRemovedObjectCleanup) { totalSetCount = cleanMap(); }
-	else
-	{
-		AppLog::info("Skipping cleaning map of removed objects");
-	}
-
-	if (totalSetCount == 0)
-	{
-		// map has been cleared
-
-		// ignore old value for placements
-		clearRecentPlacements();
-	}
-
-	globalTriggerStates.deleteAll();
-
-	int numTriggers = getNumGlobalTriggers();
-	for (int i = 0; i < numTriggers; i++)
-	{
-		GlobalTriggerState s;
-		globalTriggerStates.push_back(s);
-	}
-
-	useTestMap = SettingsManager::getIntSetting("useTestMap", 0);
-
-	if (useTestMap)
-	{
-
-		FILE *testMapFile      = fopen("testMap.txt", "r");
-		FILE *testMapStaleFile = fopen("testMapStale.txt", "r");
-
-		if (testMapFile != NULL && testMapStaleFile == NULL)
-		{
-
-			testMapStaleFile = fopen("testMapStale.txt", "w");
-
-			if (testMapStaleFile != NULL)
-			{
-				fprintf(testMapStaleFile, "1");
-				fclose(testMapStaleFile);
-				testMapStaleFile = NULL;
-			}
-
-			printf("Loading testMap.txt\n");
-
-			loadIntoMapFromFile(testMapFile);
-
-			fclose(testMapFile);
-			testMapFile = NULL;
-		}
-
-		if (testMapFile != NULL) { fclose(testMapFile); }
-		if (testMapStaleFile != NULL) { fclose(testMapStaleFile); }
-	}
-
-	SimpleVector<char *> *specialPlacements = SettingsManager::getSetting("specialMapPlacements");
-
-	if (specialPlacements != NULL)
-	{
-
-		for (int i = 0; i < specialPlacements->size(); i++)
-		{
-			char *line = specialPlacements->getElementDirect(i);
-
-			int x, y, id;
-			id          = -1;
-			int numRead = sscanf(line, "%d_%d_%d", &x, &y, &id);
-
-			if (numRead == 3 && id > -1) {}
-			setMapObject(x, y, id);
-		}
-
-		specialPlacements->deallocateStringElements();
-		delete specialPlacements;
-	}
-
-	// for debugging the map
-	// printObjectSamples();
-	// printBiomeSamples();
-	// outputMapImage();
-
-	// outputBiomeFractals();
-
-	setupMapChangeLogFile();
-
-	return true;
-}
-
 
 /**
  *
@@ -1888,4 +958,1095 @@ void reseedMap(char inForceFresh)
 			fclose(seedFile);
 		}
 	}
+}
+
+/**
+ * @note from server/map.cpp
+ */
+void setupMapChangeLogFile()
+{
+	File logFolder(NULL, "mapChangeLogs");
+
+	if (!logFolder.exists()) { logFolder.makeDirectory(); }
+
+	if (mapChangeLogFile != NULL)
+	{
+		fclose(mapChangeLogFile);
+		mapChangeLogFile = NULL;
+	}
+
+	if (logFolder.isDirectory())
+	{
+
+		char *biomeSeedString = autoSprintf("%d", biomeRandSeed);
+
+		// does log file already exist?
+
+		int    numFiles;
+		File **childFiles = logFolder.getChildFiles(&numFiles);
+
+		for (int i = 0; i < numFiles; i++)
+		{
+			File *f = childFiles[i];
+
+			char *name = f->getFileName();
+
+			if (strstr(name, biomeSeedString) != NULL)
+			{
+				// found!
+				char *fullFileName = f->getFullFileName();
+				mapChangeLogFile   = fopen(fullFileName, "a");
+				delete[] fullFileName;
+			}
+			delete[] name;
+			if (mapChangeLogFile != NULL) { break; }
+		}
+		for (int i = 0; i < numFiles; i++)
+		{
+			delete childFiles[i];
+		}
+		delete[] childFiles;
+
+		delete[] biomeSeedString;
+
+		if (mapChangeLogFile == NULL)
+		{
+
+			// file does not exist
+			char *newFileName = autoSprintf("%.ftime_%useed_mapLog.txt", Time::getCurrentTime(), biomeRandSeed);
+
+			File *f = logFolder.getChildFile(newFileName);
+
+			char *fullName = f->getFullFileName();
+
+			delete f;
+
+			mapChangeLogFile = fopen(fullName, "a");
+			delete[] fullName;
+		}
+	}
+
+	mapChangeLogTimeStart = Time::getCurrentTime();
+	fprintf(mapChangeLogFile, "startTime: %.2f\n", mapChangeLogTimeStart);
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inID
+ * @note from server/map.cpp
+ */
+void setMapObject(int inX, int inY, int inID)
+{
+
+	logMapChange(inX, inY, inID);
+
+	setMapObjectRaw(inX, inY, inID);
+
+	// actually need to set decay here
+	// otherwise, if we wait until getObject, it will assume that
+	// this is a never-before-seen object and randomize the decay.
+	TransRecord *newDecayT = getMetaTrans(-1, inID);
+
+	timeSec_t mapETA = 0;
+
+	if (newDecayT != NULL && newDecayT->autoDecaySeconds > 0) { mapETA = MAP_TIMESEC + newDecayT->autoDecaySeconds; }
+
+	setEtaDecay(inX, inY, mapETA);
+
+	// note that we also potentially set up decay for objects on get
+	// if they have no decay set already
+	// We do this because there are loads
+	// of gets that have no set (for example, getting a map chunk)
+	// Those decay times get randomized to avoid lock-step in newly-seen
+	// objects
+
+	if (inID > 0)
+	{
+
+		char found = false;
+
+		for (int i = 0; i < NUM_RECENT_PLACEMENTS; i++)
+		{
+
+			if (inX == recentPlacements[i].pos.x && inY == recentPlacements[i].pos.y)
+			{
+
+				found = true;
+				// update depth
+				int newDepth = getObjectDepth(inID);
+
+				if (newDepth != UNREACHABLE) { recentPlacements[i].depth = getObjectDepth(inID); }
+				break;
+			}
+		}
+
+		if (!found)
+		{
+
+			int newDepth = getObjectDepth(inID);
+			if (newDepth != UNREACHABLE)
+			{
+
+				recentPlacements[nextPlacementIndex].pos.x = inX;
+				recentPlacements[nextPlacementIndex].pos.y = inY;
+				recentPlacements[nextPlacementIndex].depth = newDepth;
+
+				nextPlacementIndex++;
+
+				if (nextPlacementIndex >= NUM_RECENT_PLACEMENTS)
+				{
+					nextPlacementIndex = 0;
+
+					// write again every time we have a fresh 100
+					writeRecentPlacements();
+				}
+			}
+		}
+	}
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inID
+ * @note from server/map.cpp
+ */
+void setMapObjectRaw(int inX, int inY, int inID)
+{
+	dbPut(inX, inY, 0, inID);
+
+	// global trigger and speech pipe stuff
+
+	if (inID <= 0) { return; }
+
+	ObjectRecord *o = getObject(inID);
+
+	if (o == NULL) { return; }
+
+	if (o->isFlightLanding)
+	{
+		GridPos p = {inX, inY};
+
+		char found = false;
+
+		for (int i = 0; i < flightLandingPos.size(); i++)
+		{
+			GridPos otherP = flightLandingPos.getElementDirect(i);
+
+			if (equal(p, otherP))
+			{
+
+				// make sure this other strip really still exists
+				int oID = getMapObject(otherP.x, otherP.y);
+
+				if (oID <= 0 || !getObject(oID)->isFlightLanding)
+				{
+
+					// not even a valid landing pos anymore
+					flightLandingPos.deleteElement(i);
+					i--;
+				}
+				else
+				{
+					found = true;
+					break;
+				}
+			}
+		}
+
+		if (!found) { flightLandingPos.push_back(p); }
+	}
+
+	if (o->speechPipeIn)
+	{
+		GridPos p = {inX, inY};
+
+		int foundIndex = findGridPos(&(speechPipesIn[o->speechPipeIndex]), p);
+
+		if (foundIndex == -1) { speechPipesIn[o->speechPipeIndex].push_back(p); }
+	}
+	else if (o->speechPipeOut)
+	{
+		GridPos p = {inX, inY};
+
+		int foundIndex = findGridPos(&(speechPipesOut[o->speechPipeIndex]), p);
+
+		if (foundIndex == -1) { speechPipesOut[o->speechPipeIndex].push_back(p); }
+	}
+	else if (o->isGlobalTriggerOn)
+	{
+		GlobalTriggerState *s = globalTriggerStates.getElement(o->globalTriggerIndex);
+
+		GridPos p = {inX, inY};
+
+		int foundIndex = findGridPos(&(s->triggerOnLocations), p);
+
+		if (foundIndex == -1)
+		{
+			s->triggerOnLocations.push_back(p);
+
+			if (s->triggerOnLocations.size() == 1)
+			{
+				// just turned on globally
+
+				/// process all receivers
+				for (int i = 0; i < s->receiverLocations.size(); i++)
+				{
+					GridPos q = s->receiverLocations.getElementDirect(i);
+
+					int id = getMapObjectRaw(q.x, q.y);
+
+					if (id <= 0)
+					{
+						// receiver no longer here
+						s->receiverLocations.deleteElement(i);
+						i--;
+						continue;
+					}
+
+					ObjectRecord *oR = getObject(id);
+
+					if (oR->isGlobalReceiver && oR->globalTriggerIndex == o->globalTriggerIndex)
+					{
+						// match
+
+						int metaID = getMetaTriggerObject(o->globalTriggerIndex);
+
+						if (metaID > 0)
+						{
+							TransRecord *tR = getPTrans(metaID, id);
+
+							if (tR != NULL)
+							{
+
+								dbPut(q.x, q.y, 0, tR->newTarget);
+
+								// save this to our "triggered" list
+								int foundIndex = findGridPos(&(s->triggeredLocations), q);
+
+								if (foundIndex != -1)
+								{
+									// already exists
+									// replace
+									*(s->triggeredIDs.getElement(foundIndex))       = tR->newTarget;
+									*(s->triggeredRevertIDs.getElement(foundIndex)) = tR->target;
+								}
+								else
+								{
+									s->triggeredLocations.push_back(q);
+									s->triggeredIDs.push_back(tR->newTarget);
+									s->triggeredRevertIDs.push_back(tR->target);
+								}
+							}
+						}
+					}
+					// receiver no longer here
+					// (either wasn't here anymore for other reasons,
+					//  or we just changed it into its triggered state)
+					// remove it
+					s->receiverLocations.deleteElement(i);
+					i--;
+				}
+			}
+		}
+	}
+	else if (o->isGlobalTriggerOff)
+	{
+		GlobalTriggerState *s = globalTriggerStates.getElement(o->globalTriggerIndex);
+
+		GridPos p = {inX, inY};
+
+		int foundIndex = findGridPos(&(s->triggerOnLocations), p);
+
+		if (foundIndex != -1)
+		{
+			s->triggerOnLocations.deleteElement(foundIndex);
+
+			if (s->triggerOnLocations.size() == 0)
+			{
+				// just turned off globally, no on triggers left on map
+
+				/// process all triggered elements back to off
+
+				for (int i = 0; i < s->triggeredLocations.size(); i++)
+				{
+					GridPos q = s->triggeredLocations.getElementDirect(i);
+
+					int curID = getMapObjectRaw(q.x, q.y);
+
+					int triggeredID = s->triggeredIDs.getElementDirect(i);
+
+					if (curID == triggeredID)
+					{
+						// cell still in triggered state
+
+						// revert it
+						int revertID = s->triggeredRevertIDs.getElementDirect(i);
+
+						dbPut(q.x, q.y, 0, revertID);
+
+						// no longer triggered, remove it
+						s->triggeredLocations.deleteElement(i);
+						s->triggeredIDs.deleteElement(i);
+						s->triggeredRevertIDs.deleteElement(i);
+						i--;
+
+						// remember it as a reciever (it has gone back
+						// to being a receiver again)
+						s->receiverLocations.push_back(q);
+					}
+				}
+			}
+		}
+	}
+	else if (o->isGlobalReceiver)
+	{
+		GlobalTriggerState *s = globalTriggerStates.getElement(o->globalTriggerIndex);
+
+		GridPos p = {inX, inY};
+
+		int foundIndex = findGridPos(&(s->receiverLocations), p);
+
+		if (foundIndex == -1) { s->receiverLocations.push_back(p); }
+
+		if (s->triggerOnLocations.size() > 0)
+		{
+			// this receiver is currently triggered
+
+			// trigger it now, right away, as soon as it is placed on map
+
+			int metaID = getMetaTriggerObject(o->globalTriggerIndex);
+
+			if (metaID > 0)
+			{
+				TransRecord *tR = getPTrans(metaID, inID);
+
+				if (tR != NULL)
+				{
+
+					dbPut(inX, inY, 0, tR->newTarget);
+
+					GridPos q = {inX, inY};
+
+					// save this to our "triggered" list
+					int foundIndex = findGridPos(&(s->triggeredLocations), q);
+
+					if (foundIndex != -1)
+					{
+						// already exists
+						// replace
+						*(s->triggeredIDs.getElement(foundIndex))       = tR->newTarget;
+						*(s->triggeredRevertIDs.getElement(foundIndex)) = tR->target;
+					}
+					else
+					{
+						s->triggeredLocations.push_back(q);
+						s->triggeredIDs.push_back(tR->newTarget);
+						s->triggeredRevertIDs.push_back(tR->target);
+					}
+				}
+			}
+		}
+	}
+	else if (o->isTapOutTrigger)
+	{
+		// this object, when created, taps out other objects in grid around
+
+		char playerHasPrimaryHomeland = false;
+
+		if (currentResponsiblePlayer != -1)
+		{
+			int pID = currentResponsiblePlayer;
+			if (pID < 0) { pID = -pID; }
+			// primaryHomeland is not in 2HOL
+			// int lineage = getPlayerLineage( pID );
+
+			// if( lineage != -1 ) {
+			// playerHasPrimaryHomeland = hasPrimaryHomeland( lineage );
+			// }
+		}
+
+		// don't make current player responsible for all these changes
+		int restoreResponsiblePlayer = currentResponsiblePlayer;
+		currentResponsiblePlayer     = -1;
+
+		TapoutRecord *r = getTapoutRecord(inID);
+
+		if (r != NULL)
+		{
+
+			// char tappedOutPrimaryHomeland = false; //primaryHomeland is not in 2HOL
+
+			// tappedOutPrimaryHomeland =
+			runTapoutOperation(
+					inX, inY, r->limitX, r->limitY, r->gridSpacingX, r->gridSpacingY, inID, playerHasPrimaryHomeland);
+
+			r->buildCount++;
+
+			if (r->buildCountLimit != -1 && r->buildCount >= r->buildCountLimit)
+			{
+				// hit limit!
+				// tapout a larger radius now
+				// tappedOutPrimaryHomeland =
+				runTapoutOperation(inX,
+								   inY,
+								   r->postBuildLimitX,
+								   r->postBuildLimitY,
+								   r->gridSpacingX,
+								   r->gridSpacingY,
+								   inID,
+								   playerHasPrimaryHomeland,
+								   true);
+			}
+		}
+
+		currentResponsiblePlayer = restoreResponsiblePlayer;
+	}
+}
+
+/**
+ *
+ * @param inList
+ * @param inP
+ * @return
+ * @note from server/map.cpp
+ */
+int findGridPos(SimpleVector<GridPos> *inList, GridPos inP)
+{
+	for (int i = 0; i < inList->size(); i++)
+	{
+		GridPos q = inList->getElementDirect(i);
+		if (equal(inP, q)) { return i; }
+	}
+	return -1;
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inRadiusX
+ * @param inRadiusY
+ * @param inSpacingX
+ * @param inSpacingY
+ * @param inTriggerID
+ * @param inPlayerHasPrimaryHomeland
+ * @param inIsPost
+ * @return
+ * @note // returns true if tapout-triggered a +primaryHomeland object
+ */
+char runTapoutOperation(
+		int inX,
+		int                            inY,
+							   int                            inRadiusX,
+							   int                            inRadiusY,
+							   int                            inSpacingX,
+							   int                            inSpacingY,
+							   int                            inTriggerID,
+							   char                           inPlayerHasPrimaryHomeland,
+							   char                           inIsPost)
+{
+
+	char returnVal = false;
+
+	for (int y = inY - inRadiusY; y <= inY + inRadiusY; y += inSpacingY)
+	{
+
+		for (int x = inX - inRadiusX; x <= inX + inRadiusX; x += inSpacingX)
+		{
+
+			if (inX == x && inY == y)
+			{
+				// skip center
+				continue;
+			}
+
+			int id = getMapObjectRaw(x, y);
+
+			// change triggered by tapout represented by
+			// tapoutTrigger object getting used as actor
+			// on tapoutTarget
+			TransRecord *t = NULL;
+
+			int newTarget = -1;
+
+			if (!inIsPost)
+			{
+				// last use target signifies what happens in
+				// same row or column as inX, inY
+
+				// get eastward
+				t = getPTrans(inTriggerID, id, false, true);
+
+				if (t != NULL) { newTarget = t->newTarget; }
+
+				if (newTarget > 0) { newTarget = applyTapoutGradientRotate(inX, inY, x, y, newTarget); }
+			}
+
+			if (newTarget == -1)
+			{
+				// not same row or post or last-use-target trans undefined
+				t = getPTrans(inTriggerID, id);
+
+				if (t != NULL) { newTarget = t->newTarget; }
+			}
+
+			if (newTarget != -1)
+			{
+				ObjectRecord *nt = getObject(newTarget);
+
+				if (strstr(nt->description, "+primaryHomeland") != NULL)
+				{
+					if (inPlayerHasPrimaryHomeland)
+					{
+						// block creation of objects that require
+						// +primaryHomeland
+						// player already has a primary homeland
+
+						newTarget = -1;
+					}
+					else
+					{
+						// created a +primaryHomeland object
+						returnVal = true;
+					}
+				}
+			}
+
+			if (newTarget != -1)
+			{
+				setMapObjectRaw(x, y, newTarget);
+
+				TransRecord *newDecayT = getMetaTrans(-1, newTarget);
+
+				timeSec_t mapETA = 0;
+
+				if (newDecayT != NULL)
+				{
+
+					// add some random variation to avoid lock-step
+					// especially after a server restart
+					int tweakedSeconds = randSource.getRandomBoundedInt(
+							lrint(newDecayT->autoDecaySeconds * 0.9), newDecayT->autoDecaySeconds);
+
+					if (tweakedSeconds < 1) { tweakedSeconds = 1; }
+					mapETA = MAP_TIMESEC + tweakedSeconds;
+				}
+				else
+				{
+					// no further decay
+					mapETA = 0;
+				}
+
+				setEtaDecay(x, y, mapETA, newDecayT);
+			}
+		}
+	}
+
+	return returnVal;
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inTargetX
+ * @param inTargetY
+ * @param inEastwardGradientID
+ * @return
+ */
+int applyTapoutGradientRotate(int inX, int inY, int inTargetX, int inTargetY, int inEastwardGradientID)
+{
+	// apply result to itself to flip it
+	// and point gradient in other direction
+
+	// eastward + eastward = westward, etc
+
+	// order:  e, w, s, n, ne, se, sw, nw
+
+	int numRepeat = 0;
+
+	int curObjectID = inEastwardGradientID;
+
+	if (inX > inTargetX && inY == inTargetY) { numRepeat = 0; }
+	else if (inX < inTargetX && inY == inTargetY)
+	{
+		numRepeat = 1;
+	}
+	else if (inX == inTargetX && inY < inTargetY)
+	{
+		numRepeat = 2;
+	}
+	else if (inX == inTargetX && inY > inTargetY)
+	{
+		numRepeat = 3;
+	}
+	else if (inX > inTargetX && inY > inTargetY)
+	{
+		numRepeat = 4;
+	}
+	else if (inX > inTargetX && inY < inTargetY)
+	{
+		numRepeat = 5;
+	}
+	else if (inX < inTargetX && inY < inTargetY)
+	{
+		numRepeat = 6;
+	}
+	else if (inX < inTargetX && inY > inTargetY)
+	{
+		numRepeat = 7;
+	}
+
+	for (int i = 0; i < numRepeat; i++)
+	{
+		if (curObjectID == 0) { break; }
+		TransRecord *flipTrans = getPTrans(curObjectID, curObjectID);
+
+		if (flipTrans != NULL) { curObjectID = flipTrans->newTarget; }
+	}
+
+	if (curObjectID == 0) { return -1; }
+
+	return curObjectID;
+}
+
+void removeLandingPos(GridPos inPos)
+{
+	for (int i = 0; i < flightLandingPos.size(); i++)
+	{
+		if (equal(inPos, flightLandingPos.getElementDirect(i)))
+		{
+			flightLandingPos.deleteElement(i);
+			return;
+		}
+	}
+}
+
+/**
+ *
+ * @param inEmail
+ * @param inID
+ * @param outX
+ * @param outY
+ * @param inOtherPeoplePos
+ * @param inAllowRespawn
+ * // gets new Eve position on outskirts of civilization
+// if inAllowRespawn, this player's last Eve old-age-death will be
+// considered.
+ */
+void getEvePosition(const char *inEmail,
+					int                         inID,
+					int *                       outX,
+					int *                       outY,
+					SimpleVector<GridPos> *     inOtherPeoplePos,
+					char                        inAllowRespawn)
+{
+
+	int currentEveRadius = eveRadius;
+
+	char forceEveToBorder = false;
+
+	doublePair ave = {0, 0};
+
+	printf("Placing new Eve:  ");
+
+	int pX, pY, pR;
+
+	int result = eveDBGet(inEmail, &pX, &pY, &pR);
+
+	if (inAllowRespawn && result == 1 && pR > 0)
+	{
+		printf("Found camp center (%d,%d) r=%d in db for %s\n", pX, pY, pR, inEmail);
+
+		ave.x            = pX;
+		ave.y            = pY;
+		currentEveRadius = pR;
+	}
+	else
+	{
+		// player has never been an Eve that survived to old age before
+		// or such repawning forbidden by caller
+
+		maxEveLocationUsage = SettingsManager::getIntSetting("maxEveStartupLocationUsage", 10);
+
+		// first try new grid placement method
+
+		// actually skip this for now and go back to normal Eve spiral
+		if (false)
+			if (eveLocationUsage >= maxEveLocationUsage && evePrimaryLocObjectID > 0)
+			{
+
+				GridPos centerP = lastEvePrimaryLocation;
+
+				if (inOtherPeoplePos->size() > 0)
+				{
+
+					centerP = inOtherPeoplePos->getElementDirect(
+							randSource.getRandomBoundedInt(0, inOtherPeoplePos->size() - 1));
+
+					// round to nearest whole spacing multiple
+					centerP.x /= evePrimaryLocSpacing;
+					centerP.y /= evePrimaryLocSpacing;
+
+					centerP.x *= evePrimaryLocSpacing;
+					centerP.y *= evePrimaryLocSpacing;
+				}
+
+				GridPos tryP   = centerP;
+				char    found  = false;
+				GridPos foundP = tryP;
+
+				double curTime = Time::getCurrentTime();
+
+				int r;
+
+				int maxSearchRadius = 10;
+
+				// first, clean any that have timed out
+				// or gone extinct
+				for (int p = 0; p < recentlyUsedPrimaryEvePositions.size(); p++)
+				{
+
+					char reusePos = false;
+
+					if (curTime - recentlyUsedPrimaryEvePositionTimes.getElementDirect(p)
+						> recentlyUsedPrimaryEvePositionTimeout)
+					{
+						// timed out
+						reusePos = true;
+					}
+					else if (!doesEveLineExist(recentlyUsedPrimaryEvePositionPlayerIDs.getElementDirect(p)))
+					{
+						// eve line extinct
+						reusePos = true;
+					}
+
+					if (reusePos)
+					{
+						recentlyUsedPrimaryEvePositions.deleteElement(p);
+						recentlyUsedPrimaryEvePositionTimes.deleteElement(p);
+						recentlyUsedPrimaryEvePositionPlayerIDs.deleteElement(p);
+						p--;
+					}
+				}
+
+				for (r = 1; r < maxSearchRadius; r++)
+				{
+
+					for (int y = -r; y <= r; y++)
+					{
+						for (int x = -r; x <= r; x++)
+						{
+							tryP = centerP;
+
+							tryP.x += x * evePrimaryLocSpacing;
+							tryP.y += y * evePrimaryLocSpacing;
+
+							char existsAlready = false;
+
+							for (int p = 0; p < recentlyUsedPrimaryEvePositions.size(); p++)
+							{
+
+								GridPos pos = recentlyUsedPrimaryEvePositions.getElementDirect(p);
+
+								if (equal(pos, tryP))
+								{
+									existsAlready = true;
+									break;
+								}
+							}
+
+							if (existsAlready) { continue; }
+							else
+							{
+							}
+
+							int mapID = getMapObject(tryP.x, tryP.y);
+
+							if (mapID == evePrimaryLocObjectID)
+							{
+								printf("Found primary Eve object at %d,%d\n", tryP.x, tryP.y);
+								found  = true;
+								foundP = tryP;
+							}
+							else if (eveSecondaryLocObjectIDs.getElementIndex(mapID) != -1)
+							{
+								// a secondary ID, allowed
+								printf("Found secondary Eve object at %d,%d\n", tryP.x, tryP.y);
+								found  = true;
+								foundP = tryP;
+							}
+						}
+
+						if (found) break;
+					}
+					if (found) break;
+				}
+
+				if (found)
+				{
+
+					if (r >= maxSearchRadius / 2)
+					{
+						// exhausted central window around last eve center
+						// save this as the new eve center
+						// next time, we'll search a window around that
+
+						AppLog::infoF("Eve pos %d,%d not in center of "
+									  "grid window, recentering window for "
+									  "next time",
+									  foundP.x,
+									  foundP.y);
+
+						lastEvePrimaryLocation = foundP;
+					}
+
+					AppLog::infoF("Sticking Eve at unused primary grid pos "
+								  "of %d,%d\n",
+								  foundP.x,
+								  foundP.y);
+
+					recentlyUsedPrimaryEvePositions.push_back(foundP);
+					recentlyUsedPrimaryEvePositionTimes.push_back(curTime);
+					recentlyUsedPrimaryEvePositionPlayerIDs.push_back(inID);
+
+					// stick Eve directly to south
+					*outX = foundP.x;
+					*outY = foundP.y - 1;
+
+					if (eveHomeMarkerObjectID > 0)
+					{
+						// stick home marker there
+						setMapObject(*outX, *outY, eveHomeMarkerObjectID);
+					}
+					else
+					{
+						// make it empty
+						setMapObject(*outX, *outY, 0);
+					}
+
+					// clear a few more objects to the south, to make
+					// sure Eve's spring doesn't spawn behind a tree
+					setMapObject(*outX, *outY - 1, 0);
+					setMapObject(*outX, *outY - 2, 0);
+					setMapObject(*outX, *outY - 3, 0);
+
+					// finally, prevent Eve entrapment by sticking
+					// her at a random location around the spring
+
+					doublePair v = {14, 0};
+					v            = rotate(v, randSource.getRandomBoundedInt(0, 2 * M_PI));
+
+					*outX += v.x;
+					*outY += v.y;
+
+					return;
+				}
+				else
+				{
+					AppLog::info("Unable to find location for Eve "
+								 "on primary grid.");
+				}
+			}
+
+		// Spiral method:
+		GridPos eveLocToUse = eveLocation;
+
+		int jumpUsed = 0;
+
+		if (eveLocationUsage < maxEveLocationUsage)
+		{
+			eveLocationUsage++;
+			// keep using same location
+
+			printf("Reusing same eve start-up location "
+				   "of %d,%d for %dth time\n",
+				   eveLocation.x,
+				   eveLocation.y,
+				   eveLocationUsage);
+
+			// remember it for when we exhaust it
+			if (evePrimaryLocObjectID > 0 && evePrimaryLocSpacing > 0)
+			{
+
+				lastEvePrimaryLocation = eveLocation;
+				// round to nearest whole spacing multiple
+				lastEvePrimaryLocation.x /= evePrimaryLocSpacing;
+				lastEvePrimaryLocation.y /= evePrimaryLocSpacing;
+
+				lastEvePrimaryLocation.x *= evePrimaryLocSpacing;
+				lastEvePrimaryLocation.y *= evePrimaryLocSpacing;
+
+				printf("Saving eve start-up location close grid pos "
+					   "of %d,%d for later\n",
+					   lastEvePrimaryLocation.x,
+					   lastEvePrimaryLocation.y);
+			}
+		}
+		else
+		{
+			// post-startup eve location has been used too many times
+			// place eves on spiral instead
+
+			if (abs(eveLocToUse.x) > 100000 || abs(eveLocToUse.y) > 100000)
+			{
+				// we've gotten to far away from center over time
+
+				// re-center spiral on center to rein things in
+
+				// we'll end up saving a position on the arm of this new
+				// centered spiral for future start-ups, so the eve
+				// location can move out from here
+				eveLocToUse.x = 0;
+				eveLocToUse.y = 0;
+
+				eveStartSpiralPosSet = false;
+			}
+
+			if (eveStartSpiralPosSet && longTermCullEnabled)
+			{
+
+				int longTermCullingSeconds = SettingsManager::getIntSetting("longTermNoLookCullSeconds", 3600 * 12);
+
+				// see how long center has not been seen
+				// if it's old enough, we can reset Eve angle and restart
+				// spiral there again
+				// this will bring Eves closer together again, after
+				// rim of spiral gets too far away
+
+				timeSec_t lastLookTime = dbLookTimeGet(eveStartSpiralPos.x, eveStartSpiralPos.y);
+
+				if (Time::getCurrentTime() - lastLookTime > longTermCullingSeconds * 2)
+				{
+					// double cull start time
+					// that should be enough for the center to actually have
+					// started getting culled, and then some
+
+					// restart the spiral
+					eveAngle    = 2 * M_PI;
+					eveLocToUse = eveLocation;
+
+					eveStartSpiralPosSet = false;
+				}
+			}
+
+			int jump = SettingsManager::getIntSetting("nextEveJump", 2000);
+			jumpUsed = jump;
+
+			// advance eve angle along spiral
+			// approximate recursive form
+			eveAngle = eveAngle + (2 * M_PI) / eveAngle;
+
+			// exact formula for radius along spiral from angle
+			double radius = (jump * eveAngle) / (2 * M_PI);
+
+			doublePair delta = {radius, 0};
+			delta            = rotate(delta, eveAngle);
+
+			// but don't update the post-startup location
+			// keep jumping away from startup-location as center of spiral
+			eveLocToUse.x += lrint(delta.x);
+			eveLocToUse.y += lrint(delta.y);
+
+			if (barrierOn &&
+				// we use jumpUsed / 3 as randomizing radius below
+				// so jumpUsed / 2 is safe here
+				(abs(eveLocToUse.x) > barrierRadius - jumpUsed / 2
+				 || abs(eveLocToUse.y) > barrierRadius - jumpUsed / 2))
+			{
+
+				// Eve has gotten too close to the barrier
+
+				// hard reset of location back to (0,0)-centered spiral
+				eveAngle = 2 * M_PI;
+
+				eveLocation.x = 0;
+				eveLocation.y = 0;
+				eveLocToUse   = eveLocation;
+
+				eveStartSpiralPosSet = false;
+			}
+
+			// but do save it as a possible post-startup location for next time
+			File  eveLocFile(NULL, "lastEveLocation.txt");
+			char *locString = autoSprintf("%d,%d", eveLocToUse.x, eveLocToUse.y);
+			eveLocFile.writeToFile(locString);
+			delete[] locString;
+		}
+
+		ave.x = eveLocToUse.x;
+		ave.y = eveLocToUse.y;
+
+		// put Eve in radius 50 around this location
+		forceEveToBorder = true;
+		currentEveRadius = 50;
+
+		if (jumpUsed > 3 && currentEveRadius > jumpUsed / 3) { currentEveRadius = jumpUsed / 3; }
+	}
+
+	// pick point in box according to eve radius
+
+	char found = 0;
+
+	if (currentEveRadius < 1) { currentEveRadius = 1; }
+
+	while (!found)
+	{
+		printf("Placing new Eve:  "
+			   "trying radius of %d from camp\n",
+			   currentEveRadius);
+
+		int tryCount = 0;
+
+		while (!found && tryCount < 100)
+		{
+
+			doublePair p = {randSource.getRandomBoundedDouble(-currentEveRadius, +currentEveRadius),
+							randSource.getRandomBoundedDouble(-currentEveRadius, +currentEveRadius)};
+
+			if (forceEveToBorder)
+			{
+				// or pick ap point on the circle instead
+				p.x = currentEveRadius;
+				p.y = 0;
+
+				double a = randSource.getRandomBoundedDouble(0, 2 * M_PI);
+				p        = rotate(p, a);
+			}
+
+			p = add(p, ave);
+
+			GridPos pInt = {(int)lrint(p.x), (int)lrint(p.y)};
+
+			if (getMapObjectRaw(pInt.x, pInt.y) == 0)
+			{
+
+				*outX = pInt.x;
+				*outY = pInt.y;
+
+				if (!eveStartSpiralPosSet)
+				{
+					eveStartSpiralPos    = pInt;
+					eveStartSpiralPosSet = true;
+				}
+
+				found = true;
+			}
+
+			tryCount++;
+		}
+
+		// tried too many times, expand radius
+		currentEveRadius *= 2;
+	}
+
+	// clear recent placements after placing a new Eve
+	// let her make new placements in her life which we will remember
+	// later
+
+	clearRecentPlacements();
 }

@@ -8,5 +8,6 @@
 #include "../../third_party/minorGems/util/SimpleVector.h"
 
 void getSpeechPipesIn( int inX, int inY, SimpleVector<int> *outIndicies );
+int getMaxSpeechPipeIndex();
 
 #endif //INC_2HOL_SPEECH_H

@@ -13,6 +13,7 @@
 //  <time.h> added to add time stamps to recorded data
 #include <time.h>
 
+#include "Server.h"
 
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
@@ -237,6 +238,8 @@ static double lastBabyPassedThresholdTime = 0;
 
 
 static double eveWindowStart = 0;
+
+OneLife::Server* oneLifeServer = nullptr;
 
 
 typedef struct PeaceTreaty {
@@ -8851,62 +8854,6 @@ static char addHeldToClothingContainer( LiveObject *inPlayer,
     }
 
 
-
-static void changeContained( int inX, int inY, int inSlotNumber, 
-                             int inNewObjectID ) {
-    
-    int numContained = 0;
-    int *contained = getContained( inX, inY, &numContained );
-
-    timeSec_t *containedETA = 
-        getContainedEtaDecay( inX, inY, &numContained );
-    
-    timeSec_t curTimeSec = Time::timeSec();
-    
-    if( contained != NULL && containedETA != NULL &&
-        numContained > inSlotNumber ) {
-    
-        int oldObjectID = contained[ inSlotNumber ];
-        timeSec_t oldETA = containedETA[ inSlotNumber ];
-        
-        if( oldObjectID > 0 ) {
-            
-            TransRecord *oldDecayTrans = getTrans( -1, oldObjectID );
-
-            TransRecord *newDecayTrans = getTrans( -1, inNewObjectID );
-            
-
-            timeSec_t newETA = 0;
-            
-            if( newDecayTrans != NULL ) {
-                newETA = curTimeSec + newDecayTrans->autoDecaySeconds;
-                }
-            
-            if( oldDecayTrans != NULL && newDecayTrans != NULL &&
-                oldDecayTrans->autoDecaySeconds == 
-                newDecayTrans->autoDecaySeconds ) {
-                // preserve remaining seconds from old object
-                newETA = oldETA;
-                }
-            
-            contained[ inSlotNumber ] = inNewObjectID;
-            containedETA[ inSlotNumber ] = newETA;
-
-            setContained( inX, inY, numContained, contained );
-            setContainedEtaDecay( inX, inY, numContained, containedETA );
-            }
-        }
-
-    if( contained != NULL ) {
-        delete [] contained;
-        }
-    if( containedETA != NULL ) {
-        delete [] containedETA;
-        }
-    }
-
-
-
 static void setHeldGraveOrigin( LiveObject *inPlayer, int inX, int inY,
                                 int inNewTarget ) {
     // make sure that there is nothing left there
@@ -9892,7 +9839,7 @@ void apocalypseStep() {
                 reseedMap( true );
 
                 //!
-				OneLife::server::Map::init();
+				oneLifeServer->initMap();
                 
                 AppLog::infoF( "Apocalypse initMap took %f sec", Time::getCurrentTime() - startTime );
                 
@@ -11549,9 +11496,9 @@ static void sendCraving( LiveObject *inPlayer ) {
     }
 
 
-
-
-int main() {
+int main()
+{
+	oneLifeServer = new OneLife::Server();
 
     if( checkReadOnly() ) {
         printf( "File system read-only.  Server exiting.\n" );
@@ -11843,10 +11790,11 @@ int main() {
     initTriggers();
 
 
-    if( OneLife::server::Map::init() != true ) {
+    if(oneLifeServer->initMap() != true )
+    {
         // cannot continue after map init fails
         return 1;
-        }
+	}
     
 
 

@@ -9,7 +9,7 @@
 #include "Map.h"
 
 int numSpeechPipes = 0;
-
+int maxSpeechPipeIndex = 0;
 SimpleVector<GridPos> *speechPipesIn = NULL;
 SimpleVector<GridPos> *speechPipesOut = NULL;
 
@@ -56,4 +56,14 @@ void getSpeechPipesIn(int inX, int inY, SimpleVector<int> *outIndicies)
 			}
 		}
 	}
+}
+
+/**
+ *
+ * @return
+ * @note from gameSource/objectBank.cpp
+ */
+int getMaxSpeechPipeIndex()
+{
+	return maxSpeechPipeIndex;
 }

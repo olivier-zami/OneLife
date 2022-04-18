@@ -45,12 +45,7 @@ void doubleEveRadius();
 void resetEveRadius();
 
 
-// gets new Eve position on outskirts of civilization
-// if inAllowRespawn, this player's last Eve old-age-death will be
-// considered.
-void getEvePosition( const char *inEmail, int inID, int *outX, int *outY,
-                     SimpleVector<GridPos> *inOtherPeoplePos,
-                     char inAllowRespawn = true );
+
 
 
 // save recent placements on Eve's death so that this player can spawn
@@ -85,10 +80,6 @@ char isMapSpotBlocking( int inX, int inY );
 // is the object returned by getMapObject still in motion with
 // destination inX, inY
 char isMapObjectInTransit( int inX, int inY );
-
-
-void setMapObject( int inX, int inY, int inID );
-
 
 void setEtaDecay( int inX, int inY, timeSec_t inAbsoluteTimeInSeconds,
                   TransRecord *inApplicableTrans = NULL );
@@ -246,11 +237,6 @@ char loadTutorialStart( TutorialLoadProgress *inTutorialLoad,
 char loadTutorialStep( TutorialLoadProgress *inTutorialLoad,
                        double inTimeLimitSec );
 
-
-
-
-#define MAP_METADATA_LENGTH 128
-
 // inBuffer must be at least MAP_METADATA_LENGTH bytes
 // returns true if metadata found
 char getMetadata( int inMapID, unsigned char *inBuffer );
@@ -286,10 +272,5 @@ void setGravePlayerID( int inX, int inY, int inPlayerID );
 
 // culling regions of map that haven't been seen in a long time
 void stepMapLongTermCulling( int inNumCurrentPlayers );
-
-
-void setupMapChangeLogFile();
-
-
 
 #endif

@@ -237,3 +237,37 @@ int computeXYCacheHash(int inKeyA, int inKeyB)
 	if (hashKey < 0) { hashKey += BIOME_CACHE_SIZE; }
 	return hashKey;
 }
+
+/**
+ *
+ * @param inEmail
+ * @param outX
+ * @param outY
+ * @param outRadius
+ * @return
+ * @note returns -1 on failure, 1 on success
+ */
+int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius)
+{
+	unsigned char key[50];
+
+	unsigned char value[12];
+
+	emailToKey(inEmail, key);
+
+	int result = DB_get(&eveDB, key, value);
+
+	if (result == 0)
+	{
+		// found
+		*outX      = valueToInt(&(value[0]));
+		*outY      = valueToInt(&(value[4]));
+		*outRadius = valueToInt(&(value[8]));
+
+		return 1;
+	}
+	else
+	{
+		return -1;
+	}
+}

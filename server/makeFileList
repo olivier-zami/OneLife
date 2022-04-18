@@ -23,7 +23,8 @@ CUSTOM_LINUX_LINK_FLAGS =
 
 
 LAYER_SOURCE = \
-server.cpp \
+main.cpp \
+Server.cpp \
 map.cpp \
 component/Map.cpp \
 component/Speech.cpp \

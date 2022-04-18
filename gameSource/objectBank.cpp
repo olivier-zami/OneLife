@@ -26,6 +26,8 @@
 
 #include "animationBank.h"
 
+extern int maxSpeechPipeIndex;
+
 
 static int mapSize;
 // maps IDs to records
@@ -475,11 +477,6 @@ static void setupObjectGlobalTriggers( ObjectRecord *inR ) {
         }
     }
 
-
-
-static int maxSpeechPipeIndex = 0;
-
-
 static void setupObjectSpeechPipe( ObjectRecord *inR ) {
     inR->speechPipeIn = false;
     inR->speechPipeOut = false;
@@ -761,14 +758,6 @@ static void setupAlcohol( ObjectRecord *inR ) {
         sscanf( pos, "+alcohol%d", &( inR->alcohol ) );
         }
     }
-
-
-
-int getMaxSpeechPipeIndex() {
-    return maxSpeechPipeIndex;
-    }
-
-
 
 float initObjectBankStep() {
         
