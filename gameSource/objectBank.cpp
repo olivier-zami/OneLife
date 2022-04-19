@@ -26,7 +26,7 @@
 
 #include "animationBank.h"
 
-extern int maxSpeechPipeIndex;
+int maxSpeechPipeIndex = 0;
 
 
 static int mapSize;
@@ -51,7 +51,7 @@ static SimpleVector<int> monumentCallObjectIDs;
 static SimpleVector<int> deathMarkerObjectIDs;
 
 
-// an extended list including special-case death markers 
+// an extended list including special-case death markers
 // (marked with fromDeath in description)
 static SimpleVector<int> allPossibleDeathMarkerIDs;
 
@@ -112,7 +112,7 @@ static int recomputeObjectHeight(  int inNumSprites, int *inSprites,
 
 static void rebuildRaceList() {
     raceList.deleteAll();
-    
+
     for( int i=0; i <= MAX_RACE; i++ ) {
         if( racePersonObjectIDs[ i ].size() > 0 ) {
             raceList.push_back( i );
@@ -122,13 +122,13 @@ static void rebuildRaceList() {
 
             SimpleVector<int> boys;
             SimpleVector<int> girls;
-            
+
             for( int j=0; j<num; j++ ) {
-                
+
                 int id = racePersonObjectIDs[i].getElementDirect( j );
-                
+
                 ObjectRecord *o = getObject( id );
-                
+
                 if( o->male ) {
                     boys.push_back( id );
                     }
@@ -136,33 +136,33 @@ static void rebuildRaceList() {
                     girls.push_back( id );
                     }
                 }
-            
+
             racePersonObjectIDs[i].deleteAll();
-            
+
             int boyIndex = 0;
             int girlIndex = 0;
-            
+
             int boysLeft = boys.size();
             int girlsLeft = girls.size();
 
             int flip = 0;
-            
+
             for( int j=0; j<num; j++ ) {
-                
-                if( ( flip && boysLeft > 0 ) 
+
+                if( ( flip && boysLeft > 0 )
                     ||
                     girlsLeft == 0 ) {
-                    
-                    racePersonObjectIDs[i].push_back( 
+
+                    racePersonObjectIDs[i].push_back(
                         boys.getElementDirect( boyIndex ) );
-                    
+
                     boysLeft--;
                     boyIndex++;
                     }
                 else {
-                    racePersonObjectIDs[i].push_back( 
+                    racePersonObjectIDs[i].push_back(
                         girls.getElementDirect( girlIndex ) );
-                    
+
                     girlsLeft--;
                     girlIndex++;
                     }
@@ -187,22 +187,22 @@ void setObjectBankTrippingEffect( bool isTripping ) {
     }
 
 void setTrippingColor( double x, double y ) {
-	
+
 	// Nothing fancy, just wanna map the screen x, y into [0, 1]
 	// So hue change is continuous across the screen
 	double factor = (int)(abs(x + 2 * y) / 3 / 128) % 10;
 	factor /= 10;
-	
+
 	double curTime = Time::getCurrentTime();
-	
+
 	// Time between each color change
-	int period = 2; 
-	
+	int period = 2;
+
 	int t1 = (int)curTime;
 	int t_progress = (int)t1 % period;
 	if( t_progress != 0 ) t1 -= t_progress;
 	int t2 = t1 + period;
-	
+
 	randSource.reseed( t1 );
 	double r1 = randSource.getRandomBoundedDouble( 0, 1 );
 	double g1 = randSource.getRandomBoundedDouble( 0, 1 );
@@ -213,7 +213,7 @@ void setTrippingColor( double x, double y ) {
 	r1 = r1 - (int)r1;
 	g1 = g1 - (int)g1;
 	b1 = b1 - (int)b1;
-	
+
 	randSource.reseed( t2 );
 	double r2 = randSource.getRandomBoundedDouble( 0, 1 );
 	double g2 = randSource.getRandomBoundedDouble( 0, 1 );
@@ -230,7 +230,7 @@ void setTrippingColor( double x, double y ) {
 	double g = (g2 - g1) * (curTime - t1) / period + g1;
 	double b = (b2 - b1) * (curTime - t1) / period + b1;
 	setDrawColor( r, g, b, 1 );
-	
+
 	}
 
 
@@ -257,8 +257,8 @@ int getMaxObjectID() {
 
 
 void setDrawColor( FloatRGB inColor ) {
-    setDrawColor( inColor.r, 
-                  inColor.g, 
+    setDrawColor( inColor.r,
+                  inColor.g,
                   inColor.b,
                   1 );
     }
@@ -269,13 +269,13 @@ static char autoGenerateUsedObjects = false;
 static char autoGenerateVariableObjects = false;
 
 
-int initObjectBankStart( char *outRebuildingCache, 
+int initObjectBankStart( char *outRebuildingCache,
                          char inAutoGenerateUsedObjects,
                          char inAutoGenerateVariableObjects ) {
     maxID = 0;
 
     currentFile = 0;
-    
+
 
     cache = initFolderCache( "objects", outRebuildingCache );
 
@@ -291,7 +291,7 @@ int initObjectBankStart( char *outRebuildingCache,
 char *boolArrayToSparseCommaString( const char *inLineName,
                                     char *inArray, int inLength ) {
     char numberBuffer[20];
-    
+
     SimpleVector<char> resultBuffer;
 
 
@@ -301,23 +301,23 @@ char *boolArrayToSparseCommaString( const char *inLineName,
     char firstWritten = false;
     for( int i=0; i<inLength; i++ ) {
         if( inArray[i] ) {
-            
+
             if( firstWritten ) {
                 resultBuffer.push_back( ',' );
                 }
-            
+
             sprintf( numberBuffer, "%d", i );
-            
+
             resultBuffer.appendElementString( numberBuffer );
-            
+
             firstWritten = true;
             }
         }
-    
+
     if( !firstWritten ) {
         resultBuffer.appendElementString( "-1" );
         }
-    
+
     return resultBuffer.getElementString();
     }
 
@@ -333,27 +333,27 @@ void sparseCommaLineToBoolArray( const char *inExpectedLineName,
                 inExpectedLineName, inLine );
         return;
         }
-    
+
 
     char *listStart = strstr( inLine, "=" );
-    
+
     if( listStart == NULL ) {
         printf( "Expected character '=' not found in line %s\n",
                 inLine );
         return;
         }
-    
+
     listStart = &( listStart[1] );
-    
-    
+
+
     int numParts;
     char **listNumberStrings = split( listStart, ",", &numParts );
-    
+
 
     for( int i=0; i<numParts; i++ ) {
-        
+
         int scannedInt = -1;
-        
+
         sscanf( listNumberStrings[i], "%d", &scannedInt );
 
         if( scannedInt >= 0 &&
@@ -368,13 +368,13 @@ void sparseCommaLineToBoolArray( const char *inExpectedLineName,
 
 
 
-static void fillObjectBiomeFromString( ObjectRecord *inRecord, 
-                                       char *inBiomes ) {    
-    char **biomeParts = split( inBiomes, ",", &( inRecord->numBiomes ) );    
+static void fillObjectBiomeFromString( ObjectRecord *inRecord,
+                                       char *inBiomes ) {
+    char **biomeParts = split( inBiomes, ",", &( inRecord->numBiomes ) );
     inRecord->biomes = new int[ inRecord->numBiomes ];
     for( int i=0; i< inRecord->numBiomes; i++ ) {
         sscanf( biomeParts[i], "%d", &( inRecord->biomes[i] ) );
-        
+
         delete [] biomeParts[i];
         }
     delete [] biomeParts;
@@ -384,7 +384,7 @@ static void fillObjectBiomeFromString( ObjectRecord *inRecord,
 
 static void setupEyesAndMouth( ObjectRecord *inR ) {
     ObjectRecord *r = inR;
-    
+
     r->spriteIsEyes = new char[ r->numSprites ];
     r->spriteIsMouth = new char[ r->numSprites ];
 
@@ -395,12 +395,12 @@ static void setupEyesAndMouth( ObjectRecord *inR ) {
     r->mainEyesOffset.y = 0;
 
     if( r->person && isSpriteBankLoaded() ) {
-        
+
         int headIndex = getHeadIndex( r, 30 );
 
         for( int i = 0; i < r->numSprites; i++ ) {
             char *tag = getSpriteTag( r->sprites[i] );
-            
+
             if( tag != NULL && strstr( tag, "Eyes" ) != NULL ) {
                 r->spriteIsEyes[ i ] = true;
                 }
@@ -408,14 +408,14 @@ static void setupEyesAndMouth( ObjectRecord *inR ) {
                 r->spriteIsMouth[ i ] = true;
                 }
 
-            if( r->spriteIsEyes[i] && 
+            if( r->spriteIsEyes[i] &&
                 r->spriteAgeStart[i] < 30 && r->spriteAgeEnd[i] > 30 ) {
-                
-                r->mainEyesOffset = 
+
+                r->mainEyesOffset =
                     sub( r->spritePos[i], r->spritePos[ headIndex ] );
                 }
             }
-        } 
+        }
     }
 
 
@@ -423,10 +423,10 @@ static void setupEyesAndMouth( ObjectRecord *inR ) {
 
 static void setupObjectWritingStatus( ObjectRecord *inR ) {
     inR->mayHaveMetadata = false;
-                
+
     inR->written = false;
     inR->writable = false;
-                
+
     if( strstr( inR->description, "&" ) != NULL ) {
         // some flags in name
         if( strstr( inR->description, "&written" ) != NULL ) {
@@ -438,11 +438,11 @@ static void setupObjectWritingStatus( ObjectRecord *inR ) {
             inR->mayHaveMetadata = true;
             }
         }
-	
+
 	//2HOL mechanics to read written objects
 	inR->clickToRead = false;
 	inR->passToRead = false;
-		
+
     if( strstr( inR->description, "+" ) != NULL ) {
         if( strstr( inR->description, "+clickToRead" ) != NULL ) {
             inR->clickToRead = true;
@@ -463,7 +463,7 @@ static void setupObjectGlobalTriggers( ObjectRecord *inR ) {
     inR->globalTriggerIndex = -1;
 
     if( strstr( inR->description, "*" ) != NULL ) {
-        inR->isGlobalTriggerOn = true;        
+        inR->isGlobalTriggerOn = true;
         }
     else if( strstr( inR->description, "!" ) != NULL ) {
         inR->isGlobalTriggerOff = true;
@@ -480,7 +480,7 @@ static void setupObjectGlobalTriggers( ObjectRecord *inR ) {
 static void setupObjectSpeechPipe( ObjectRecord *inR ) {
     inR->speechPipeIn = false;
     inR->speechPipeOut = false;
-    
+
     inR->speechPipeIndex = -1;
 
     if( strstr( inR->description, "speech" ) == NULL ) {
@@ -489,20 +489,20 @@ static void setupObjectSpeechPipe( ObjectRecord *inR ) {
 
     char *inLoc = strstr( inR->description, "speechIn_" );
     if( inLoc != NULL ) {
-        inR->speechPipeIn = true;        
-        
+        inR->speechPipeIn = true;
+
         char *indexLoc = &( inLoc[ strlen( "speechIn_" ) ] );
-        
+
         sscanf( indexLoc, "%d", &( inR->speechPipeIndex ) );
         }
     else {
-        
+
         char *outLoc = strstr( inR->description, "speechOut_" );
         if( outLoc != NULL ) {
             inR->speechPipeOut = true;
-            
+
             char *indexLoc = &( outLoc[ strlen( "speechOut_" ) ] );
-        
+
             sscanf( indexLoc, "%d", &( inR->speechPipeIndex ) );
             }
         }

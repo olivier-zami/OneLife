@@ -9,7 +9,7 @@
 #include "Map.h"
 
 int numSpeechPipes = 0;
-int maxSpeechPipeIndex = 0;
+extern int maxSpeechPipeIndex;//TODO in gameSource/objectBanck.cpp isolate var
 SimpleVector<GridPos> *speechPipesIn = NULL;
 SimpleVector<GridPos> *speechPipesOut = NULL;
 

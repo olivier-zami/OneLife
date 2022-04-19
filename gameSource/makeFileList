@@ -46,8 +46,6 @@ LoadingPage.cpp \
 folderCache.cpp \
 binFolderCache.cpp \
 liveObjectSet.cpp \
-../commonSource/fractalNoise.cpp \
-../commonSource/sayLimit.cpp \
 ExistingAccountPage.cpp \
 KeyEquivalentTextButton.cpp \
 ServerActionPage.cpp \
@@ -81,6 +79,9 @@ lifeTokens.cpp \
 PollPage.cpp \
 fitnessScore.cpp \
 GeneticHistoryPage.cpp \
+../commonSource/fractalNoise.cpp \
+../commonSource/math/GridPos.cpp \
+../commonSource/sayLimit.cpp \
 
 
 
