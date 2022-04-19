@@ -14,9 +14,8 @@ namespace OneLife
 			~Server();
 
 			bool initMap();
+			void routine_dbPut();
 	};
 }
-
-void changeContained( int inX, int inY, int inSlotNumber, int inNewObjectID );
 
 #endif //ONELIFE_SERVER_H

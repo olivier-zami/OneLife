@@ -101,7 +101,6 @@ int dbGet(int inX, int inY, int inSlot, int inSubCont = 0);
 void dbPutCached(int inX, int inY, int inSlot, int inSubCont, int inValue);
 int dbGetCached(int inX, int inY, int inSlot, int inSubCont);
 int computeDBCacheHash(int inKeyA, int inKeyB, int inKeyC, int inKeyD);
-void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont);
 void blockingClearCached(int inX, int inY);
 int computeXYCacheHash(int inKeyA, int inKeyB);
 int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius);

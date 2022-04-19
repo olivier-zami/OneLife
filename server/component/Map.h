@@ -43,11 +43,6 @@ namespace OneLife::server
 	};
 }
 
-inline void changeContained(int inX, int inY, int inSlot, int inSubCont, int inID)
-{
-	dbPut(inX, inY, FIRST_CONT_SLOT + inSlot, inID, inSubCont);
-}
-
 int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex = NULL, double *outSecondPlaceGap = NULL);
 char loadIntoMapFromFile(FILE *inFile, int inOffsetX = 0, int inOffsetY = 0, double inTimeLimitSec = 0);
 void clearRecentPlacements();
@@ -97,5 +92,8 @@ char runTapoutOperation(int inX,
 void getEvePosition( const char *inEmail, int inID, int *outX, int *outY,
 					 SimpleVector<GridPos> *inOtherPeoplePos,
 					 char inAllowRespawn = true );
+void changeContained( int inX, int inY, int inSlotNumber, int inNewObjectID);
+void changeContained(int inX, int inY, int inSlot, int inSubCont, int inID);
+void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont);
 
 #endif //ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H

@@ -29,9 +29,6 @@ extern DB   metaDB;
 extern char metaDBOpen;
 
 extern char skipTrackingMapChanges;
-extern int apocalypsePossible;
-extern char apocalypseTriggered;
-extern GridPos apocalypseLocation;
 
 BlockingCacheRecord blockingCache[DB_CACHE_SIZE];
 RecentPlacement recentPlacements[NUM_RECENT_PLACEMENTS];
@@ -40,10 +37,6 @@ DBTimeCacheRecord dbTimeCache[DB_CACHE_SIZE];
 DBCacheRecord dbCache[DB_CACHE_SIZE];
 
 int currentResponsiblePlayer = -1;
-
-// track all map changes that happened since the last
-// call to stepMap
-SimpleVector<ChangePosition> mapChangePosSinceLastStep;
 
 /**
  *
@@ -130,90 +123,6 @@ int computeDBCacheHash(int inKeyA, int inKeyB, int inKeyC, int inKeyD)
 				  % DB_CACHE_SIZE;
 	if (hashKey < 0) { hashKey += DB_CACHE_SIZE; }
 	return hashKey;
-}
-
-/**
- *
- * @param inX
- * @param inY
- * @param inSlot
- * @param inValue
- * @param inSubCont
- * @note from server/map.cpp
- */
-void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont)
-{
-
-	if (inSlot == 0 && inSubCont == 0)
-	{
-		// object has changed
-		// clear blocking cache
-		blockingClearCached(inX, inY);
-	}
-
-	if (!skipTrackingMapChanges)
-	{
-
-		// count all slot changes as changes, because we're storing
-		// time in a separate database now (so we don't need to worry
-		// about time changes being reported as map changes)
-
-		char found = false;
-		for (int i = 0; i < mapChangePosSinceLastStep.size(); i++)
-		{
-
-			ChangePosition *p = mapChangePosSinceLastStep.getElement(i);
-
-			if (p->x == inX && p->y == inY)
-			{
-				found = true;
-
-				// update it
-				p->responsiblePlayerID = currentResponsiblePlayer;
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			ChangePosition p = {inX, inY, false, currentResponsiblePlayer, 0, 0, 0.0};
-			mapChangePosSinceLastStep.push_back(p);
-		}
-	}
-
-	if (apocalypsePossible && inValue > 0 && inSlot == 0 && inSubCont == 0)
-	{
-		// a primary tile put
-		// check if this triggers the apocalypse
-		if (isApocalypseTrigger(inValue))
-		{
-			apocalypseTriggered  = true;
-			apocalypseLocation.x = inX;
-			apocalypseLocation.y = inY;
-		}
-	}
-	if (inValue > 0 && inSlot == 0 && inSubCont == 0)
-	{
-
-		int status = getMonumentStatus(inValue);
-
-		if (status > 0)
-		{
-			int player = currentResponsiblePlayer;
-			if (player < 0) { player = -player; }
-			monumentAction(inX, inY, inValue, player, status);
-		}
-	}
-
-	unsigned char key[16];
-	unsigned char value[4];
-
-	intQuadToKey(inX, inY, inSlot, inSubCont, key);
-	intToValue(inValue, value);
-
-	DB_put(&db, key, value);
-
-	dbPutCached(inX, inY, inSlot, inSubCont, inValue);
 }
 
 /**

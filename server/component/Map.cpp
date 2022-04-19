@@ -18,8 +18,9 @@
 #include "../../commonSource/fractalNoise.h"
 #include "../../commonSource/math/misc.h"
 #include "../arcReport.h"
-#include "../map.h"
 #include "../dbCommon.h"
+#include "../map.h"
+#include "../monument.h"
 
 #include "database/LinearDB.h"
 
@@ -42,6 +43,9 @@ extern double mapChangeLogTimeStart;
 extern int currentResponsiblePlayer;
 extern int evePrimaryLocObjectID;
 extern int evePrimaryLocSpacing;
+extern int apocalypsePossible;
+extern char apocalypseTriggered;
+extern GridPos apocalypseLocation;
 extern char doesEveLineExist(int inEveID);
 
 // object ids that occur naturally on map at random, per biome
@@ -106,6 +110,7 @@ SimpleVector<int> allNaturalMapIDs;
 SimpleVector<int> *  naturalMapIDs;// one vector per biome
 SimpleVector<float> *naturalMapChances;
 SimpleVector<GridPos> flightLandingPos;
+SimpleVector<ChangePosition> mapChangePosSinceLastStep;// track all map changes that happened since the last// call to stepMap
 
 DB db;
 char dbOpen = false;
@@ -2049,4 +2054,163 @@ void getEvePosition(const char *inEmail,
 	// later
 
 	clearRecentPlacements();
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inSlotNumber
+ * @param inNewObjectID
+ * @note from server/server.cpp => server/main.cpp
+ */
+void changeContained(int inX, int inY, int inSlotNumber, int inNewObjectID ) {
+
+	int numContained = 0;
+	int *contained = getContained( inX, inY, &numContained );
+
+	timeSec_t *containedETA =
+			getContainedEtaDecay( inX, inY, &numContained );
+
+	timeSec_t curTimeSec = Time::timeSec();
+
+	if( contained != NULL && containedETA != NULL &&
+		numContained > inSlotNumber ) {
+
+		int oldObjectID = contained[ inSlotNumber ];
+		timeSec_t oldETA = containedETA[ inSlotNumber ];
+
+		if( oldObjectID > 0 ) {
+
+			TransRecord *oldDecayTrans = getTrans( -1, oldObjectID );
+
+			TransRecord *newDecayTrans = getTrans( -1, inNewObjectID );
+
+
+			timeSec_t newETA = 0;
+
+			if( newDecayTrans != NULL ) {
+				newETA = curTimeSec + newDecayTrans->autoDecaySeconds;
+			}
+
+			if( oldDecayTrans != NULL && newDecayTrans != NULL &&
+				oldDecayTrans->autoDecaySeconds ==
+				newDecayTrans->autoDecaySeconds ) {
+				// preserve remaining seconds from old object
+				newETA = oldETA;
+			}
+
+			contained[ inSlotNumber ] = inNewObjectID;
+			containedETA[ inSlotNumber ] = newETA;
+
+			setContained( inX, inY, numContained, contained );
+			setContainedEtaDecay( inX, inY, numContained, containedETA );
+		}
+	}
+
+	if( contained != NULL ) {
+		delete [] contained;
+	}
+	if( containedETA != NULL ) {
+		delete [] containedETA;
+	}
+}
+
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inSlot
+ * @param inSubCont
+ * @param inID
+ * @note from server/map.cpp
+ */
+inline void changeContained(int inX, int inY, int inSlot, int inSubCont, int inID)
+{
+	dbPut(inX, inY, FIRST_CONT_SLOT + inSlot, inID, inSubCont);
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inSlot
+ * @param inValue
+ * @param inSubCont
+ * @note from server/map.cpp
+ */
+void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont)
+{
+
+	if (inSlot == 0 && inSubCont == 0)
+	{
+		// object has changed
+		// clear blocking cache
+		blockingClearCached(inX, inY);
+	}
+
+	if (!skipTrackingMapChanges)
+	{
+
+		// count all slot changes as changes, because we're storing
+		// time in a separate database now (so we don't need to worry
+		// about time changes being reported as map changes)
+
+		char found = false;
+		for (int i = 0; i < mapChangePosSinceLastStep.size(); i++)
+		{
+
+			ChangePosition *p = mapChangePosSinceLastStep.getElement(i);
+
+			if (p->x == inX && p->y == inY)
+			{
+				found = true;
+
+				// update it
+				p->responsiblePlayerID = currentResponsiblePlayer;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			ChangePosition p = {inX, inY, false, currentResponsiblePlayer, 0, 0, 0.0};
+			mapChangePosSinceLastStep.push_back(p);
+		}
+	}
+
+	if (apocalypsePossible && inValue > 0 && inSlot == 0 && inSubCont == 0)
+	{
+		// a primary tile put
+		// check if this triggers the apocalypse
+		if (isApocalypseTrigger(inValue))
+		{
+			apocalypseTriggered  = true;
+			apocalypseLocation.x = inX;
+			apocalypseLocation.y = inY;
+		}
+	}
+	if (inValue > 0 && inSlot == 0 && inSubCont == 0)
+	{
+
+		int status = getMonumentStatus(inValue);
+
+		if (status > 0)
+		{
+			int player = currentResponsiblePlayer;
+			if (player < 0) { player = -player; }
+			monumentAction(inX, inY, inValue, player, status);
+		}
+	}
+
+	unsigned char key[16];
+	unsigned char value[4];
+
+	intQuadToKey(inX, inY, inSlot, inSubCont, key);
+	intToValue(inValue, value);
+
+	DB_put(&db, key, value);
+
+	dbPutCached(inX, inY, inSlot, inSubCont, inValue);
 }
