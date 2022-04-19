@@ -1,0 +1,30 @@
+[
+  {
+    "code": 0,
+    "label": "swamp"
+  },
+  {
+    "code": 1,
+    "label": "grassland"
+  },
+  {
+    "code": 2,
+    "label": "mediterranean"
+  },
+  {
+    "code": 3,
+    "label": "mountain"
+  },
+  {
+    "code": 4,
+    "label": "jungle"
+  },
+  {
+    "code": 5,
+    "label": "desert"
+  },
+  {
+    "code": 6,
+    "label": "polar"
+  }
+]

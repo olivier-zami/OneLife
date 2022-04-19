@@ -1,0 +1,38 @@
+[
+  {
+    "code": 0,
+    "label": "pit"
+  },
+  {
+    "code": 1,
+    "label": "trench"
+  },
+  {
+    "code": 2,
+    "label": "abyss"
+  },
+  {
+    "code": 3,
+    "label": "shelf"
+  },
+  {
+    "code": 4,
+    "label": "river"
+  },
+  {
+    "code": 5,
+    "label": "coast"
+  },
+  {
+    "code": 6,
+    "label": "plain"
+  },
+  {
+    "code": 7,
+    "label": "highland"
+  },
+  {
+    "code": 8,
+    "label": "mountain"
+  }
+]
