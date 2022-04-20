@@ -7,17 +7,22 @@
 
 #include "../gameSource/GridPos.h"
 #include "dataType/LiveObject.h"
+#include "dataType/Settings.h"
 
 namespace OneLife
 {
 	class Server
 	{
 		public:
-			Server();
+			Server(OneLife::server::Settings settings);
 			~Server();
+
+			void start();
 
 			bool initMap();
 			void routine_dbPut();
+
+			OneLife::server::Settings settings;
 	};
 }
 
