@@ -917,11 +917,10 @@ void freeAndNullString(char **inStringPointer)
  * @param inRelativeToPos
  * @param outMessageLength
  * @return
- * @note formerly getChunkMessage(...) in map.cpp
+ * @note formerly getChunkMessage(...) in server/map.cpp
  * returns properly formatted chunk message for chunk centered around x,y
  */
-unsigned char *
-getChunkMessage(int inStartX, int inStartY, int inWidth, int inHeight, GridPos inRelativeToPos, int *outMessageLength)
+unsigned char *getChunkMessage(int inStartX, int inStartY, int inWidth, int inHeight, GridPos inRelativeToPos, int *outMessageLength)
 {
 	OneLife::server::Debug::write("getChunkMessage");
 

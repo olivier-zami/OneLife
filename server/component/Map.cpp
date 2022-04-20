@@ -191,7 +191,7 @@ static char equal(GridPos inA, GridPos inB)
  * @param inStartY
  * @param inWidth
  * @param inHeight
- * @note from getChunkMessage(...) in map.cpp
+ * @note from getChunkMessage(...) in server/map.cpp
  */
 void OneLife::server::Map::writeRegion(SimpleVector<unsigned char> *chunkDataBuffer,
 	 int inStartX,
