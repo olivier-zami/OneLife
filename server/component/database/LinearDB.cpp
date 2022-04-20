@@ -180,3 +180,23 @@ int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius)
 		return -1;
 	}
 }
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inTime
+ * @note from server/map.cpp
+ */
+void dbLookTimePut(int inX, int inY, timeSec_t inTime)
+{
+	if (!lookTimeDBOpen) return;
+
+	unsigned char key[8];
+	unsigned char value[8];
+
+	intPairToKey(inX / 100, inY / 100, key);
+	timeToValue(inTime, value);
+
+	DB_put(&lookTimeDB, key, value);
+}

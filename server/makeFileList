@@ -30,6 +30,8 @@ component/Map.cpp \
 component/Speech.cpp \
 component/database/LinearDB.cpp \
 component/feature/apocalypse.cpp \
+component/Log.cpp \
+dataType/LiveObject.cpp \
 ../commonSource/math/misc.cpp \
 ../gameSource/transitionBank.cpp \
 ../gameSource/categoryBank.cpp \

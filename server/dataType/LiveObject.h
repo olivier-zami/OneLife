@@ -402,4 +402,7 @@ typedef struct LiveObject {
 
 } LiveObject;
 
+int computePartialMovePathStep( LiveObject *inPlayer );
+GridPos computePartialMoveSpot( LiveObject *inPlayer );
+
 #endif //ONELIFE_DATATYPE_LIVEOBJECT_H

@@ -15,10 +15,33 @@
 
 #include <stdio.h>
 
+#include "../gameSource/GridPos.h"
+#include "../server/component/Log.h"
+#include "../server/component/Map.h"
+#include "../server/dataType/LiveObject.h"
+#include "../server/HashTable.h"
+#include "../third_party/minorGems/system/Time.h"
+#include "../third_party/minorGems/util/log/AppLog.h"
+#include "../third_party/minorGems/util/MinPriorityQueue.h"
 
 #if !SDL_VERSION_ATLEAST(2,0,17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif
+
+//!Should not user Server class because it may share data with a running one so declare same shared var here
+int apocalypsePossible = 0;
+GridPos apocalypseLocation = { 0, 0 };
+char apocalypseTriggered = false;
+int evePrimaryLocSpacing  = 0;
+int evePrimaryLocObjectID = -1;
+SimpleVector<GridPos> *speechPipesIn;
+SimpleVector<GridPos> *speechPipesOut;
+double mapChangeLogTimeStart = -1;
+FILE *mapChangeLogFile = NULL;
+HashTable<timeSec_t> liveDecayRecordLastLookTimeHashTable(1024);// times in seconds that a tracked live decay map cell or slot// was last looked at
+HashTable<double> liveMovementEtaTimes(1024, 0);// clock time in fractional seconds of destination ETA indexed as x, y, 0
+MinPriorityQueue<MovementRecord> liveMovements;
+SimpleVector<LiveObject> players;
 
 OneLife::mapManager::Application::Application()
 {
