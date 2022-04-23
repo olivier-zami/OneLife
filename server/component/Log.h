@@ -13,7 +13,6 @@ namespace OneLife::server
 	};
 }
 
-void writeRecentPlacements();
 void writeEveRadius();
 
 #endif //ONELIFE_SERVER_COMPONENT_LOG_H

@@ -11,7 +11,7 @@
 #include "../../gameSource/objectBank.h"
 #include "../cravings.h"
 #include "../curses.h"
-#include "../map.h"
+#include "info.h"
 
 #define HEAT_MAP_D 13
 
@@ -404,5 +404,9 @@ typedef struct LiveObject {
 
 int computePartialMovePathStep( LiveObject *inPlayer );
 GridPos computePartialMoveSpot( LiveObject *inPlayer );
+double computeMoveSpeed( LiveObject *inPlayer );
+int computeFoodCapacity( LiveObject *inPlayer );
+double computeAge( LiveObject *inPlayer );
+double computeAge( double inLifeStartTimeSeconds );
 
 #endif //ONELIFE_DATATYPE_LIVEOBJECT_H

@@ -16,5 +16,5 @@ oneLife::game::component::Socket::~Socket() {}
  */
 void oneLife::game::component::Socket::readMessage(const char* message)
 {
-	oneLife::Debug::write(message);
+	OneLife::Debug::write(message);
 }

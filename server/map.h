@@ -24,16 +24,6 @@ typedef struct GlobalTriggerState
 	SimpleVector<int> triggeredRevertIDs;
 } GlobalTriggerState;
 
-// loads seed from file, or generates a new one and saves it to file
-void reseedMap( char inForceFresh );
-
-
-// can only be called before initMap or after freeMap
-// deletes the underlying .db files for the map 
-void wipeMapFiles();
-
-
-
 // make Eve placement radius bigger
 void doubleEveRadius();
 
@@ -43,15 +33,6 @@ void resetEveRadius();
 // save recent placements on Eve's death so that this player can spawn
 // near them if they are ever Eve again
 void mapEveDeath( const char *inEmail, double inAge, GridPos inDeathMapPos );
-
-// returns properly formatted chunk message for chunk in rectangle shape
-// with bottom-left corner at x,y
-// coordinates in message will be relative to inRelativeToPos
-// note that inStartX,Y are absolute world coordinates
-unsigned char *getChunkMessage( int inStartX, int inStartY, 
-                                int inWidth, int inHeight,
-                                GridPos inRelativeToPos,
-                                int *outMessageLength );
 
 // sets the player responsible for subsequent map changes
 // meant to track who set down an object
@@ -75,16 +56,6 @@ char *getMapChangeLineString( ChangePosition inPos );
 
 char *getMapChangeLineString( MapChangeRecord *inRecord,
                               int inRelativeToX, int inRelativeToY );
-
-typedef struct {
-        unsigned int uniqueLoadID;
-        char *mapFileName;
-        char fileOpened;
-        FILE *file;
-        int x, y;
-        double startTime;
-        int stepCount;
-    } TutorialLoadProgress;
 
 // returns true on success
 // example:

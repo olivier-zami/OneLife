@@ -17,6 +17,11 @@
 
 //!list of non used function. this file should not exist in a usable version
 
+double forceDeathAge = 0;
+double adultAge = 0;
+double oldAge;
+double baseWalkSpeed = 0;
+
 ObjectRecord *getObject(int inID){return nullptr;}//from gameSource/objectBank.cpp
 int hideIDForClient(int inObjectID){return 0;}//from gameSource/objectBank.cpp
 int getObjectHeight(int inObjectID){return 0;}//from gameSource/objectBank.cpp
@@ -49,7 +54,7 @@ void logMapChange(int inX, int inY, int inID){}//from server/map.cpp
 TransRecord *getMetaTrans( int inActor, int inTarget, char inLastUseActor, char inLastUseTarget){return nullptr;}//from gameSource/objectMetadata.cpp
 //void setLastMetadataID( int inMetadataID ){}//from gameSource/objectMetadata.cpp
 
-void writeRecentPlacements(){}//from server/component/Log.h
+//void writeRecentPlacements(){}//from server/component/Log.h
 
 char isApocalypseTrigger( int inID ){return false;}//from server/component/feature/apocalypse.cpp
 int getMonumentStatus( int inID ){return 0;}//from server/component/feature/apocalypse.cpp
@@ -61,3 +66,11 @@ void monumentAction( int inX, int inY, int inObjectID, int inPlayerID, int inAct
 void CoordinateTimeTracking::cleanStale( timeSec_t inStaleTime ){}//from server/coordinateTracking.cpp
 char CoordinateTimeTracking::checkExists( int inX, int inY, timeSec_t inCurTime ){return false;}//from server/coordinateTracking.cpp
 CoordinateTimeTracking::CoordinateTimeTracking(){}//from server/coordinateTracking.cpp
+
+double getAgeRate(){return 0;} //from server/server.cpp
+
+void setDeathReason( LiveObject *inPlayer, const char *inTag, int inOptionalID = 0 ){}//from server/handler/Player.cpp
+
+ObjectRecord *clothingByIndex( ClothingSet inSet, int inIndex ){return nullptr;}//from gameSource/objectRecord.cpp
+
+unsigned char *zipCompress( unsigned char *inData, int inDataLength, int *outCompressedDataLength ){return 0;}//from minorGems/formats/encodingUtils.cpp

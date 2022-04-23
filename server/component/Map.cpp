@@ -9,16 +9,21 @@
 #include "../arcReport.h"
 #include "../component/Log.h"
 #include "../CoordinateTimeTracking.h"
+#include "../dataType/info.h"
 #include "../dataType/LiveObject.h"
 #include "../dbCommon.h"
 #include "../HashTable.h"
 #include "../map.h"
 #include "../monument.h"
 #include "../spiral.h"
+#include "../../commonSource/Debug.h"
 #include "../../commonSource/fractalNoise.h"
+#include "../../commonSource/math/geometry.h"
 #include "../../commonSource/math/misc.h"
-#include "../../gameSource/objectMetadata.h"
+#include "../../gameSource/GridPos.h"
 #include "../../gameSource/categoryBank.h"
+#include "../../gameSource/objectMetadata.h"
+#include "../../third_party/minorGems/formats/encodingUtils.h"
 #include "../../third_party/minorGems/io/file/File.h"
 #include "../../third_party/minorGems/util/MinPriorityQueue.h"
 #include "../../third_party/minorGems/util/stringUtils.h"
@@ -177,12 +182,6 @@ BaseMapCacheRecord baseMapCache[BASE_MAP_CACHE_SIZE][BASE_MAP_CACHE_SIZE];
 // 1671 shy of int max
 static int xLimit = 2147481977;
 static int yLimit = 2147481977;
-
-static char equal(GridPos inA, GridPos inB)
-{
-	if (inA.x == inB.x && inA.y == inB.y) { return true; }
-	return false;
-}
 
 /**
  *
@@ -965,6 +964,12 @@ void mapCacheInsert(int inX, int inY, int inID, char inGridPlacement)
 	r->gridPlacement = inGridPlacement;
 }
 
+/**
+ *
+ * @param inForceFresh
+ * @note from server/map.cpp
+ * // loads seed from file, or generates a new one and saves it to file
+ */
 void reseedMap(char inForceFresh)
 {
 
@@ -5643,4 +5648,115 @@ int *getContainedNoLook(int inX, int inY, int *outNumContained, int inSubCont)
 {
 	if (!getSlotItemsNoDecay(inX, inY, inSubCont)) { checkDecayContained(inX, inY, inSubCont); }
 	return getContainedRaw(inX, inY, outNumContained, inSubCont);
+}
+
+/**
+ * @note form server/map.cpp
+ */
+void writeRecentPlacements()
+{
+	FILE *placeFile = fopen("recentPlacements.txt", "w");
+	if (placeFile != NULL)
+	{
+		for (int i = 0; i < NUM_RECENT_PLACEMENTS; i++)
+		{
+			fprintf(placeFile,
+					"%d,%d %d\n",
+					recentPlacements[i].pos.x,
+					recentPlacements[i].pos.y,
+					recentPlacements[i].depth);
+		}
+		fprintf(placeFile, "nextPlacementIndex=%d\n", nextPlacementIndex);
+
+		fclose(placeFile);
+	}
+}
+
+/**
+ * @note from server/map.cpp
+ * // can only be called before initMap or after freeMap
+// deletes the underlying .db files for the map
+ */
+void wipeMapFiles()
+{
+	deleteFileByName("biome.db");
+	deleteFileByName("eve.db");
+	deleteFileByName("floor.db");
+	deleteFileByName("floorTime.db");
+	deleteFileByName("grave.db");
+	deleteFileByName("lookTime.db");
+	deleteFileByName("map.db");
+	deleteFileByName("mapTime.db");
+	deleteFileByName("playerStats.db");
+	deleteFileByName("meta.db");
+}
+
+/**
+ *
+ * @param inStartX
+ * @param inStartY
+ * @param inWidth
+ * @param inHeight
+ * @param inRelativeToPos
+ * @param outMessageLength
+ * @return
+ * @note formerly getChunkMessage(...) in server/map.cpp
+ * returns properly formatted chunk message for chunk centered around x,y
+ * // returns properly formatted chunk message for chunk in rectangle shape
+// with bottom-left corner at x,y
+// coordinates in message will be relative to inRelativeToPos
+// note that inStartX,Y are absolute world coordinates
+ */
+
+unsigned char *getChunkMessage(int inStartX, int inStartY, int inWidth, int inHeight, GridPos inRelativeToPos, int *outMessageLength)
+{
+	OneLife::Debug::write("getChunkMessage");
+
+	SimpleVector<unsigned char> chunkDataBuffer;
+	OneLife::server::Map::writeRegion(&chunkDataBuffer, inStartX, inStartY, inWidth, inHeight);
+
+	unsigned char *chunkData = chunkDataBuffer.getElementArray();
+
+	int            compressedSize;
+	unsigned char *compressedChunkData = zipCompress(chunkData, chunkDataBuffer.size(), &compressedSize);
+
+	char *header = autoSprintf("MC\n%d %d %d %d\n%d %d\n#",
+							   inWidth,
+							   inHeight,
+							   inStartX - inRelativeToPos.x,
+							   inStartY - inRelativeToPos.y,
+							   chunkDataBuffer.size(),
+							   compressedSize);
+
+	SimpleVector<unsigned char> buffer;
+	buffer.appendArray((unsigned char *)header, strlen(header));
+	delete[] header;
+
+	buffer.appendArray(compressedChunkData, compressedSize);
+
+	delete[] chunkData;
+	delete[] compressedChunkData;
+
+	*outMessageLength = buffer.size();
+	return buffer.getElementArray();
+}
+
+/**
+ *
+ * @param inPlayer
+ * @return
+ * @note from server/server.cpp => server/main.cpp
+ */
+GridPos getPlayerPos( LiveObject *inPlayer )
+{
+	if( inPlayer->xs == inPlayer->xd &&
+		inPlayer->ys == inPlayer->yd ) {
+
+		GridPos cPos = { inPlayer->xs, inPlayer->ys };
+
+		return cPos;
+	}
+	else {
+		return computePartialMoveSpot( inPlayer );
+	}
 }

@@ -5,7 +5,7 @@
 #ifndef ONELIFE_COMMON_DEBUG_DATATYPE_CONFIGURATION_H
 #define ONELIFE_COMMON_DEBUG_DATATYPE_CONFIGURATION_H
 
-namespace oneLife::debug::dataType
+namespace OneLife::debug::dataType
 {
 	typedef struct{
 		char appName[32];

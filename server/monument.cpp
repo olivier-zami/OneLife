@@ -3,11 +3,10 @@
 
 #include "../gameSource/objectBank.h"
 
-
-extern char monumentCallPending;
-extern int monumentCallX, monumentCallY, monumentCallID;
-
-
+char monumentCallPending = false;
+int monumentCallID = 0;
+int monumentCallX = 0;
+int monumentCallY = 0;
 
 char *getMonumentLogFilePath( int inX, int inY, const char *inExtra = "" ) {
         

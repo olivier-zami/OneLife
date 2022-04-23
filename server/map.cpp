@@ -98,7 +98,7 @@
 
 #include "Server.h"
 
-#include "Debug.h"
+#include "../commonSource/Debug.h"
 
 extern int getBaseMapCallCount;
 extern CustomRandomSource randSource;
@@ -871,20 +871,6 @@ SimpleVector<GridPos> *getSpeechPipesOut(int inIndex)
 	return &(speechPipesOut[inIndex]);
 }
 
-void wipeMapFiles()
-{
-	deleteFileByName("biome.db");
-	deleteFileByName("eve.db");
-	deleteFileByName("floor.db");
-	deleteFileByName("floorTime.db");
-	deleteFileByName("grave.db");
-	deleteFileByName("lookTime.db");
-	deleteFileByName("map.db");
-	deleteFileByName("mapTime.db");
-	deleteFileByName("playerStats.db");
-	deleteFileByName("meta.db");
-}
-
 char isMapObjectInTransit(int inX, int inY)
 {
 	char found;
@@ -906,51 +892,6 @@ void freeAndNullString(char **inStringPointer)
 		delete[] * inStringPointer;
 		*inStringPointer = NULL;
 	}
-}
-
-/**
- *
- * @param inStartX
- * @param inStartY
- * @param inWidth
- * @param inHeight
- * @param inRelativeToPos
- * @param outMessageLength
- * @return
- * @note formerly getChunkMessage(...) in server/map.cpp
- * returns properly formatted chunk message for chunk centered around x,y
- */
-unsigned char *getChunkMessage(int inStartX, int inStartY, int inWidth, int inHeight, GridPos inRelativeToPos, int *outMessageLength)
-{
-	OneLife::server::Debug::write("getChunkMessage");
-
-	SimpleVector<unsigned char> chunkDataBuffer;
-	OneLife::server::Map::writeRegion(&chunkDataBuffer, inStartX, inStartY, inWidth, inHeight);
-
-	unsigned char *chunkData = chunkDataBuffer.getElementArray();
-
-	int            compressedSize;
-	unsigned char *compressedChunkData = zipCompress(chunkData, chunkDataBuffer.size(), &compressedSize);
-
-	char *header = autoSprintf("MC\n%d %d %d %d\n%d %d\n#",
-		inWidth,
-		inHeight,
-		inStartX - inRelativeToPos.x,
-		inStartY - inRelativeToPos.y,
-		chunkDataBuffer.size(),
-		compressedSize);
-
-	SimpleVector<unsigned char> buffer;
-	buffer.appendArray((unsigned char *)header, strlen(header));
-	delete[] header;
-
-	buffer.appendArray(compressedChunkData, compressedSize);
-
-	delete[] chunkData;
-	delete[] compressedChunkData;
-
-	*outMessageLength = buffer.size();
-	return buffer.getElementArray();
 }
 
 char isMapSpotBlocking(int inX, int inY)

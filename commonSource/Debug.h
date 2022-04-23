@@ -9,7 +9,7 @@
 #include "../third_party/json/single_include/nlohmann/json.hpp"
 #include "debug/data/type/configuration.h"
 
-namespace oneLife
+namespace OneLife
 {
 	class Debug :
 			public openLife::Debug
@@ -19,10 +19,10 @@ namespace oneLife
 			static void dumpConfiguration();
 
 		protected:
-			static oneLife::debug::dataType::Configuration getDataConfiguration();
+			static OneLife::debug::dataType::Configuration getDataConfiguration();
 
 		private:
-			static oneLife::debug::dataType::Configuration dataConfig;
+			static OneLife::debug::dataType::Configuration dataConfig;
 			static openLife::debug::dataValue::Context context;
 	};
 }

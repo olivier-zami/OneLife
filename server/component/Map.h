@@ -6,6 +6,7 @@
 #define ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H
 
 #include "database/LinearDB.h"
+#include "../dataType/info.h"
 #include "../../gameSource/GridPos.h"
 #include "../../gameSource/objectBank.h"
 #include "../../gameSource/transitionBank.h"
@@ -206,5 +207,9 @@ char getIsCategory(int inID);
 MapChangeRecord getMapChangeRecord( ChangePosition inPos );
 int getMapObjectNoLook(int inX, int inY);
 int *getContainedNoLook(int inX, int inY, int *outNumContained, int inSubCont = 0);
+void writeRecentPlacements();
+void wipeMapFiles();
+unsigned char *getChunkMessage(int inStartX, int inStartY, int inWidth, int inHeight, GridPos inRelativeToPos, int *outMessageLength);
+GridPos getPlayerPos( LiveObject *inPlayer );
 
 #endif //ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H

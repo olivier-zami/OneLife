@@ -36,3 +36,32 @@ double sigmoid(double inInput, double inKnee)
 
 	return (out + 1) * 0.5;
 }
+
+/**
+ *
+ * @param inF
+ * @return
+ * @note from server/server.cpp =>server/main.cpp
+ */
+float sign( float inF ) {
+	if (inF > 0) return 1;
+	if (inF < 0) return -1;
+	return 0;
+}
+
+/**
+ *
+ * @param inRA
+ * @param inRB
+ * @return
+ * @note from server/server.cpp => server/main.cpp
+ * // blend R-values multiplicatively, for layers
+// 1 - R( A + B ) = (1 - R(A)) * (1 - R(B))
+//
+// or
+//
+//R( A + B ) =  R(A) + R(B) - R(A) * R(B)
+ */
+double rCombine( double inRA, double inRB ) {
+	return inRA + inRB - inRA * inRB;
+}
