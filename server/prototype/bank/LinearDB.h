@@ -2,13 +2,18 @@
 // Created by olivier on 14/04/2022.
 //
 
-#ifndef INC_2HOL_LINEARDB_H
-#define INC_2HOL_LINEARDB_H
+#ifndef ONELIFE_SERVER_DATATYPE_DATABASE_LINEARDB_H
+#define ONELIFE_SERVER_DATATYPE_DATABASE_LINEARDB_H
 
-#include "../../../server/lineardb3.h"
+#include "../../lineardb3.h"
+
+#include <functional>
+
+#include "../../../third_party/minorGems/io/file/File.h"
 #include "../../../third_party/minorGems/system/Time.h"
 #include "../../../gameSource/GridPos.h"
 #include "../../component/feature/apocalypse.h"
+
 
 #define DB LINEARDB3
 #define DB_open LINEARDB3_open
@@ -70,14 +75,67 @@ typedef struct RecentPlacement
 	int depth;// depth of object in tech tree
 } RecentPlacement;
 
+typedef struct RawRecord
+{
+	unsigned char* key;
+	unsigned char* value;
+}RawRecord;
+
+namespace OneLife::server::database::linearDB
+{
+	typedef struct
+	{
+		char* path;
+		int mode;
+		unsigned long hash_table_size;
+		unsigned long key_size;
+		unsigned long value_size;
+	}Settings;
+}
+
 namespace OneLife::server::database
 {
 	class LinearDB
 	{
+		public:
+			LinearDB(
+				 const char* path,
+				 int mode,
+				 unsigned long hash_table_size,
+				 unsigned long key_size,
+				 unsigned long value_size);
+			~LinearDB();
 
+			//!open close
+			void open(DB* db=nullptr, char* ptrVarDbEmpty=nullptr);
+			void close();
+
+			//!
+
+			//!status
+			OneLife::server::database::linearDB::Settings getSettings();
+			uint32_t getSize();
+			bool isEmpty();
+			bool isEnable();
+
+			//!public operation (record management)
+			void copy(OneLife::server::database::LinearDB* srcDB);
+			void insert(RawRecord rawRecord);
+			void iterate(std::function<void(RawRecord)> processRawRecord);
+
+			//!public operation (db management)
+			void removeDBFile();
+
+		protected:
+			DB* db;
+			char* dbEmpty;
+			DB_Iterator* dbi;
+			OneLife::server::database::linearDB::Settings settings;
+			RawRecord rawRecord;
+			File* dbFile;
+			unsigned long int recordNumber;
 	};
 }
-
 
 
 void dbLookTimePut(int inX, int inY, timeSec_t inTime);
@@ -89,4 +147,4 @@ void blockingClearCached(int inX, int inY);
 int computeXYCacheHash(int inKeyA, int inKeyB);
 int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius);
 
-#endif //INC_2HOL_LINEARDB_H
+#endif //ONELIFE_SERVER_DATATYPE_DATABASE_LINEARDB_H

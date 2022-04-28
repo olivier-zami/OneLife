@@ -33,7 +33,7 @@ void LINEARDB3_setMaxLoad( double inMaxLoad ) {
 
 
 
-#include "murmurhash2_64.cpp"
+#include "../../../murmurhash2_64.cpp"
 
 /*
 // djb2 hash function
