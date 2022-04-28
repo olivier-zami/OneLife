@@ -572,14 +572,6 @@ int main()
     initTriggers();
 
 
-    if(oneLifeServer->initMap() != true )
-    {
-        // cannot continue after map init fails
-        return 1;
-	}
-    
-
-
     if( false ) {
         
         printf( "Running map sampling\n" );
@@ -632,15 +624,15 @@ int main()
         int readInt;
         scanf( "%d", &readInt );
         }
-    
 
 
-    
+
+
     int port = SettingsManager::getIntSetting( "port", 5077 );
 	settings.port = port;
     //SocketServer *server = new SocketServer( port, 256 ); TODO: moved in server delete if working
     //sockPoll.addSocketServer( server );TODO: moved in server delete if working
-    
+
     AppLog::infoF( "Listening for connection on port %d", port );
 
     settings.versionNumber = versionNumber;
@@ -653,12 +645,12 @@ int main()
 
 	settings.shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
     settings.forceShutdownMode = SettingsManager::getIntSetting( "forceShutdownMode", 0 );
-        
-    
+
+
     // test code for printing sample eve locations
     // direct output from server to out.txt
     // then run:
-    // grep "Eve location" out.txt | sed -e "s/Eve location //" | 
+    // grep "Eve location" out.txt | sed -e "s/Eve location //" |
     //      sed -e "s/,/ /" > eveTest.txt
     // Then in gnuplot, do:
     //  plot "eveTest.txt" using 1:2 with linespoints;
@@ -666,16 +658,22 @@ int main()
     /*
     for( int i=0; i<1000; i++ ) {
         int x, y;
-        
+
         SimpleVector<GridPos> temp;
-        
+
         getEvePosition( "test@blah", 1, &x, &y, &temp, false );
-        
+
         printf( "Eve location %d,%d\n", x, y );
         }
     */
 
 	oneLifeServer = new OneLife::Server(settings);
+
+	if(oneLifeServer->initMap() != true )
+	{
+		// cannot continue after map init fails
+		return 1;
+	}
 
 	oneLifeServer->start();
     

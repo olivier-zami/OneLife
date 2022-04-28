@@ -5,7 +5,7 @@
 
 #include "kissdb.h"
 #include "stackdb.h"
-#include "lineardb3.h"
+#include "prototype/bank/linearDB/lineardb3.h"
 
 
 void usage() {

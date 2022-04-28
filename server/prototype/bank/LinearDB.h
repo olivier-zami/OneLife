@@ -5,7 +5,7 @@
 #ifndef ONELIFE_SERVER_DATATYPE_DATABASE_LINEARDB_H
 #define ONELIFE_SERVER_DATATYPE_DATABASE_LINEARDB_H
 
-#include "../../lineardb3.h"
+#include "linearDB/lineardb3.h"
 
 #include <functional>
 
@@ -81,7 +81,7 @@ typedef struct RawRecord
 	unsigned char* value;
 }RawRecord;
 
-namespace OneLife::server::database::linearDB
+namespace OneLife::server::bank::linearDB
 {
 	typedef struct
 	{
@@ -93,7 +93,7 @@ namespace OneLife::server::database::linearDB
 	}Settings;
 }
 
-namespace OneLife::server::database
+namespace OneLife::server::bank
 {
 	class LinearDB
 	{
@@ -107,38 +107,37 @@ namespace OneLife::server::database
 			~LinearDB();
 
 			//!open close
-			void open(DB* db=nullptr, char* ptrVarDbEmpty=nullptr);
+			void open(DB* db=nullptr, char* ptrEmptyStatus=nullptr);
 			void close();
 
 			//!
 
 			//!status
-			OneLife::server::database::linearDB::Settings getSettings();
+			OneLife::server::bank::linearDB::Settings getSettings();
 			uint32_t getSize();
 			bool isEmpty();
 			bool isEnable();
 
 			//!public operation (record management)
-			void copy(OneLife::server::database::LinearDB* srcDB);
+			void copy(OneLife::server::bank::LinearDB* srcDB);
 			void insert(RawRecord rawRecord);
 			void iterate(std::function<void(RawRecord)> processRawRecord);
 
 			//!public operation (db management)
+			virtual void clean() =0;
 			void removeDBFile();
 
 		protected:
 			DB* db;
 			char* dbEmpty;
 			DB_Iterator* dbi;
-			OneLife::server::database::linearDB::Settings settings;
+			OneLife::server::bank::linearDB::Settings settings;
 			RawRecord rawRecord;
 			File* dbFile;
 			unsigned long int recordNumber;
 	};
 }
 
-
-void dbLookTimePut(int inX, int inY, timeSec_t inTime);
 int dbGet(int inX, int inY, int inSlot, int inSubCont = 0);
 void dbPutCached(int inX, int inY, int inSlot, int inSubCont, int inValue);
 int dbGetCached(int inX, int inY, int inSlot, int inSubCont);

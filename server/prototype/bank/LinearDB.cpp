@@ -9,11 +9,9 @@
 #include "../../../third_party/minorGems/util/SimpleVector.h"
 #include "../../../commonSource/Debug.h"
 #include "../../dbCommon.h"
-#include "../../lineardb3.h"
 #include "../../monument.h"
+#include "linearDB/lineardb3.h"
 
-extern DB lookTimeDB;
-extern char lookTimeDBOpen;
 extern DB   db;
 extern char dbOpen;
 extern DB   timeDB;
@@ -41,7 +39,7 @@ DBCacheRecord dbCache[DB_CACHE_SIZE];
 
 int currentResponsiblePlayer = -1;
 
-OneLife::server::database::LinearDB::LinearDB(
+OneLife::server::bank::LinearDB::LinearDB(
 		const char* path,
 		int mode,
 		unsigned long hash_table_size,
@@ -67,10 +65,12 @@ OneLife::server::database::LinearDB::LinearDB(
 	this->rawRecord.value = nullptr;
 
 	this->dbFile = nullptr;
+	if(!this->dbFile) this->dbFile = new File(NULL, this->settings.path);
+	
 	this->recordNumber = 0;
 }
 
-OneLife::server::database::LinearDB::~LinearDB()
+OneLife::server::bank::LinearDB::~LinearDB()
 {
 	if(this->settings.path)
 	{
@@ -81,8 +81,20 @@ OneLife::server::database::LinearDB::~LinearDB()
 
 /**********************************************************************************************************************/
 
-void OneLife::server::database::LinearDB::open(DB* db, char* ptrVarDbEmpty)
+void OneLife::server::bank::LinearDB::open(DB* db, char* ptrEmptyStatus)
 {
+	if(!this->db)
+	{
+		if(!db) this->db = new DB;
+		else this->db =db;
+	}
+
+	if(!this->dbEmpty)
+	{
+		if(!ptrEmptyStatus) this->dbEmpty = new char;
+		else this->dbEmpty = ptrEmptyStatus;
+	}
+
 	int error = DB_open(
 			db ? db : this->db,
 			this->settings.path,
@@ -97,21 +109,19 @@ void OneLife::server::database::LinearDB::open(DB* db, char* ptrVarDbEmpty)
 		AppLog::errorF("Error %d opening look time %s", error, "LINEARDB3");
 		//return false;
 	}
-	if(!this->dbFile) this->dbFile = new File(NULL, this->settings.path);
 
-	this->dbEmpty = ptrVarDbEmpty ? ptrVarDbEmpty : new char;
-	if(this->dbEmpty && this->dbFile->exists()) *(this->dbEmpty) = true;
+	if(this->dbEmpty && !this->dbFile->exists()) *(this->dbEmpty) = true;
 	this->recordNumber = 1;//TODO: iterate & count
 }
 
-void OneLife::server::database::LinearDB::close()
+void OneLife::server::bank::LinearDB::close()
 {
 	DB_close(this->db);
 }
 
 /**********************************************************************************************************************/
 
-OneLife::server::database::linearDB::Settings OneLife::server::database::LinearDB::getSettings()
+OneLife::server::bank::linearDB::Settings OneLife::server::bank::LinearDB::getSettings()
 {
 	return this->settings;
 }
@@ -120,7 +130,7 @@ OneLife::server::database::linearDB::Settings OneLife::server::database::LinearD
  *
  * @return
  */
-uint32_t OneLife::server::database::LinearDB::getSize()
+uint32_t OneLife::server::bank::LinearDB::getSize()
 {
 	return DB_getCurrentSize(this->db);
 }
@@ -130,7 +140,7 @@ uint32_t OneLife::server::database::LinearDB::getSize()
  * @return
  * @note replace lookTimeDBEmpty
  */
-bool OneLife::server::database::LinearDB::isEmpty()
+bool OneLife::server::bank::LinearDB::isEmpty()
 {
 	return !this->dbFile->exists() || !this->recordNumber;
 }
@@ -139,7 +149,7 @@ bool OneLife::server::database::LinearDB::isEmpty()
  *
  * @return
  */
-bool OneLife::server::database::LinearDB::isEnable()
+bool OneLife::server::bank::LinearDB::isEnable()
 {
 	return this->dbFile->exists();
 }
@@ -148,9 +158,8 @@ bool OneLife::server::database::LinearDB::isEnable()
  *
  * @param processRawRecord
  */
-void OneLife::server::database::LinearDB::iterate(std::function<void(RawRecord)> processRawRecord)
+void OneLife::server::bank::LinearDB::iterate(std::function<void(RawRecord)> processRawRecord)
 {
-	printf("\niterate-------------------------------------------");
 	if(!this->db) this->db = new DB();
 	DB_Iterator dbi;
 	DB_Iterator_init(this->db, &dbi);
@@ -165,21 +174,28 @@ void OneLife::server::database::LinearDB::iterate(std::function<void(RawRecord)>
 /**********************************************************************************************************************/
 
 
-void OneLife::server::database::LinearDB::copy(OneLife::server::database::LinearDB* srcDB)
+void OneLife::server::bank::LinearDB::copy(OneLife::server::bank::LinearDB* srcDB)
 {
 	File srcFile(NULL, srcDB->getSettings().path);
 	srcFile.copy(this->dbFile);
 }
 
-void OneLife::server::database::LinearDB::insert(RawRecord rawRecord)
+void OneLife::server::bank::LinearDB::insert(RawRecord rawRecord)
 {
 	DB_put_new(this->db, rawRecord.key, rawRecord.value);
 }
 
+/**********************************************************************************************************************/
+
 /**
  *
  */
-void OneLife::server::database::LinearDB::removeDBFile()
+void OneLife::server::bank::LinearDB::clean() {}
+
+/**
+ *
+ */
+void OneLife::server::bank::LinearDB::removeDBFile()
 {
 	if(this->dbFile->exists())
 	{
@@ -332,24 +348,4 @@ int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius)
 	{
 		return -1;
 	}
-}
-
-/**
- *
- * @param inX
- * @param inY
- * @param inTime
- * @note from server/map.cpp
- */
-void dbLookTimePut(int inX, int inY, timeSec_t inTime)
-{
-	if (!lookTimeDBOpen) return;
-
-	unsigned char key[8];
-	unsigned char value[8];
-
-	intPairToKey(inX / 100, inY / 100, key);
-	timeToValue(inTime, value);
-
-	DB_put(&lookTimeDB, key, value);
 }

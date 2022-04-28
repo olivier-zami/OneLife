@@ -7,9 +7,25 @@
 
 #include <string>
 
+namespace OneLife::server::settings
+{
+	typedef struct WorldMap
+	{
+		int flushLookTimes;
+		int skipLookTimeCleanup;
+		double maxLoadForOpenCalls;
+		int staleSec;
+		struct {
+			struct{
+				char* url;
+			}lookTime;
+		}database;
+	}WorldMap;
+}
+
 namespace OneLife::server
 {
-	typedef struct
+	typedef struct Settings
 	{
 		int shutdownMode;
 		char someClientMessageReceived;
@@ -17,6 +33,8 @@ namespace OneLife::server
 		int versionNumber;
 		int port;
 		std::string strInfertilitySuffix;
+
+		OneLife::server::settings::WorldMap worldMap;
 	}Settings;
 }
 

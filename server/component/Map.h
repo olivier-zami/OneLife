@@ -5,8 +5,10 @@
 #ifndef ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H
 #define ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H
 
-#include "database/LinearDB.h"
+#include "database/Biome.h"
+#include "database/LookTime.h"
 #include "../dataType/info.h"
+#include "../dataType/Settings.h"
 #include "../../gameSource/GridPos.h"
 #include "../../gameSource/objectBank.h"
 #include "../../gameSource/transitionBank.h"
@@ -83,17 +85,33 @@ namespace OneLife::server
 {
 	class Map
 	{
-	public:
-		static bool init();
-		static void writeRegion(
+		public:
+			static void writeRegion(
 				SimpleVector<unsigned char>* chunkDataBuffer,
 				int inStartX,
 				int inStartY,
 				int inWidth,
 				int inHeight);
+
+			Map();
+			~Map();
+
+			void init(OneLife::server::settings::WorldMap settings);
+
+		private:
+			static OneLife::server::Map *worldMap;
+			OneLife::server::database::Biome* ldbBiome;
+			//OneLife::server::bank::LinearDB* ldbLookTime;
+			OneLife::server::database::LookTime* ldbLookTime;
 	};
 }
-
+int DB_open_timeShrunk(
+		LINEARDB3 *db,
+		const char *path,
+		int mode,
+		unsigned long hash_table_size,
+		unsigned long key_size,
+		unsigned long value_size);
 int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex = NULL, double *outSecondPlaceGap = NULL);
 char loadIntoMapFromFile(FILE *inFile, int inOffsetX = 0, int inOffsetY = 0, double inTimeLimitSec = 0);
 void clearRecentPlacements();
@@ -108,13 +126,6 @@ int getBiomeIndex(int inBiome);
 int biomeDBGet(int inX, int inY, int *outSecondPlaceBiome = NULL, double *outSecondPlaceGap = NULL);
 void setMapObjectRaw(int inX, int inY, int inID);
 timeSec_t dbLookTimeGet(int inX, int inY);
-int DB_open_timeShrunk(
-		DB *db,
-		const char *           path,
-		int                    mode,
-		unsigned long          hash_table_size,
-		unsigned long          key_size,
-		unsigned long          value_size);
 void deleteFileByName(const char *inFileName);
 void setContained(int inX, int inY, int inNumContained, int *inContained, int inSubCont = 0);
 void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont = 0);
@@ -145,15 +156,6 @@ void getEvePosition( const char *inEmail, int inID, int *outX, int *outY,
 void changeContained( int inX, int inY, int inSlotNumber, int inNewObjectID);
 void changeContained(int inX, int inY, int inSlot, int inSubCont, int inID);
 void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont);
-
-int DB_open_timeShrunk(
-		LINEARDB3 *db,
-		const char *path,
-		int mode,
-		unsigned long hash_table_size,
-		unsigned long key_size,
-		unsigned long value_size);
-
 int getMapFloor( int inX, int inY );
 int dbFloorGet(int inX, int inY);
 char getSlotItemsNoDecay(int inX, int inY, int inSubCont);

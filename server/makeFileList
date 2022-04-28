@@ -27,6 +27,8 @@ main.cpp \
 Server.cpp \
 map.cpp \
 component/container/Player.cpp \
+component/database/Biome.cpp \
+component/database/LookTime.cpp \
 component/feature/Capitalism.cpp \
 component/feature/Diet.cpp \
 component/feature/Diplomacy.cpp \
@@ -35,10 +37,11 @@ component/handler/Player.cpp \
 component/Map.cpp \
 component/Socket.cpp \
 component/Speech.cpp \
-component/database/LinearDB.cpp \
 component/feature/apocalypse.cpp \
 component/Log.cpp \
 dataType/LiveObject.cpp \
+prototype/bank/LinearDB.cpp \
+prototype/bank/linearDB/lineardb3.cpp \
 ../commonSource/Debug.cpp \
 ../commonSource/math/geometry.cpp \
 ../commonSource/math/misc.cpp \
@@ -56,7 +59,6 @@ dataType/LiveObject.cpp \
 ../commonSource/sayLimit.cpp \
 ../third_party/openLife/src/Debug.cpp \
 kissdb.cpp \
-lineardb3.cpp \
 lifeLog.cpp \
 foodLog.cpp \
 backup.cpp \

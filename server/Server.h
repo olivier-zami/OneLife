@@ -8,6 +8,7 @@
 #include "../gameSource/GridPos.h"
 #include "../gameSource/transitionBank.h"
 #include "../third_party/minorGems/network/Socket.h"
+#include "component/Map.h"
 #include "dataType/connection.h"
 #include "dataType/LiveObject.h"
 #include "dataType/Settings.h"
@@ -23,9 +24,9 @@ namespace OneLife
 			void start();
 
 			bool initMap();
-			void routine_dbPut();
 
-			OneLife::server::Settings settings;
+			::OneLife::server::Settings settings;
+			OneLife::server::Map* worldMapDatabase;
 	};
 }
 

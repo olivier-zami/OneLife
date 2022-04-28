@@ -2,9 +2,9 @@
 
 #include "kissdb.h"
 #include "stackdb.h"
-#include "lineardb.h"
-#include "lineardb2.h"
-#include "lineardb3.h"
+#include "prototype/bank/linearDB/lineardb.h"
+#include "prototype/bank/linearDB/lineardb2.h"
+#include "prototype/bank/linearDB/lineardb3.h"
 
 #include "dbCommon.h"
 #include "minorGems/system/Time.h"

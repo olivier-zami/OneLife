@@ -95,7 +95,6 @@ extern int maxBiomeXLoc;
 extern int maxBiomeYLoc;
 extern int minBiomeXLoc;
 extern int minBiomeYLoc;
-extern char lookTimeDBEmpty;
 extern char skipLookTimeCleanup;
 extern int nextPlacementIndex;
 extern char anyBiomesInDB;
@@ -126,6 +125,7 @@ extern int monumentCallY;
 extern WebRequest *apocalypseRequest;
 extern int canYumChainBreak;
 extern double minAgeForCravings;
+extern char lookTimeDBEmpty;
 extern char quit;
 
 
@@ -269,6 +269,7 @@ static char useTestMap = false;// if true, rest of natural map is blank
 OneLife::Server::Server(OneLife::server::Settings settings)
 {
 	this->settings = settings;
+	this->worldMapDatabase = nullptr;
 }
 
 OneLife::Server::~Server() {}
@@ -10691,18 +10692,13 @@ bool OneLife::Server::initMap()
 
 	initDBCaches();
 	initBiomeCache();
-
 	mapCacheClear();
 
 	edgeObjectID = SettingsManager::getIntSetting("edgeObject", 0);
-
 	minEveCampRespawnAge = SettingsManager::getFloatSetting("minEveCampRespawnAge", 120.0f);
-
 	barrierRadius = SettingsManager::getIntSetting("barrierRadius", 250);
 	barrierOn     = SettingsManager::getIntSetting("barrierOn", 1);
-
 	longTermCullEnabled = SettingsManager::getIntSetting("longTermNoLookCullEnabled", 1);
-
 	SimpleVector<int> *list = SettingsManager::getIntSettingMulti("barrierObjects");
 
 	barrierItemList.deleteAll();
@@ -10835,163 +10831,164 @@ bool OneLife::Server::initMap()
 		}
 	}
 
-	const char *lookTimeDBName = "lookTime.db";
+	/******************************************************************************************************************/
+	this->settings.worldMap.flushLookTimes = SettingsManager::getIntSetting("flushLookTimes", 0);
+	this->settings.worldMap.skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
+	this->settings.worldMap.maxLoadForOpenCalls = (double)SettingsManager::getFloatSetting( "maxLoadForOpenCalls", 0.80 );
+	this->settings.worldMap.staleSec = SettingsManager::getIntSetting("mapCellForgottenSeconds", 0);
 
-	char lookTimeDBExists = false;
+	//!Settings lookTimeDB
+	this->settings.worldMap.database.lookTime.url = SettingsManager::getStringSetting( "lookTimeDB_name", "lookTime.db" );
 
-	File lookTimeDBFile(NULL, lookTimeDBName);
+	if(!this->worldMapDatabase) this->worldMapDatabase = new OneLife::server::Map();
+	this->worldMapDatabase->init(this->settings.worldMap);
 
-	if (lookTimeDBFile.exists() && SettingsManager::getIntSetting("flushLookTimes", 0))
-	{
+	delete [] this->settings.worldMap.database.lookTime.url;
 
-		AppLog::info("flushLookTimes.ini set, deleting lookTime.db");
 
-		lookTimeDBFile.remove();
-	}
+	///!
+	const char *lookTimeDBName = "lookTime.db";//TODO: remove if unused
+	/*****************************************************************************************************************
+   char lookTimeDBExists = false;//TODO: remove if unused
+   File lookTimeDBFile(NULL, lookTimeDBName);
+   if (lookTimeDBFile.exists() && SettingsManager::getIntSetting("flushLookTimes", 0))
+   {
+	   AppLog::info("flushLookTimes.ini set, deleting lookTime.db");
+	   lookTimeDBFile.remove();
+   }
+   lookTimeDBExists = lookTimeDBFile.exists();
+   if (!lookTimeDBExists) { lookTimeDBEmpty = true; }
 
-	lookTimeDBExists = lookTimeDBFile.exists();
+   skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
+   if (skipLookTimeCleanup)
+   {
+	   AppLog::info("skipLookTimeCleanup.ini flag set, not cleaning databases based on stale look times.");
+   }
 
-	if (!lookTimeDBExists) { lookTimeDBEmpty = true; }
+   LINEARDB3_setMaxLoad(0.80);
 
-	skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
+   if (!skipLookTimeCleanup)
+   {
 
-	if (skipLookTimeCleanup)
-	{
-		AppLog::info("skipLookTimeCleanup.ini flag set, "
-					 "not cleaning databases based on stale look times.");
-	}
+	   DB lookTimeDB_old;
+	   int error = DB_open(&lookTimeDB_old,
+						   lookTimeDBName,
+						   KISSDB_OPEN_MODE_RWCREAT,
+						   80000,
+						   8, // two 32-bit ints, xy
+						   8  // one 64-bit double, representing an ETA time in whatever binary format and byte order "double" on the server platform uses
+	   );
 
-	LINEARDB3_setMaxLoad(0.80);
+	   if (error)
+	   {
+		   AppLog::errorF("Error %d opening look time KissDB", error);
+		   return false;
+	   }
 
-	if (!skipLookTimeCleanup)
-	{
-		DB lookTimeDB_old;
+	   int staleSec = SettingsManager::getIntSetting("mapCellForgottenSeconds", 0);
 
-		int error = DB_open(&lookTimeDB_old,
-							lookTimeDBName,
-							KISSDB_OPEN_MODE_RWCREAT,
-							80000,
-							8, // two 32-bit ints, xy
-							8  // one 64-bit double, representing an ETA time
-				// in whatever binary format and byte order
-				// "double" on the server platform uses
-		);
 
-		if (error)
-		{
-			AppLog::errorF("Error %d opening look time KissDB", error);
-			return false;
-		}
+	   if (lookTimeDBExists && staleSec > 0)
+	   {
 
-		int staleSec = SettingsManager::getIntSetting("mapCellForgottenSeconds", 0);
+		   AppLog::info("\nCleaning stale look times from map...");
+		   static DB lookTimeDB_temp;
+		   const char *lookTimeDBName_temp = "lookTime_temp.db";
+		   File tempDBFile(NULL, lookTimeDBName_temp);
+		   if (tempDBFile.exists()) { tempDBFile.remove(); }
+		   DB_Iterator dbi;
+		   DB_Iterator_init(&lookTimeDB_old, &dbi);
+		   timeSec_t curTime = MAP_TIMESEC;
+		   unsigned char key[8];
+		   unsigned char value[8];
+		   int total    = 0;
+		   int stale    = 0;
+		   int nonStale = 0;
+		   // first, just count them
+		   while (DB_Iterator_next(&dbi, key, value) > 0)
+		   {
+			   total++;
 
-		if (lookTimeDBExists && staleSec > 0)
-		{
-			AppLog::info("\nCleaning stale look times from map...");
+			   timeSec_t t = valueToTime(value);
 
-			static DB lookTimeDB_temp;
+			   if (curTime - t >= staleSec)
+			   {
+				   // stale cell
+				   // ignore
+				   stale++;
+			   }
+			   else
+			   {
+				   // non-stale
+				   nonStale++;
+			   }
+		   }
 
-			const char *lookTimeDBName_temp = "lookTime_temp.db";
 
-			File tempDBFile(NULL, lookTimeDBName_temp);
+		   // optimial size for DB of remaining elements
+		   unsigned int newSize = DB_getShrinkSize(&lookTimeDB_old, nonStale);
 
-			if (tempDBFile.exists()) { tempDBFile.remove(); }
+		   AppLog::infoF("Shrinking hash table for lookTimes from "
+						 "%d down to %d",
+						 DB_getCurrentSize(&lookTimeDB_old),
+						 newSize);
 
-			DB_Iterator dbi;
+		   error = DB_open(&lookTimeDB_temp,
+						   lookTimeDBName_temp,
+						   KISSDB_OPEN_MODE_RWCREAT,
+						   newSize,
+						   8, // two 32-bit ints, xy
+						   8  // one 64-bit double, representing an ETA time
+				   // in whatever binary format and byte order
+				   // "double" on the server platform uses
+		   );
 
-			DB_Iterator_init(&lookTimeDB_old, &dbi);
+		   if (error)
+		   {
+			   AppLog::errorF("Error %d opening look time temp KissDB", error);
+			   return false;
+		   }
 
-			timeSec_t curTime = MAP_TIMESEC;
+		   // now that we have new temp db properly sized,
+		   // iterate again and insert
+		   DB_Iterator_init(&lookTimeDB_old, &dbi);
 
-			unsigned char key[8];
-			unsigned char value[8];
+		   while (DB_Iterator_next(&dbi, key, value) > 0)
+		   {
+			   timeSec_t t = valueToTime(value);
 
-			int total    = 0;
-			int stale    = 0;
-			int nonStale = 0;
+			   if (curTime - t >= staleSec)
+			   {
+				   // stale cell
+				   // ignore
+			   }
+			   else
+			   {
+				   // non-stale
+				   // insert it in temp
+				   DB_put_new(&lookTimeDB_temp, key, value);
+			   }
+		   }
 
-			// first, just count them
-			while (DB_Iterator_next(&dbi, key, value) > 0)
-			{
-				total++;
+		   AppLog::infoF("Cleaned %d / %d stale look times", stale, total);
 
-				timeSec_t t = valueToTime(value);
+		   printf("\n");
 
-				if (curTime - t >= staleSec)
-				{
-					// stale cell
-					// ignore
-					stale++;
-				}
-				else
-				{
-					// non-stale
-					nonStale++;
-				}
-			}
+		   if (total == 0) { lookTimeDBEmpty = true; }
 
-			// optimial size for DB of remaining elements
-			unsigned int newSize = DB_getShrinkSize(&lookTimeDB_old, nonStale);
+		   DB_close(&lookTimeDB_temp);
+		   DB_close(&lookTimeDB_old);
 
-			AppLog::infoF("Shrinking hash table for lookTimes from "
-						  "%d down to %d",
-						  DB_getCurrentSize(&lookTimeDB_old),
-						  newSize);
+		   tempDBFile.copy(&lookTimeDBFile);
+		   tempDBFile.remove();
+	   }
+	   else
+	   {
+		   DB_close(&lookTimeDB_old);
+	   }
+   }
 
-			error = DB_open(&lookTimeDB_temp,
-							lookTimeDBName_temp,
-							KISSDB_OPEN_MODE_RWCREAT,
-							newSize,
-							8, // two 32-bit ints, xy
-							8  // one 64-bit double, representing an ETA time
-					// in whatever binary format and byte order
-					// "double" on the server platform uses
-			);
-
-			if (error)
-			{
-				AppLog::errorF("Error %d opening look time temp KissDB", error);
-				return false;
-			}
-
-			// now that we have new temp db properly sized,
-			// iterate again and insert
-			DB_Iterator_init(&lookTimeDB_old, &dbi);
-
-			while (DB_Iterator_next(&dbi, key, value) > 0)
-			{
-				timeSec_t t = valueToTime(value);
-
-				if (curTime - t >= staleSec)
-				{
-					// stale cell
-					// ignore
-				}
-				else
-				{
-					// non-stale
-					// insert it in temp
-					DB_put_new(&lookTimeDB_temp, key, value);
-				}
-			}
-
-			AppLog::infoF("Cleaned %d / %d stale look times", stale, total);
-
-			printf("\n");
-
-			if (total == 0) { lookTimeDBEmpty = true; }
-
-			DB_close(&lookTimeDB_temp);
-			DB_close(&lookTimeDB_old);
-
-			tempDBFile.copy(&lookTimeDBFile);
-			tempDBFile.remove();
-		}
-		else
-		{
-			DB_close(&lookTimeDB_old);
-		}
-	}
+   /******************************************************************************************************************/
 
 	int error = DB_open(&lookTimeDB,
 						lookTimeDBName,

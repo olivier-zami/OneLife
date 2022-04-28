@@ -5,6 +5,7 @@
 #include "Map.h"
 
 #include <float.h>
+#include <functional>
 
 #include "../arcReport.h"
 #include "../component/Log.h"
@@ -33,8 +34,6 @@
 #include "../../third_party/minorGems/util/crc32.h"
 #include "../../third_party/minorGems/util/random/JenkinsRandomSource.h"
 
-#include "database/LinearDB.h"
-
 // can replace with frozenTime to freeze time
 // or slowTime to slow it down
 #define MAP_TIMESEC Time::timeSec()
@@ -61,6 +60,7 @@ extern HashTable<timeSec_t> liveDecayRecordLastLookTimeHashTable;
 extern HashTable<double> liveMovementEtaTimes;
 extern MinPriorityQueue<MovementRecord> liveMovements;
 extern SimpleVector<LiveObject> players;
+extern char lookTimeDBEmpty;
 extern char doesEveLineExist(int inEveID);
 
 // object ids that occur naturally on map at random, per biome
@@ -88,7 +88,6 @@ int nextPlacementIndex = 0;// ring buffer
 int eveRadiusStart = 2;
 int eveRadius = eveRadiusStart;
 GridPos eveLocation = {0, 0};
-char lookTimeDBEmpty = false;
 char skipLookTimeCleanup = 0;
 char skipRemovedObjectCleanup = 0;
 char anyBiomesInDB = false;
@@ -160,9 +159,9 @@ SimpleVector<ChangePosition> mapChangePosSinceLastStep;// track all map changes 
 DB db;
 char dbOpen = false;
 DB biomeDB;
-char biomeDBOpen = false;
-DB lookTimeDB;// tracking when a given map cell was last seen
-char lookTimeDBOpen = false;
+char biomeDBOpen;
+extern DB lookTimeDB;
+extern char lookTimeDBOpen;
 DB timeDB;
 char timeDBOpen = false;
 DB floorDB;
@@ -176,12 +175,16 @@ char eveDBOpen = false;
 DB   metaDB;
 char metaDBOpen = false;
 
+
 static int mapCacheBitMask = BASE_MAP_CACHE_SIZE - 1;// if BASE_MAP_CACHE_SIZE is a power of 2, then this is the bit mask of solid 1's that can limit an integer to that range
 BaseMapCacheRecord baseMapCache[BASE_MAP_CACHE_SIZE][BASE_MAP_CACHE_SIZE];
 
 // 1671 shy of int max
 static int xLimit = 2147481977;
 static int yLimit = 2147481977;
+
+OneLife::server::Map* OneLife::server::Map = nullptr;
+
 
 /**
  *
@@ -201,13 +204,10 @@ void OneLife::server::Map::writeRegion(SimpleVector<unsigned char> *chunkDataBuf
 	int chunkCells = inWidth * inHeight;
 
 	int *chunk = new int[chunkCells];
-
 	int *chunkBiomes = new int[chunkCells];
 	int *chunkFloors = new int[chunkCells];
-
 	int * containedStackSizes = new int[chunkCells];
 	int **containedStacks     = new int *[chunkCells];
-
 	int ** subContainedStackSizes = new int *[chunkCells];
 	int ***subContainedStacks     = new int **[chunkCells];
 
@@ -225,17 +225,13 @@ void OneLife::server::Map::writeRegion(SimpleVector<unsigned char> *chunkDataBuf
 	for (int y = inStartY; y < endY; y++)
 	{
 		int chunkY = y - inStartY;
-
 		for (int x = inStartX; x < endX; x++)
 		{
 			int chunkX = x - inStartX;
 
 			int cI = chunkY * inWidth + chunkX;
-
 			lastCheckedBiome = -1;
-
 			chunk[cI] = getMapObject(x, y);
-
 			if (lastCheckedBiome == -1 || lastCheckedBiomeX != x || lastCheckedBiomeY != y)
 			{
 				// biome wasn't checked in order to compute
@@ -294,12 +290,8 @@ void OneLife::server::Map::writeRegion(SimpleVector<unsigned char> *chunkDataBuf
 
 	for (int i = 0; i < chunkCells; i++)
 	{
-
 		if (i > 0) { chunkDataBuffer->appendArray((unsigned char *)" ", 1); }
-
-		char *cell =
-				autoSprintf("%d:%d:%d", chunkBiomes[i], hideIDForClient(chunkFloors[i]), hideIDForClient(chunk[i]));
-
+		char *cell = autoSprintf("%d:%d:%d", chunkBiomes[i], hideIDForClient(chunkFloors[i]), hideIDForClient(chunk[i]));
 		chunkDataBuffer->appendArray((unsigned char *)cell, strlen(cell));
 		delete[] cell;
 
@@ -308,28 +300,21 @@ void OneLife::server::Map::writeRegion(SimpleVector<unsigned char> *chunkDataBuf
 			for (int c = 0; c < containedStackSizes[i]; c++)
 			{
 				char *containedString = autoSprintf(",%d", hideIDForClient(containedStacks[i][c]));
-
 				chunkDataBuffer->appendArray((unsigned char *)containedString, strlen(containedString));
 				delete[] containedString;
-
 				if (subContainedStacks[i][c] != NULL)
 				{
-
 					for (int s = 0; s < subContainedStackSizes[i][c]; s++)
 					{
-
 						char *subContainedString = autoSprintf(":%d", hideIDForClient(subContainedStacks[i][c][s]));
-
 						chunkDataBuffer->appendArray((unsigned char *)subContainedString, strlen(subContainedString));
 						delete[] subContainedString;
 					}
 					delete[] subContainedStacks[i][c];
 				}
 			}
-
 			delete[] subContainedStackSizes[i];
 			delete[] subContainedStacks[i];
-
 			delete[] containedStacks[i];
 		}
 	}
@@ -337,23 +322,242 @@ void OneLife::server::Map::writeRegion(SimpleVector<unsigned char> *chunkDataBuf
 	delete[] chunk;
 	delete[] chunkBiomes;
 	delete[] chunkFloors;
-
 	delete[] containedStackSizes;
 	delete[] containedStacks;
-
 	delete[] subContainedStackSizes;
 	delete[] subContainedStacks;
 }
 
 /**********************************************************************************************************************/
 
-int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSecondPlaceGap)
+OneLife::server::Map::Map()
+{
+	this->ldbLookTime = nullptr;
+	this->ldbBiome = nullptr;
+}
+
+OneLife::server::Map::~Map() {}
+
+/**
+ *
+ */
+void OneLife::server::Map::init(OneLife::server::settings::WorldMap settings)
+{
+	LINEARDB3_setMaxLoad(0.80);
+
+	if(!this->ldbLookTime)
+	{
+		this->ldbLookTime = new OneLife::server::database::LookTime(
+				settings.database.lookTime.url,
+				KISSDB_OPEN_MODE_RWCREAT,
+				80000,
+				8,//two 32-bit ints, xy
+				8 //one 64-bit double representing an ETA time in whatever binary format and byte order "double" on the server platform uses
+		);
+		this->ldbLookTime->setStaleDuration(settings.staleSec);
+	}
+
+	if(settings.flushLookTimes) this->ldbLookTime->removeDBFile();
+
+	if(settings.skipLookTimeCleanup || settings.staleSec <= 0)
+	{
+		AppLog::info("skipLookTimeCleanup.ini flag set, not cleaning databases based on stale look times.");
+	}
+	else this->ldbLookTime->clean();
+}
+
+/**********************************************************************************************************************/
+
+/**
+ *
+ * @param db
+ * @param path
+ * @param mode
+ * @param hash_table_size
+ * @param key_size
+ * @param value_size
+ * @return
+ * @note from server/map.cpp
+ * // version of open call that checks whether look time exists in lookTimeDB
+// for each record in opened DB, and clears any entries that are not
+// rebuilding file storage for DB in the process
+// lookTimeDB MUST be open before calling this
+//
+// If lookTimeDBEmpty, this call just opens the target DB normally without
+// shrinking it.
+//
+// Can handle max key and value size of 16 and 12 bytes
+// Assumes that first 8 bytes of key are xy as 32-bit ints
+ */
+int DB_open_timeShrunk(DB *db,
+					   const char *           path,
+					   int                    mode,
+					   unsigned long          hash_table_size,
+					   unsigned long          key_size,
+					   unsigned long          value_size)
 {
 
+	File dbFile(NULL, path);
+
+	if (!dbFile.exists() || lookTimeDBEmpty || skipLookTimeCleanup)
+	{
+
+		if (lookTimeDBEmpty) { AppLog::infoF("No lookTimes present, not cleaning %s", path); }
+
+		int error = DB_open(db, path, mode, hash_table_size, key_size, value_size);
+
+		if (!error && !skipLookTimeCleanup)
+		{
+			// add look time for cells in this DB to present
+			// essentially resetting all look times to NOW
+
+			DB_Iterator dbi;
+
+			DB_Iterator_init(db, &dbi);
+
+			// key and value size that are big enough to handle all of our DB
+			unsigned char key[16];
+
+			unsigned char value[12];
+
+			while (DB_Iterator_next(&dbi, key, value) > 0)
+			{
+				int x = valueToInt(key);
+				int y = valueToInt(&(key[4]));
+
+				cellsLookedAtToInit++;
+
+				dbLookTimePut(x, y, MAP_TIMESEC);
+			}
+		}
+		return error;
+	}
+
+	char *dbTempName = autoSprintf("%s.temp", path);
+	File  dbTempFile(NULL, dbTempName);
+
+	if (dbTempFile.exists()) { dbTempFile.remove(); }
+
+	if (dbTempFile.exists())
+	{
+		AppLog::errorF("Failed to remove temp DB file %s", dbTempName);
+
+		delete[] dbTempName;
+
+		return DB_open(db, path, mode, hash_table_size, key_size, value_size);
+	}
+
+	DB oldDB;
+
+	int error = DB_open(&oldDB, path, mode, hash_table_size, key_size, value_size);
+	if (error)
+	{
+		AppLog::errorF("Failed to open DB file %s in DB_open_timeShrunk", path);
+		delete[] dbTempName;
+
+		return error;
+	}
+
+	DB_Iterator dbi;
+
+	DB_Iterator_init(&oldDB, &dbi);
+
+	// key and value size that are big enough to handle all of our DB
+	unsigned char key[16];
+
+	unsigned char value[12];
+
+	int total    = 0;
+	int stale    = 0;
+	int nonStale = 0;
+
+	// first, just count
+	while (DB_Iterator_next(&dbi, key, value) > 0)
+	{
+		total++;
+
+		int x = valueToInt(key);
+		int y = valueToInt(&(key[4]));
+
+		if (dbLookTimeGet(x, y) > 0)
+		{
+			// keep
+			nonStale++;
+		}
+		else
+		{
+			// stale
+			// ignore
+			stale++;
+		}
+	}
+
+	// optimial size for DB of remaining elements
+	unsigned int newSize = DB_getShrinkSize(&oldDB, nonStale);
+
+	AppLog::infoF("Shrinking hash table in %s from %d down to %d", path, DB_getCurrentSize(&oldDB), newSize);
+
+	DB tempDB;
+
+	error = DB_open(&tempDB, dbTempName, mode, newSize, key_size, value_size);
+	if (error)
+	{
+		AppLog::errorF("Failed to open DB file %s in DB_open_timeShrunk", dbTempName);
+		delete[] dbTempName;
+		DB_close(&oldDB);
+		return error;
+	}
+
+	// now that we have new temp db properly sized,
+	// iterate again and insert, but don't count
+	DB_Iterator_init(&oldDB, &dbi);
+
+	while (DB_Iterator_next(&dbi, key, value) > 0)
+	{
+		int x = valueToInt(key);
+		int y = valueToInt(&(key[4]));
+
+		if (dbLookTimeGet(x, y) > 0)
+		{
+			// keep
+			// insert it in temp
+			DB_put_new(&tempDB, key, value);
+		}
+		else
+		{
+			// stale
+			// ignore
+		}
+	}
+
+	AppLog::infoF("Cleaned %d / %d stale map cells from %s", stale, total, path);
+
+	printf("\n");
+
+	DB_close(&tempDB);
+	DB_close(&oldDB);
+
+	dbTempFile.copy(&dbFile);
+	dbTempFile.remove();
+
+	delete[] dbTempName;
+
+	// now open new, shrunk file
+	return DB_open(db, path, mode, hash_table_size, key_size, value_size);
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param outSecondPlaceIndex
+ * @param outSecondPlaceGap
+ * @return
+ */
+int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSecondPlaceGap)
+{
 	int secondPlaceBiome = -1;
-
 	int dbBiome = -1;
-
 	if (anyBiomesInDB && inX >= minBiomeXLoc && inX <= maxBiomeXLoc && inY >= minBiomeYLoc && inY <= maxBiomeYLoc)
 	{
 		// don't bother with this call unless biome DB has
@@ -364,13 +568,11 @@ int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSeco
 
 	if (dbBiome != -1)
 	{
-
 		int index = getBiomeIndex(dbBiome);
 
 		if (index != -1)
 		{
 			// biome still exists!
-
 			char secondPlaceFailed = false;
 
 			if (outSecondPlaceIndex != NULL)
@@ -424,6 +626,9 @@ int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSeco
 	return pickedBiome;
 }
 
+/**
+ *
+ */
 void initDBCaches()
 {
 	DBCacheRecord blankRecord = {0, 0, 0, 0, -2};
@@ -445,6 +650,9 @@ void initDBCaches()
 	}
 }
 
+/**
+ *
+ */
 void initBiomeCache()
 {
 	BiomeCacheRecord blankRecord = {0, 0, -2, 0, 0};
@@ -454,6 +662,9 @@ void initBiomeCache()
 	}
 }
 
+/**
+ *
+ */
 void mapCacheClear()
 {
 	for (int y = 0; y < BASE_MAP_CACHE_SIZE; y++)
@@ -467,6 +678,11 @@ void mapCacheClear()
 	}
 }
 
+/**
+ *
+ * @param inString
+ * @return
+ */
 int countNewlines(char *inString)
 {
 	int len = strlen(inString);
@@ -478,12 +694,23 @@ int countNewlines(char *inString)
 	return num;
 }
 
+/**
+ *
+ * @param inX
+ * @param inY
+ * @return
+ */
 BaseMapCacheRecord *mapCacheRecordLookup(int inX, int inY)
 {
 	// apply bitmask to x and y
 	return &(baseMapCache[inY & mapCacheBitMask][inX & mapCacheBitMask]);
 }
 
+/**
+ *
+ * @param inBiome
+ * @return
+ */
 int getBiomeIndex(int inBiome)
 {
 	for (int i = 0; i < numBiomes; i++)
@@ -493,7 +720,15 @@ int getBiomeIndex(int inBiome)
 	return -1;
 }
 
-// returns -1 if not found
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param outSecondPlaceBiome
+ * @param outSecondPlaceGap
+ * @return
+ * // returns -1 if not found
+ */
 int biomeDBGet(int inX, int inY, int *outSecondPlaceBiome, double *outSecondPlaceGap)
 {
 	unsigned char key[8];
@@ -502,7 +737,8 @@ int biomeDBGet(int inX, int inY, int *outSecondPlaceBiome, double *outSecondPlac
 	// look for changes to default in database
 	intPairToKey(inX, inY, key);
 
-	int result = DB_get(&biomeDB, key, value);
+	//int result = DB_get(&biomeDB, key, value);
+	int result = LINEARDB3_get(&biomeDB, key, value);
 
 	if (result == 0)
 	{
@@ -521,6 +757,10 @@ int biomeDBGet(int inX, int inY, int *outSecondPlaceBiome, double *outSecondPlac
 	}
 }
 
+/**
+ *
+ * @param inFileName
+ */
 void deleteFileByName(const char *inFileName)
 {
 	File f(NULL, inFileName);
@@ -569,6 +809,12 @@ int getMapObjectRaw(int inX, int inY)
 	return result;
 }
 
+/**
+ *
+ * @param inX
+ * @param inY
+ * @return
+ */
 int getPossibleBarrier(int inX, int inY)
 {
 	if (barrierOn)
@@ -608,6 +854,12 @@ int getPossibleBarrier(int inX, int inY)
 	return 0;
 }
 
+/**
+ *
+ * @param inX
+ * @param inY
+ * @return
+ */
 int getTweakedBaseMap(int inX, int inY)
 {
 
@@ -705,6 +957,13 @@ int getTweakedBaseMap(int inX, int inY)
 	return result;
 }
 
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param outGridPlacement
+ * @return
+ */
 int getBaseMap(int inX, int inY, char *outGridPlacement)
 {
 
@@ -954,6 +1213,13 @@ int mapCacheLookup(int inX, int inY, char *outGridPlacement)
 	return -1;
 }
 
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inID
+ * @param inGridPlacement
+ */
 void mapCacheInsert(int inX, int inY, int inID, char inGridPlacement)
 {
 	BaseMapCacheRecord *r = mapCacheRecordLookup(inX, inY);
@@ -1674,6 +1940,10 @@ int applyTapoutGradientRotate(int inX, int inY, int inTargetX, int inTargetY, in
 	return curObjectID;
 }
 
+/**
+ *
+ * @param inPos
+ */
 void removeLandingPos(GridPos inPos)
 {
 	for (int i = 0; i < flightLandingPos.size(); i++)
@@ -2268,184 +2538,6 @@ void dbPut(int inX, int inY, int inSlot, int inValue, int inSubCont)
 	DB_put(&db, key, value);
 
 	dbPutCached(inX, inY, inSlot, inSubCont, inValue);
-}
-
-/**
- *
- * @param db
- * @param path
- * @param mode
- * @param hash_table_size
- * @param key_size
- * @param value_size
- * @return
- * @note from server/map.cpp
- * // version of open call that checks whether look time exists in lookTimeDB
-// for each record in opened DB, and clears any entries that are not
-// rebuilding file storage for DB in the process
-// lookTimeDB MUST be open before calling this
-//
-// If lookTimeDBEmpty, this call just opens the target DB normally without
-// shrinking it.
-//
-// Can handle max key and value size of 16 and 12 bytes
-// Assumes that first 8 bytes of key are xy as 32-bit ints
- */
-int DB_open_timeShrunk(DB *db,
-					   const char *           path,
-					   int                    mode,
-					   unsigned long          hash_table_size,
-					   unsigned long          key_size,
-					   unsigned long          value_size)
-{
-
-	File dbFile(NULL, path);
-
-	if (!dbFile.exists() || lookTimeDBEmpty || skipLookTimeCleanup)
-	{
-
-		if (lookTimeDBEmpty) { AppLog::infoF("No lookTimes present, not cleaning %s", path); }
-
-		int error = DB_open(db, path, mode, hash_table_size, key_size, value_size);
-
-		if (!error && !skipLookTimeCleanup)
-		{
-			// add look time for cells in this DB to present
-			// essentially resetting all look times to NOW
-
-			DB_Iterator dbi;
-
-			DB_Iterator_init(db, &dbi);
-
-			// key and value size that are big enough to handle all of our DB
-			unsigned char key[16];
-
-			unsigned char value[12];
-
-			while (DB_Iterator_next(&dbi, key, value) > 0)
-			{
-				int x = valueToInt(key);
-				int y = valueToInt(&(key[4]));
-
-				cellsLookedAtToInit++;
-
-				dbLookTimePut(x, y, MAP_TIMESEC);
-			}
-		}
-		return error;
-	}
-
-	char *dbTempName = autoSprintf("%s.temp", path);
-	File  dbTempFile(NULL, dbTempName);
-
-	if (dbTempFile.exists()) { dbTempFile.remove(); }
-
-	if (dbTempFile.exists())
-	{
-		AppLog::errorF("Failed to remove temp DB file %s", dbTempName);
-
-		delete[] dbTempName;
-
-		return DB_open(db, path, mode, hash_table_size, key_size, value_size);
-	}
-
-	DB oldDB;
-
-	int error = DB_open(&oldDB, path, mode, hash_table_size, key_size, value_size);
-	if (error)
-	{
-		AppLog::errorF("Failed to open DB file %s in DB_open_timeShrunk", path);
-		delete[] dbTempName;
-
-		return error;
-	}
-
-	DB_Iterator dbi;
-
-	DB_Iterator_init(&oldDB, &dbi);
-
-	// key and value size that are big enough to handle all of our DB
-	unsigned char key[16];
-
-	unsigned char value[12];
-
-	int total    = 0;
-	int stale    = 0;
-	int nonStale = 0;
-
-	// first, just count
-	while (DB_Iterator_next(&dbi, key, value) > 0)
-	{
-		total++;
-
-		int x = valueToInt(key);
-		int y = valueToInt(&(key[4]));
-
-		if (dbLookTimeGet(x, y) > 0)
-		{
-			// keep
-			nonStale++;
-		}
-		else
-		{
-			// stale
-			// ignore
-			stale++;
-		}
-	}
-
-	// optimial size for DB of remaining elements
-	unsigned int newSize = DB_getShrinkSize(&oldDB, nonStale);
-
-	AppLog::infoF("Shrinking hash table in %s from %d down to %d", path, DB_getCurrentSize(&oldDB), newSize);
-
-	DB tempDB;
-
-	error = DB_open(&tempDB, dbTempName, mode, newSize, key_size, value_size);
-	if (error)
-	{
-		AppLog::errorF("Failed to open DB file %s in DB_open_timeShrunk", dbTempName);
-		delete[] dbTempName;
-		DB_close(&oldDB);
-		return error;
-	}
-
-	// now that we have new temp db properly sized,
-	// iterate again and insert, but don't count
-	DB_Iterator_init(&oldDB, &dbi);
-
-	while (DB_Iterator_next(&dbi, key, value) > 0)
-	{
-		int x = valueToInt(key);
-		int y = valueToInt(&(key[4]));
-
-		if (dbLookTimeGet(x, y) > 0)
-		{
-			// keep
-			// insert it in temp
-			DB_put_new(&tempDB, key, value);
-		}
-		else
-		{
-			// stale
-			// ignore
-		}
-	}
-
-	AppLog::infoF("Cleaned %d / %d stale map cells from %s", stale, total, path);
-
-	printf("\n");
-
-	DB_close(&tempDB);
-	DB_close(&oldDB);
-
-	dbTempFile.copy(&dbFile);
-	dbTempFile.remove();
-
-	delete[] dbTempName;
-
-	// now open new, shrunk file
-	return DB_open(db, path, mode, hash_table_size, key_size, value_size);
 }
 
 /**
@@ -5707,7 +5799,6 @@ void wipeMapFiles()
 // coordinates in message will be relative to inRelativeToPos
 // note that inStartX,Y are absolute world coordinates
  */
-
 unsigned char *getChunkMessage(int inStartX, int inStartY, int inWidth, int inHeight, GridPos inRelativeToPos, int *outMessageLength)
 {
 	OneLife::Debug::write("getChunkMessage");

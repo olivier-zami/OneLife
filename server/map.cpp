@@ -23,7 +23,7 @@
 #include "kissdb.h"
 //#include "stackdb.h"
 //#include "lineardb.h"
-#include "lineardb3.h"
+#include "prototype/bank/linearDB/lineardb3.h"
 
 #include "minorGems/util/crc32.h"
 
@@ -305,8 +305,6 @@ timeSec_t valueToTime( unsigned char *inValue ) {
 	return doubleTime;
 	}
 */
-
-void      dbLookTimePut(int inX, int inY, timeSec_t inTime);
 
 static void biomeDBPut(int inX, int inY, int inValue, int inSecondPlace, double inSecondPlaceGap)
 {
@@ -730,7 +728,6 @@ static void blockingPutCached(int inX, int inY, char inBlocking)
 	blockingCache[computeXYCacheHash(inX, inY)] = r;
 }
 
-extern char lookTimeDBEmpty;
 extern char skipLookTimeCleanup;
 extern char skipRemovedObjectCleanup;
 extern int cellsLookedAtToInit;
