@@ -107,7 +107,7 @@ namespace OneLife::server::bank
 			~LinearDB();
 
 			//!open close
-			void open(DB* db=nullptr, char* ptrEmptyStatus=nullptr);
+			void open(DB* db=nullptr, char* ptrDbOpenStatus=nullptr, char* ptrEmptyStatus=nullptr);
 			void close();
 
 			//!
@@ -130,6 +130,7 @@ namespace OneLife::server::bank
 		protected:
 			DB* db;
 			char* dbEmpty;
+			char* dbOpen;
 			DB_Iterator* dbi;
 			OneLife::server::bank::linearDB::Settings settings;
 			RawRecord rawRecord;

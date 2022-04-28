@@ -48,6 +48,7 @@ OneLife::server::bank::LinearDB::LinearDB(
 {
 	this->db = nullptr;
 	this->dbi = nullptr;
+	this->dbOpen = nullptr;
 	this->dbEmpty = nullptr;
 
 	//!settings
@@ -81,12 +82,23 @@ OneLife::server::bank::LinearDB::~LinearDB()
 
 /**********************************************************************************************************************/
 
-void OneLife::server::bank::LinearDB::open(DB* db, char* ptrEmptyStatus)
+/**
+ *
+ * @param db
+ * @param ptrEmptyStatus
+ */
+void OneLife::server::bank::LinearDB::open(DB* db, char* ptrDbOpenStatus, char* ptrEmptyStatus)
 {
 	if(!this->db)
 	{
 		if(!db) this->db = new DB;
 		else this->db =db;
+	}
+
+	if(!this->dbOpen)
+	{
+		if(!ptrDbOpenStatus) this->dbOpen = new char;
+		else this->dbOpen = ptrDbOpenStatus;
 	}
 
 	if(!this->dbEmpty)
@@ -96,7 +108,7 @@ void OneLife::server::bank::LinearDB::open(DB* db, char* ptrEmptyStatus)
 	}
 
 	int error = DB_open(
-			db ? db : this->db,
+			this->db,
 			this->settings.path,
 			this->settings.mode,
 			this->settings.hash_table_size,
@@ -111,6 +123,7 @@ void OneLife::server::bank::LinearDB::open(DB* db, char* ptrEmptyStatus)
 	}
 
 	if(this->dbEmpty && !this->dbFile->exists()) *(this->dbEmpty) = true;
+	*(this->dbOpen) = true;
 	this->recordNumber = 1;//TODO: iterate & count
 }
 

@@ -60,8 +60,11 @@ extern HashTable<timeSec_t> liveDecayRecordLastLookTimeHashTable;
 extern HashTable<double> liveMovementEtaTimes;
 extern MinPriorityQueue<MovementRecord> liveMovements;
 extern SimpleVector<LiveObject> players;
-extern char lookTimeDBEmpty;
 extern char doesEveLineExist(int inEveID);
+
+extern DB lookTimeDB;
+extern char lookTimeDBOpen;
+extern char lookTimeDBEmpty;
 
 // object ids that occur naturally on map at random, per biome
 int numBiomes;
@@ -160,8 +163,6 @@ DB db;
 char dbOpen = false;
 DB biomeDB;
 char biomeDBOpen;
-extern DB lookTimeDB;
-extern char lookTimeDBOpen;
 DB timeDB;
 char timeDBOpen = false;
 DB floorDB;
@@ -364,6 +365,91 @@ void OneLife::server::Map::init(OneLife::server::settings::WorldMap settings)
 		AppLog::info("skipLookTimeCleanup.ini flag set, not cleaning databases based on stale look times.");
 	}
 	else this->ldbLookTime->clean();
+
+	this->ldbLookTime->open(&lookTimeDB, &lookTimeDBOpen, &lookTimeDBEmpty);
+
+
+	//!
+	// note that the various decay ETA slots in map.db
+	// are define but unused, because we store times separately
+	// in mapTime.db
+	int error = DB_open_timeShrunk(&db,
+								   "map.db",
+								   KISSDB_OPEN_MODE_RWCREAT,
+								   80000,
+								   16, // four 32-bit ints, xysb
+			// s is the slot number
+			// s=0 for base object
+			// s=1 decay ETA seconds (wall clock time)
+			// s=2 for count of contained objects
+			// s=3 first contained object
+			// s=4 second contained object
+			// s=... remaining contained objects
+			// Then decay ETA for each slot, in order,
+			//   after that.
+			// s = -1
+			//  is a special flag slot set to 0 if NONE
+			//  of the contained items have ETA decay
+			//  or 1 if some of the contained items might
+			//  have ETA decay.
+			//  (this saves us from having to check each
+			//   one)
+			// If a contained object id is negative,
+			// that indicates that it sub-contains
+			// other objects in its corresponding b slot
+			//
+			// b is for indexing sub-container slots
+			// b=0 is the main object
+			// b=1 is the first sub-slot, etc.
+								   4 // one int, object ID at x,y in slot (s-3)
+			// OR contained count if s=2
+	);
+	if (error)
+	{
+		AppLog::errorF("Error %d opening map KissDB", error);
+		//return false;
+	}
+	dbOpen = true;
+
+
+	//!
+	// this DB uses the same slot numbers as the map.db
+	// however, only times are stored here, because they require 8 bytes
+	// so, slot 0 and 2 are never used, for example
+	error = DB_open_timeShrunk(&timeDB,
+							   "mapTime.db",
+							   KISSDB_OPEN_MODE_RWCREAT,
+							   80000,
+							   16, // four 32-bit ints, xysb
+			// s is the slot number
+			// s=0 for base object
+			// s=1 decay ETA seconds (wall clock time)
+			// s=2 for count of contained objects
+			// s=3 first contained object
+			// s=4 second contained object
+			// s=... remaining contained objects
+			// Then decay ETA for each slot, in order,
+			//   after that.
+			// If a contained object id is negative,
+			// that indicates that it sub-contains
+			// other objects in its corresponding b slot
+			//
+			// b is for indexing sub-container slots
+			// b=0 is the main object
+			// b=1 is the first sub-slot, etc.
+							   8 // one 64-bit double, representing an ETA time
+			// in whatever binary format and byte order
+			// "double" on the server platform uses
+	);
+	if (error)
+	{
+		AppLog::errorF("Error %d opening map time KissDB", error);
+		//return false;
+	}
+	timeDBOpen = true;
+
+
+
 }
 
 /**********************************************************************************************************************/

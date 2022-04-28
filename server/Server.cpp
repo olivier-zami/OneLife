@@ -10840,255 +10840,17 @@ bool OneLife::Server::initMap()
 	//!Settings lookTimeDB
 	this->settings.worldMap.database.lookTime.url = SettingsManager::getStringSetting( "lookTimeDB_name", "lookTime.db" );
 
+	//!Init Map Database
 	if(!this->worldMapDatabase) this->worldMapDatabase = new OneLife::server::Map();
+
 	this->worldMapDatabase->init(this->settings.worldMap);
 
+	//!Free settings value memory allocation
 	delete [] this->settings.worldMap.database.lookTime.url;
 
 
 	///!
-	const char *lookTimeDBName = "lookTime.db";//TODO: remove if unused
-	/*****************************************************************************************************************
-   char lookTimeDBExists = false;//TODO: remove if unused
-   File lookTimeDBFile(NULL, lookTimeDBName);
-   if (lookTimeDBFile.exists() && SettingsManager::getIntSetting("flushLookTimes", 0))
-   {
-	   AppLog::info("flushLookTimes.ini set, deleting lookTime.db");
-	   lookTimeDBFile.remove();
-   }
-   lookTimeDBExists = lookTimeDBFile.exists();
-   if (!lookTimeDBExists) { lookTimeDBEmpty = true; }
-
-   skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
-   if (skipLookTimeCleanup)
-   {
-	   AppLog::info("skipLookTimeCleanup.ini flag set, not cleaning databases based on stale look times.");
-   }
-
-   LINEARDB3_setMaxLoad(0.80);
-
-   if (!skipLookTimeCleanup)
-   {
-
-	   DB lookTimeDB_old;
-	   int error = DB_open(&lookTimeDB_old,
-						   lookTimeDBName,
-						   KISSDB_OPEN_MODE_RWCREAT,
-						   80000,
-						   8, // two 32-bit ints, xy
-						   8  // one 64-bit double, representing an ETA time in whatever binary format and byte order "double" on the server platform uses
-	   );
-
-	   if (error)
-	   {
-		   AppLog::errorF("Error %d opening look time KissDB", error);
-		   return false;
-	   }
-
-	   int staleSec = SettingsManager::getIntSetting("mapCellForgottenSeconds", 0);
-
-
-	   if (lookTimeDBExists && staleSec > 0)
-	   {
-
-		   AppLog::info("\nCleaning stale look times from map...");
-		   static DB lookTimeDB_temp;
-		   const char *lookTimeDBName_temp = "lookTime_temp.db";
-		   File tempDBFile(NULL, lookTimeDBName_temp);
-		   if (tempDBFile.exists()) { tempDBFile.remove(); }
-		   DB_Iterator dbi;
-		   DB_Iterator_init(&lookTimeDB_old, &dbi);
-		   timeSec_t curTime = MAP_TIMESEC;
-		   unsigned char key[8];
-		   unsigned char value[8];
-		   int total    = 0;
-		   int stale    = 0;
-		   int nonStale = 0;
-		   // first, just count them
-		   while (DB_Iterator_next(&dbi, key, value) > 0)
-		   {
-			   total++;
-
-			   timeSec_t t = valueToTime(value);
-
-			   if (curTime - t >= staleSec)
-			   {
-				   // stale cell
-				   // ignore
-				   stale++;
-			   }
-			   else
-			   {
-				   // non-stale
-				   nonStale++;
-			   }
-		   }
-
-
-		   // optimial size for DB of remaining elements
-		   unsigned int newSize = DB_getShrinkSize(&lookTimeDB_old, nonStale);
-
-		   AppLog::infoF("Shrinking hash table for lookTimes from "
-						 "%d down to %d",
-						 DB_getCurrentSize(&lookTimeDB_old),
-						 newSize);
-
-		   error = DB_open(&lookTimeDB_temp,
-						   lookTimeDBName_temp,
-						   KISSDB_OPEN_MODE_RWCREAT,
-						   newSize,
-						   8, // two 32-bit ints, xy
-						   8  // one 64-bit double, representing an ETA time
-				   // in whatever binary format and byte order
-				   // "double" on the server platform uses
-		   );
-
-		   if (error)
-		   {
-			   AppLog::errorF("Error %d opening look time temp KissDB", error);
-			   return false;
-		   }
-
-		   // now that we have new temp db properly sized,
-		   // iterate again and insert
-		   DB_Iterator_init(&lookTimeDB_old, &dbi);
-
-		   while (DB_Iterator_next(&dbi, key, value) > 0)
-		   {
-			   timeSec_t t = valueToTime(value);
-
-			   if (curTime - t >= staleSec)
-			   {
-				   // stale cell
-				   // ignore
-			   }
-			   else
-			   {
-				   // non-stale
-				   // insert it in temp
-				   DB_put_new(&lookTimeDB_temp, key, value);
-			   }
-		   }
-
-		   AppLog::infoF("Cleaned %d / %d stale look times", stale, total);
-
-		   printf("\n");
-
-		   if (total == 0) { lookTimeDBEmpty = true; }
-
-		   DB_close(&lookTimeDB_temp);
-		   DB_close(&lookTimeDB_old);
-
-		   tempDBFile.copy(&lookTimeDBFile);
-		   tempDBFile.remove();
-	   }
-	   else
-	   {
-		   DB_close(&lookTimeDB_old);
-	   }
-   }
-
-   /******************************************************************************************************************/
-
-	int error = DB_open(&lookTimeDB,
-						lookTimeDBName,
-						KISSDB_OPEN_MODE_RWCREAT,
-						80000,
-						8, // two 32-bit ints, xy
-						8  // one 64-bit double, representing an ETA time
-			// in whatever binary format and byte order
-			// "double" on the server platform uses
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening look time KissDB", error);
-		return false;
-	}
-
-	lookTimeDBOpen = true;
-
-	// note that the various decay ETA slots in map.db
-	// are define but unused, because we store times separately
-	// in mapTime.db
-	error = DB_open_timeShrunk(&db,
-							   "map.db",
-							   KISSDB_OPEN_MODE_RWCREAT,
-							   80000,
-							   16, // four 32-bit ints, xysb
-			// s is the slot number
-			// s=0 for base object
-			// s=1 decay ETA seconds (wall clock time)
-			// s=2 for count of contained objects
-			// s=3 first contained object
-			// s=4 second contained object
-			// s=... remaining contained objects
-			// Then decay ETA for each slot, in order,
-			//   after that.
-			// s = -1
-			//  is a special flag slot set to 0 if NONE
-			//  of the contained items have ETA decay
-			//  or 1 if some of the contained items might
-			//  have ETA decay.
-			//  (this saves us from having to check each
-			//   one)
-			// If a contained object id is negative,
-			// that indicates that it sub-contains
-			// other objects in its corresponding b slot
-			//
-			// b is for indexing sub-container slots
-			// b=0 is the main object
-			// b=1 is the first sub-slot, etc.
-							   4 // one int, object ID at x,y in slot (s-3)
-			// OR contained count if s=2
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening map KissDB", error);
-		return false;
-	}
-
-	dbOpen = true;
-
-	// this DB uses the same slot numbers as the map.db
-	// however, only times are stored here, because they require 8 bytes
-	// so, slot 0 and 2 are never used, for example
-	error = DB_open_timeShrunk(&timeDB,
-							   "mapTime.db",
-							   KISSDB_OPEN_MODE_RWCREAT,
-							   80000,
-							   16, // four 32-bit ints, xysb
-			// s is the slot number
-			// s=0 for base object
-			// s=1 decay ETA seconds (wall clock time)
-			// s=2 for count of contained objects
-			// s=3 first contained object
-			// s=4 second contained object
-			// s=... remaining contained objects
-			// Then decay ETA for each slot, in order,
-			//   after that.
-			// If a contained object id is negative,
-			// that indicates that it sub-contains
-			// other objects in its corresponding b slot
-			//
-			// b is for indexing sub-container slots
-			// b=0 is the main object
-			// b=1 is the first sub-slot, etc.
-							   8 // one 64-bit double, representing an ETA time
-			// in whatever binary format and byte order
-			// "double" on the server platform uses
-	);
-
-	if (error)
-	{
-		AppLog::errorF("Error %d opening map time KissDB", error);
-		return false;
-	}
-
-	timeDBOpen = true;
-
-	error = DB_open_timeShrunk(&biomeDB,
+	int error = DB_open_timeShrunk(&biomeDB,
 							   "biome.db",
 							   KISSDB_OPEN_MODE_RWCREAT,
 							   80000,
@@ -11099,13 +10861,11 @@ bool OneLife::Server::initMap()
 			// 3: second place biome gap as int (float gap
 			//    multiplied by 1,000,000)
 	);
-
 	if (error)
 	{
 		AppLog::errorF("Error %d opening biome KissDB", error);
 		return false;
 	}
-
 	biomeDBOpen = true;
 
 	// see if any biomes are listed in DB
@@ -11128,13 +10888,13 @@ bool OneLife::Server::initMap()
 		if (y > maxBiomeYLoc) { maxBiomeYLoc = y; }
 		if (y < minBiomeYLoc) { minBiomeYLoc = y; }
 	}
-
 	printf("Min (x,y) of biome in db = (%d,%d), "
 		   "Max (x,y) of biome in db = (%d,%d)\n",
 		   minBiomeXLoc,
 		   minBiomeYLoc,
 		   maxBiomeXLoc,
 		   maxBiomeYLoc);
+
 
 	error = DB_open_timeShrunk(&floorDB,
 							   "floor.db",
@@ -11149,7 +10909,6 @@ bool OneLife::Server::initMap()
 		AppLog::errorF("Error %d opening floor KissDB", error);
 		return false;
 	}
-
 	floorDBOpen = true;
 
 	error = DB_open_timeShrunk(&floorTimeDB,
@@ -11161,13 +10920,11 @@ bool OneLife::Server::initMap()
 			// in whatever binary format and byte order
 			// "double" on the server platform uses
 	);
-
 	if (error)
 	{
 		AppLog::errorF("Error %d opening floor time KissDB", error);
 		return false;
 	}
-
 	floorTimeDBOpen = true;
 
 	// ALWAYS delete old grave DB at each server startup
