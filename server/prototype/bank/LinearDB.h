@@ -125,6 +125,7 @@ namespace OneLife::server::bank
 
 			//!public operation (db management)
 			virtual void clean() =0;
+			virtual unsigned int getRecordNumber() =0;
 			void removeDBFile();
 
 		protected:
@@ -136,6 +137,11 @@ namespace OneLife::server::bank
 			RawRecord rawRecord;
 			File* dbFile;
 			unsigned long int recordNumber;
+			struct{
+				bool enabled;
+				bool empty;
+			}status;
+
 	};
 }
 

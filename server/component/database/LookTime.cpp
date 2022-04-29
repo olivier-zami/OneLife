@@ -119,6 +119,15 @@ void OneLife::server::database::LookTime::clean()
 
 /**
  *
+ * @return
+ */
+unsigned int OneLife::server::database::LookTime::getRecordNumber()
+{
+	return 0;//TODO return record number
+}
+
+/**
+ *
  * @param inX
  * @param inY
  * @param inTime

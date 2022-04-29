@@ -5,9 +5,16 @@
 #include "Biome.h"
 
 #include "../../../commonSource/Debug.h"
+#include "../../dbCommon.h"
 
-//DB biomeDB;
-//char biomeDBOpen = false;
+DB biomeDB;
+char biomeDBOpen = false;
+double gapIntScale = 1000000.0;
+char anyBiomesInDB = false;
+int  maxBiomeXLoc  = -2000000000;
+int  maxBiomeYLoc  = -2000000000;
+int  minBiomeXLoc  = 2000000000;
+int  minBiomeYLoc  = 2000000000;
 
 OneLife::server::database::Biome::Biome(
 		const char* path,
@@ -22,3 +29,83 @@ OneLife::server::database::Biome::Biome(
 }
 
 OneLife::server::database::Biome::~Biome() {}
+
+unsigned int OneLife::server::database::Biome::getRecordNumber()
+{
+
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param outSecondPlaceBiome
+ * @param outSecondPlaceGap
+ * @return
+ * @note from server/map.cpp
+ * // => returns -1 if not found
+ * // => don't bother with this call unless biome DB has
+		// something in it, and this inX,inY is in the region where biomes
+		// exist in the database (tutorial loading, or test maps)
+ */
+int biomeDBGet(int inX, int inY, int *outSecondPlaceBiome, double *outSecondPlaceGap)
+{
+	int biome;
+	if (!anyBiomesInDB || inX < minBiomeXLoc || inX > maxBiomeXLoc || inY < minBiomeYLoc || inY > maxBiomeYLoc)
+	{
+		biome = -1;
+	}
+	else
+	{
+		unsigned char key[8];
+		unsigned char value[12];
+
+		// look for changes to default in database
+		intPairToKey(inX, inY, key);
+
+		//int result = DB_get(&biomeDB, key, value);
+		int result = LINEARDB3_get(&biomeDB, key, value);
+
+		if (result == 0)
+		{
+			// found
+			biome = valueToInt(&(value[0]));
+			if (outSecondPlaceBiome != NULL) { *outSecondPlaceBiome = valueToInt(&(value[4])); }
+			if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = valueToInt(&(value[8])) / gapIntScale; }
+		}
+		else
+		{
+			biome = -1;
+		}
+	}
+	return biome;
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inValue
+ * @param inSecondPlace
+ * @param inSecondPlaceGap
+ * @note from server/map.cpp
+ */
+void biomeDBPut(int inX, int inY, int inValue, int inSecondPlace, double inSecondPlaceGap)
+{
+	unsigned char key[8];
+	unsigned char value[12];
+
+	intPairToKey(inX, inY, key);
+	intToValue(inValue, &(value[0]));
+	intToValue(inSecondPlace, &(value[4]));
+	intToValue(lrint(inSecondPlaceGap * gapIntScale), &(value[8]));
+
+	anyBiomesInDB = true;
+
+	if (inX > maxBiomeXLoc) { maxBiomeXLoc = inX; }
+	if (inX < minBiomeXLoc) { minBiomeXLoc = inX; }
+	if (inY > maxBiomeYLoc) { maxBiomeYLoc = inY; }
+	if (inY < minBiomeYLoc) { minBiomeYLoc = inY; }
+
+	DB_put(&biomeDB, key, value);
+}

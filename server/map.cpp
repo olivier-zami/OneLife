@@ -164,13 +164,6 @@ extern char apocalypseTriggered;
 extern int edgeObjectID;// what object is placed on edge of map
 extern int currentResponsiblePlayer;
 
-void setResponsiblePlayer(int inPlayerID)
-{
-	currentResponsiblePlayer = inPlayerID;
-}
-
-extern double gapIntScale;
-
 // object ids that occur naturally on map at random, per biome
 extern int    	numBiomes;
 extern int*		biomes;
@@ -218,12 +211,8 @@ extern HashTable<ContRecord> liveDecayRecordLastLookTimeMaxContainedHashTable;
 
 extern HashTable<double> liveMovementEtaTimes;
 extern SimpleVector<ChangePosition> mapChangePosSinceLastStep;
-extern char anyBiomesInDB;
-extern int maxBiomeXLoc;
-extern int maxBiomeYLoc;
-extern int minBiomeXLoc;
-extern int minBiomeYLoc;
 extern int apocalypsePossible;
+
 
 // read from testMap.txt
 // unless testMapStale.txt is present
@@ -306,24 +295,9 @@ timeSec_t valueToTime( unsigned char *inValue ) {
 	}
 */
 
-static void biomeDBPut(int inX, int inY, int inValue, int inSecondPlace, double inSecondPlaceGap)
+void setResponsiblePlayer(int inPlayerID)
 {
-	unsigned char key[8];
-	unsigned char value[12];
-
-	intPairToKey(inX, inY, key);
-	intToValue(inValue, &(value[0]));
-	intToValue(inSecondPlace, &(value[4]));
-	intToValue(lrint(inSecondPlaceGap * gapIntScale), &(value[8]));
-
-	anyBiomesInDB = true;
-
-	if (inX > maxBiomeXLoc) { maxBiomeXLoc = inX; }
-	if (inX < minBiomeXLoc) { minBiomeXLoc = inX; }
-	if (inY > maxBiomeYLoc) { maxBiomeYLoc = inY; }
-	if (inY < minBiomeYLoc) { minBiomeYLoc = inY; }
-
-	DB_put(&biomeDB, key, value);
+	currentResponsiblePlayer = inPlayerID;
 }
 
 static void eveDBPut(const char *inEmail, int inX, int inY, int inRadius)

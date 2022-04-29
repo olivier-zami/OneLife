@@ -62,6 +62,9 @@ extern MinPriorityQueue<MovementRecord> liveMovements;
 extern SimpleVector<LiveObject> players;
 extern char doesEveLineExist(int inEveID);
 
+extern DB biomeDB;
+extern char biomeDBOpen;
+extern char anyBiomesInDB;
 extern DB lookTimeDB;
 extern char lookTimeDBOpen;
 extern char lookTimeDBEmpty;
@@ -93,12 +96,6 @@ int eveRadius = eveRadiusStart;
 GridPos eveLocation = {0, 0};
 char skipLookTimeCleanup = 0;
 char skipRemovedObjectCleanup = 0;
-char anyBiomesInDB = false;
-int  maxBiomeXLoc  = -2000000000;
-int  maxBiomeYLoc  = -2000000000;
-int  minBiomeXLoc  = 2000000000;
-int  minBiomeYLoc  = 2000000000;
-double gapIntScale = 1000000.0;
 char skipTrackingMapChanges = false;// for large inserts, like tutorial map loads, we don't want to// track individual map changes.
 int eveHomeMarkerObjectID = -1;
 int cellsLookedAtToInit = 0;// if lookTimeDBEmpty, then we init all map cell look times to NOW
@@ -161,8 +158,6 @@ SimpleVector<ChangePosition> mapChangePosSinceLastStep;// track all map changes 
 
 DB db;
 char dbOpen = false;
-DB biomeDB;
-char biomeDBOpen;
 DB timeDB;
 char timeDBOpen = false;
 DB floorDB;
@@ -452,6 +447,11 @@ void OneLife::server::Map::init(OneLife::server::settings::WorldMap settings)
 
 }
 
+void OneLife::server::Map::updateBiomeRegion(OneLife::server::dataType::map::BiomeRegion* biomeRegion)
+{
+
+}
+
 /**********************************************************************************************************************/
 
 /**
@@ -643,14 +643,7 @@ int DB_open_timeShrunk(DB *db,
 int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSecondPlaceGap)
 {
 	int secondPlaceBiome = -1;
-	int dbBiome = -1;
-	if (anyBiomesInDB && inX >= minBiomeXLoc && inX <= maxBiomeXLoc && inY >= minBiomeYLoc && inY <= maxBiomeYLoc)
-	{
-		// don't bother with this call unless biome DB has
-		// something in it, and this inX,inY is in the region where biomes
-		// exist in the database (tutorial loading, or test maps)
-		dbBiome = biomeDBGet(inX, inY, &secondPlaceBiome, outSecondPlaceGap);
-	}
+	int dbBiome = biomeDBGet(inX, inY, &secondPlaceBiome, outSecondPlaceGap);
 
 	if (dbBiome != -1)
 	{
@@ -804,43 +797,6 @@ int getBiomeIndex(int inBiome)
 		if (biomes[i] == inBiome) { return i; }
 	}
 	return -1;
-}
-
-/**
- *
- * @param inX
- * @param inY
- * @param outSecondPlaceBiome
- * @param outSecondPlaceGap
- * @return
- * // returns -1 if not found
- */
-int biomeDBGet(int inX, int inY, int *outSecondPlaceBiome, double *outSecondPlaceGap)
-{
-	unsigned char key[8];
-	unsigned char value[12];
-
-	// look for changes to default in database
-	intPairToKey(inX, inY, key);
-
-	//int result = DB_get(&biomeDB, key, value);
-	int result = LINEARDB3_get(&biomeDB, key, value);
-
-	if (result == 0)
-	{
-		// found
-		int biome = valueToInt(&(value[0]));
-
-		if (outSecondPlaceBiome != NULL) { *outSecondPlaceBiome = valueToInt(&(value[4])); }
-
-		if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = valueToInt(&(value[8])) / gapIntScale; }
-
-		return biome;
-	}
-	else
-	{
-		return -1;
-	}
 }
 
 /**

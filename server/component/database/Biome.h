@@ -22,8 +22,13 @@ namespace OneLife::server::database
 
 			~Biome();
 
+			unsigned int getRecordNumber();
+
 		private:
 	};
 }
+
+int biomeDBGet(int inX, int inY, int *outSecondPlaceBiome = NULL, double *outSecondPlaceGap = NULL);
+void biomeDBPut(int inX, int inY, int inValue, int inSecondPlace, double inSecondPlaceGap);
 
 #endif //ONELIFE_SERVER_COMPONENT_DATABASE_BIOME_H

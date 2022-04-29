@@ -5,15 +5,16 @@
 #ifndef ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H
 #define ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H
 
-#include "database/Biome.h"
-#include "database/LookTime.h"
-#include "../dataType/info.h"
-#include "../dataType/Settings.h"
 #include "../../gameSource/GridPos.h"
 #include "../../gameSource/objectBank.h"
 #include "../../gameSource/transitionBank.h"
 #include "../../third_party/minorGems/util/SimpleVector.h"
 #include "../../third_party/minorGems/system/Time.h"
+#include "../dataType/info.h"
+#include "../dataType/map.h"
+#include "../dataType/Settings.h"
+#include "database/Biome.h"
+#include "database/LookTime.h"
 
 #define MAP_METADATA_LENGTH 128
 #define DECAY_SLOT 1
@@ -97,6 +98,7 @@ namespace OneLife::server
 			~Map();
 
 			void init(OneLife::server::settings::WorldMap settings);
+			void updateBiomeRegion(OneLife::server::dataType::map::BiomeRegion* biomeRegion);
 
 		private:
 			static OneLife::server::Map *worldMap;
@@ -123,7 +125,6 @@ int countNewlines(char *inString);
 BaseMapCacheRecord *mapCacheRecordLookup(int inX, int inY);
 int computeMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex = NULL, double *outSecondPlaceGap = NULL);
 int getBiomeIndex(int inBiome);
-int biomeDBGet(int inX, int inY, int *outSecondPlaceBiome = NULL, double *outSecondPlaceGap = NULL);
 void setMapObjectRaw(int inX, int inY, int inID);
 timeSec_t dbLookTimeGet(int inX, int inY);
 void deleteFileByName(const char *inFileName);

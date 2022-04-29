@@ -155,7 +155,8 @@ uint32_t OneLife::server::bank::LinearDB::getSize()
  */
 bool OneLife::server::bank::LinearDB::isEmpty()
 {
-	return !this->dbFile->exists() || !this->recordNumber;
+	this->status.empty = !this->dbFile->exists() || !this->recordNumber;
+	return this->status.empty;
 }
 
 /**

@@ -27,6 +27,7 @@ namespace OneLife::server::database
 			void setStaleDuration(int staleInSecond);
 
 			void clean();
+			unsigned int getRecordNumber();
 
 		private:
 			int staleInSecond;
