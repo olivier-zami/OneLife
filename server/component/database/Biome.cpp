@@ -25,14 +25,65 @@ OneLife::server::database::Biome::Biome(
 		OneLife::server::bank::LinearDB::LinearDB(path, mode, hash_table_size, key_size, value_size)
 {
 	OneLife::Debug::write("init biomeDB : %s", this->settings.path);
+	this->recordNumber = 0;
+	this->status.enabled = false;
+	this->status.empty = true;
 	//this->settings.db = &biomeDB;
 }
 
 OneLife::server::database::Biome::~Biome() {}
 
+
+void OneLife::server::database::Biome::clean() {}
+
 unsigned int OneLife::server::database::Biome::getRecordNumber()
 {
+	return this->recordNumber;
+}
 
+/**********************************************************************************************************************/
+
+/**
+ * @note from int_map() in server/map.cpp
+ * // see if any biomes are listed in DB
+	// if not, we don't even need to check it when generating map
+ */
+void OneLife::server::database::Biome::enable()
+{
+	OneLife::Debug::write("Enable biome database");
+	int recordNumber = 0;
+	int xMin = minBiomeXLoc;
+	int xMax = maxBiomeXLoc;
+	int yMin = minBiomeYLoc;
+	int yMax = maxBiomeYLoc;
+	std::function<void(RawRecord)> checkBiomeCell = [&recordNumber, &xMin, &xMax, &yMin, &yMax](RawRecord record) -> void
+	{
+		recordNumber++;
+
+		int x = valueToInt(record.key);
+		int y = valueToInt(&(record.key[4]));
+
+		if (x > xMax) { xMax = x; }
+		if (x < xMin) { xMin = x; }
+		if (y > yMax) { yMax = y; }
+		if (y < yMin) { yMin = y; }
+
+	};
+	this->iterate(checkBiomeCell);
+	this->recordNumber = recordNumber;
+	minBiomeXLoc = xMin;
+	maxBiomeXLoc = xMax;
+	minBiomeYLoc = yMin;
+	maxBiomeYLoc = yMax;
+
+	if(this->recordNumber) anyBiomesInDB = true;
+	printf("\n---------------------------------------------------------------\nMin (x,y) of biome in db = (%d,%d), "
+		   "Max (x,y) of biome in db = (%d,%d)\nrecordNumber:%lu\n",
+		   minBiomeXLoc,
+		   minBiomeYLoc,
+		   maxBiomeXLoc,
+		   maxBiomeYLoc,
+		   this->recordNumber);
 }
 
 /**

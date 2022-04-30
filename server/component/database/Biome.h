@@ -22,7 +22,11 @@ namespace OneLife::server::database
 
 			~Biome();
 
+			void clean();
 			unsigned int getRecordNumber();
+
+		protected:
+			void enable();
 
 		private:
 	};

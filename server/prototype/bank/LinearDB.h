@@ -129,6 +129,7 @@ namespace OneLife::server::bank
 			void removeDBFile();
 
 		protected:
+			virtual void enable() =0;
 			DB* db;
 			char* dbEmpty;
 			char* dbOpen;

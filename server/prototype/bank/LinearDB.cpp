@@ -122,9 +122,12 @@ void OneLife::server::bank::LinearDB::open(DB* db, char* ptrDbOpenStatus, char* 
 		//return false;
 	}
 
-	if(this->dbEmpty && !this->dbFile->exists()) *(this->dbEmpty) = true;
-	*(this->dbOpen) = true;
-	this->recordNumber = 1;//TODO: iterate & count
+	if(!this->status.enabled)
+	{
+		this->enable();
+		if(this->dbEmpty && !this->dbFile->exists()) *(this->dbEmpty) = true;
+		*(this->dbOpen) = true;
+	}
 }
 
 void OneLife::server::bank::LinearDB::close()

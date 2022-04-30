@@ -126,6 +126,15 @@ unsigned int OneLife::server::database::LookTime::getRecordNumber()
 	return 0;//TODO return record number
 }
 
+/**********************************************************************************************************************/
+
+void OneLife::server::database::LookTime::enable()
+{
+	OneLife::Debug::write("Enable LookTime database");
+}
+
+/**********************************************************************************************************************/
+
 /**
  *
  * @param inX

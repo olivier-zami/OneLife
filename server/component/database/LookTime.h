@@ -29,6 +29,9 @@ namespace OneLife::server::database
 			void clean();
 			unsigned int getRecordNumber();
 
+		protected:
+			void enable();
+
 		private:
 			int staleInSecond;
 	};
