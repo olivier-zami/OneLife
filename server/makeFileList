@@ -42,9 +42,9 @@ component/Speech.cpp \
 component/feature/apocalypse.cpp \
 component/Log.cpp \
 dataType/LiveObject.cpp \
-prototype/bank/Cache.cpp \
-prototype/bank/LinearDB.cpp \
-prototype/bank/linearDB/lineardb3.cpp \
+objectType/bank/Cache.cpp \
+objectType/bank/LinearDB.cpp \
+objectType/bank/linearDB/lineardb3.cpp \
 ../commonSource/Debug.cpp \
 ../commonSource/math/geometry.cpp \
 ../commonSource/math/misc.cpp \

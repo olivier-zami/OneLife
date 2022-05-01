@@ -5,7 +5,7 @@
 #ifndef ONELIFE_SERVER_COMPONENT_CACHE_BIOME_H
 #define ONELIFE_SERVER_COMPONENT_CACHE_BIOME_H
 
-#include "../../prototype/bank/Cache.h"
+#include "../../objectType/bank/Cache.h"
 
 #define BIOME_CACHE_SIZE 131072
 

@@ -260,6 +260,8 @@ SimpleVector<char*> curseWords;
 
 static char useTestMap = false;// if true, rest of natural map is blank
 
+extern OneLife::Server* oneLifeServer;
+
 OneLife::Server::Server(OneLife::server::Settings settings)
 {
 	this->settings = settings;
@@ -268,6 +270,32 @@ OneLife::Server::Server(OneLife::server::Settings settings)
 
 OneLife::Server::~Server() {}
 
+/**
+ *
+ */
+void OneLife::Server::loadObjects()
+{
+	OneLife::Debug::write("loading objects...\n");
+	//!
+	this->allObjects = getAllObjects(&(this->numObjects));
+	// first, find all biomes
+	for (int i = 0; i < this->numObjects; i++)
+	{
+		ObjectRecord *o = this->allObjects[i];
+		if (o->mapChance > 0)
+		{
+			for (int j = 0; j < o->numBiomes; j++)
+			{
+				int b = o->biomes[j];
+				if (this->biomeList.getElementIndex(b) == -1) { this->biomeList.push_back(b); }
+			}
+		}
+	}
+}
+
+/**
+ *
+ */
 void OneLife::Server::start()
 {
 	int shutdownMode = this->settings.shutdownMode;
@@ -10842,62 +10870,11 @@ bool OneLife::Server::initMap()
 	//!Free settings value memory allocation
 	delete [] this->settings.worldMap.database.lookTime.url;
 
+	/******************************************************************************************************************/
 
-	//!
-	int            numObjects;
-	ObjectRecord **allObjects = getAllObjects(&numObjects);
-
-	// first, find all biomes
-	SimpleVector<int> biomeList;
-
-	for (int i = 0; i < numObjects; i++)
-	{
-		ObjectRecord *o = allObjects[i];
-
-		if (o->mapChance > 0)
-		{
-
-			for (int j = 0; j < o->numBiomes; j++)
-			{
-				int b = o->biomes[j];
-
-				if (biomeList.getElementIndex(b) == -1) { biomeList.push_back(b); }
-			}
-		}
-	}
-
-	// manually controll order
-	SimpleVector<int> *biomeOrderList = SettingsManager::getIntSettingMulti("biomeOrder");
-
-	SimpleVector<float> *biomeWeightList = SettingsManager::getFloatSettingMulti("biomeWeights");
-
-	for (int i = 0; i < biomeOrderList->size(); i++)
-	{
-		int b = biomeOrderList->getElementDirect(i);
-
-		if (biomeList.getElementIndex(b) == -1)
-		{
-			biomeOrderList->deleteElement(i);
-			biomeWeightList->deleteElement(i);
-			i--;
-		}
-	}
-
-	// now add any discovered biomes to end of list
-	for (int i = 0; i < biomeList.size(); i++)
-	{
-		int b = biomeList.getElementDirect(i);
-		if (biomeOrderList->getElementIndex(b) == -1)
-		{
-			biomeOrderList->push_back(b);
-			// default weight
-			biomeWeightList->push_back(0.1);
-		}
-	}
-
-	numBiomes        = biomeOrderList->size();
-	biomes           = biomeOrderList->getElementArray();
-	biomeWeights     = biomeWeightList->getElementArray();
+	numBiomes        = this->biomeOrderList->size();
+	biomes           = this->biomeOrderList->getElementArray();
+	biomeWeights     = this->biomeWeightList->getElementArray();
 	biomeCumuWeights = new float[numBiomes];
 
 	biomeTotalWeight = 0;
@@ -10907,8 +10884,10 @@ bool OneLife::Server::initMap()
 		biomeCumuWeights[i] = biomeTotalWeight;
 	}
 
-	delete biomeOrderList;
-	delete biomeWeightList;
+	delete this->biomeOrderList;
+	delete this->biomeWeightList;
+
+
 
 	SimpleVector<int> *specialBiomeList = SettingsManager::getIntSettingMulti("specialBiomes");
 
@@ -10939,9 +10918,9 @@ bool OneLife::Server::initMap()
 
 	CustomRandomSource phaseRandSource(randSeed);
 
-	for (int i = 0; i < numObjects; i++)
+	for (int i = 0; i < this->numObjects; i++)
 	{
-		ObjectRecord *o = allObjects[i];
+		ObjectRecord *o = this->allObjects[i];
 
 		if (strstr(o->description, "eveSecondaryLoc") != NULL) { eveSecondaryLocObjectIDs.push_back(o->id); }
 		if (strstr(o->description, "eveHomeMarker") != NULL) { eveHomeMarkerObjectID = o->id; }
@@ -11014,7 +10993,7 @@ bool OneLife::Server::initMap()
 					  totalChanceWeight[j]);
 	}
 
-	delete[] allObjects;
+	delete[] this->allObjects;
 
 	skipRemovedObjectCleanup = SettingsManager::getIntSetting("skipRemovedObjectCleanup", 0);
 
@@ -11183,6 +11162,42 @@ bool OneLife::Server::initMap()
 	setupMapChangeLogFile();
 
 	return true;
+}
+
+/**
+ *
+ */
+void OneLife::Server::initBiomes()
+{
+	OneLife::Debug::write("Init biomes data ...\n");
+
+	// manually control order
+	this->biomeOrderList = SettingsManager::getIntSettingMulti("biomeOrder");
+	this->biomeWeightList = SettingsManager::getFloatSettingMulti("biomeWeights");
+
+	for (int i = 0; i < this->biomeOrderList->size(); i++)
+	{
+		int b = this->biomeOrderList->getElementDirect(i);
+
+		if (this->biomeList.getElementIndex(b) == -1)
+		{
+			this->biomeOrderList->deleteElement(i);
+			this->biomeWeightList->deleteElement(i);
+			i--;
+		}
+	}
+
+	// now add any discovered biomes to end of list
+	for (int i = 0; i < this->biomeList.size(); i++)
+	{
+		int b = this->biomeList.getElementDirect(i);
+		if (this->biomeOrderList->getElementIndex(b) == -1)
+		{
+			this->biomeOrderList->push_back(b);
+			// default weight
+			this->biomeWeightList->push_back(0.1);
+		}
+	}
 }
 
 /**

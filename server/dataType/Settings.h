@@ -37,6 +37,11 @@ namespace OneLife::server
 		int port;
 		std::string strInfertilitySuffix;
 
+		struct{
+			SimpleVector<int> *biomeOrderList;
+			SimpleVector<float> *biomeWeightList;
+		}topography;
+
 		OneLife::server::settings::WorldMap worldMap;
 	}Settings;
 }

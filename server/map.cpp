@@ -23,7 +23,7 @@
 #include "kissdb.h"
 //#include "stackdb.h"
 //#include "lineardb.h"
-#include "prototype/bank/linearDB/lineardb3.h"
+#include "objectType/bank/linearDB/lineardb3.h"
 
 #include "minorGems/util/crc32.h"
 
@@ -169,7 +169,6 @@ extern int    	numBiomes;
 extern int*		biomes;
 extern float*	biomeWeights;
 extern float*	biomeCumuWeights;
-extern float  	biomeTotalWeight;
 extern int    	regularBiomeLimit;
 extern int    	numSpecialBiomes;
 extern int*  	specialBiomes;

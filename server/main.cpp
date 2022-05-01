@@ -669,6 +669,8 @@ int main()
 
 	oneLifeServer = new OneLife::Server(settings);
 
+	oneLifeServer->loadObjects();
+	oneLifeServer->initBiomes();
 	if(oneLifeServer->initMap() != true )
 	{
 		// cannot continue after map init fails

@@ -5,7 +5,7 @@
 #ifndef ONELIFE_SERVER_COMPONENT_DATABASE_BIOME_H
 #define ONELIFE_SERVER_COMPONENT_DATABASE_BIOME_H
 
-#include "../../prototype/bank/LinearDB.h"
+#include "../../objectType/bank/LinearDB.h"
 
 namespace OneLife::server::database
 {

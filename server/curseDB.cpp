@@ -3,7 +3,7 @@
 
 
 #include "kissdb.h"
-#include "prototype/bank/linearDB/lineardb3.h"
+#include "objectType/bank/linearDB/lineardb3.h"
 #include "dbCommon.h"
 
 

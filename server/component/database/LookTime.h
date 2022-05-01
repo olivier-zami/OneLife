@@ -5,7 +5,7 @@
 #ifndef ONELIFE_SERVER_COMPONENT_DATABASE_LOOKTIME_H
 #define ONELIFE_SERVER_COMPONENT_DATABASE_LOOKTIME_H
 
-#include "../../prototype/bank/LinearDB.h"
+#include "../../objectType/bank/LinearDB.h"
 
 #include "../../../third_party/minorGems/system/Time.h"
 

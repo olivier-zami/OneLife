@@ -21,12 +21,24 @@ namespace OneLife
 			Server(OneLife::server::Settings settings);
 			~Server();
 
+			void loadObjects();
+
 			void start();
 
 			bool initMap();
+			void initBiomes();
 
-			::OneLife::server::Settings settings;
+			OneLife::server::Settings settings;
 			OneLife::server::Map* worldMapDatabase;
+
+			//!objects settings
+			int numObjects;
+			ObjectRecord **allObjects;
+
+			//!biomes settings
+			SimpleVector<int> biomeList;
+			SimpleVector<int> *biomeOrderList;
+			SimpleVector<float> *biomeWeightList;
 	};
 }
 

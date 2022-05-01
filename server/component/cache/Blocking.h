@@ -5,7 +5,7 @@
 #ifndef ONELIFE_SERVER_COMPONENT_CACHE_BLOCKING_H
 #define ONELIFE_SERVER_COMPONENT_CACHE_BLOCKING_H
 
-#include "../../prototype/bank/Cache.h"
+#include "../../objectType/bank/Cache.h"
 
 #include "../../dataType/cacheRecord.h"
 
