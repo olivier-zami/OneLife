@@ -33,6 +33,9 @@
 #include "../../third_party/minorGems/util/random/CustomRandomSource.h"
 #include "../../third_party/minorGems/util/crc32.h"
 #include "../../third_party/minorGems/util/random/JenkinsRandomSource.h"
+#include "../dataType/record.h"
+#include "cache/Biome.h"
+#include "cache/Blocking.h"
 
 // can replace with frozenTime to freeze time
 // or slowTime to slow it down
@@ -45,7 +48,6 @@ extern SimpleVector<GridPos> *speechPipesIn;
 extern SimpleVector<GridPos> *speechPipesOut;
 extern BlockingCacheRecord blockingCache[];
 extern RecentPlacement recentPlacements[];
-extern BiomeCacheRecord biomeCache[];
 extern DBTimeCacheRecord dbTimeCache[];
 extern DBCacheRecord dbCache[];
 extern FILE *mapChangeLogFile;
@@ -180,6 +182,7 @@ static int xLimit = 2147481977;
 static int yLimit = 2147481977;
 
 OneLife::server::Map* OneLife::server::Map = nullptr;
+OneLife::server::cache::Biome* cachedBiome = nullptr;
 
 
 /**
@@ -339,6 +342,7 @@ OneLife::server::Map::~Map() {}
  */
 void OneLife::server::Map::init(OneLife::server::settings::WorldMap settings)
 {
+	OneLife::Debug::write("OneLife::server::Map::init(...)");
 	LINEARDB3_setMaxLoad(0.80);
 
 	if(!this->ldbLookTime)
@@ -623,11 +627,30 @@ void OneLife::server::Map::init(OneLife::server::settings::WorldMap settings)
 			   cellsLookedAtToInit);
 	}
 
+	//!init caches
+	if(!cachedBiome)
+	{
+		cachedBiome = new OneLife::server::cache::Biome();
+	}
 }
 
 void OneLife::server::Map::updateBiomeRegion(OneLife::server::dataType::map::BiomeRegion* biomeRegion)
 {
 	OneLife::Debug::write("Trying to read biome mapRegion (%i,%i)=>(%i,%i)", biomeRegion->coord.xMin, biomeRegion->coord.yMin, biomeRegion->coord.xMax, biomeRegion->coord.yMax);
+	biomeRegion->tile.deleteAll();
+	for (int y = biomeRegion->coord.yMin; y <= biomeRegion->coord.yMax; y++)
+	{
+		int posY = y - biomeRegion->coord.yMin;
+		for (int x = biomeRegion->coord.xMin; x <= biomeRegion->coord.xMax; x++)
+		{
+			int posX = x - biomeRegion->coord.xMin;
+			int idxVector = posY * (biomeRegion->coord.xMax-biomeRegion->coord.xMin) + posX;
+			OneLife::server::dataType::record::Biome biome;
+			biome.type = getMapBiomeIndex(x, y);
+			//biomeRegion->tile.push_back(biome);
+		}
+	}
+	OneLife::Debug::write("load %i tiles", biomeRegion->tile.size());
 }
 
 /**********************************************************************************************************************/
@@ -854,37 +877,31 @@ int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSeco
 		// ignore it
 	}
 
+
 	int secondPlace = -1;
-
 	double secondPlaceGap = 0;
-
 	int pickedBiome = computeMapBiomeIndex(inX, inY, &secondPlace, &secondPlaceGap);
-
 	if (outSecondPlaceIndex != NULL) { *outSecondPlaceIndex = secondPlace; }
 	if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = secondPlaceGap; }
+
+	//OneLife::Debug::write("biome(%i, %i) => %i", inX, inY, pickedBiome);
 
 	if (dbBiome == -1 || secondPlaceBiome == -1)
 	{
 		// not stored, OR some part of stored stale, re-store it
-
 		secondPlaceBiome = 0;
 		if (secondPlace != -1) { secondPlaceBiome = biomes[secondPlace]; }
-
 		// skip saving proc-genned biomes for now
 		// huge RAM impact as players explore distant areas of map
-
 		// we still check the biomeDB above for loading test maps
-		/*
-		biomeDBPut( inX, inY, biomes[pickedBiome],
-					secondPlaceBiome, secondPlaceGap );
-		*/
+		//biomeDBPut( inX, inY, biomes[pickedBiome], secondPlaceBiome, secondPlaceGap );
 	}
-
 	return pickedBiome;
 }
 
 /**
  *
+ * @from server/map.cpp
  */
 void initDBCaches()
 {
@@ -904,18 +921,6 @@ void initDBCaches()
 	for (int i = 0; i < DB_CACHE_SIZE; i++)
 	{
 		blockingCache[i] = blankBlockingRecord;
-	}
-}
-
-/**
- *
- */
-void initBiomeCache()
-{
-	BiomeCacheRecord blankRecord = {0, 0, -2, 0, 0};
-	for (int i = 0; i < BIOME_CACHE_SIZE; i++)
-	{
-		biomeCache[i] = blankRecord;
 	}
 }
 
@@ -3298,13 +3303,10 @@ void trackETA(int inX, int inY, int inSlot, timeSec_t inETA, int inSubCont, Tran
  */
 int computeMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSecondPlaceGap)
 {
-
+	//OneLife::Debug::write("computeMapBiomeIndex");
 	int secondPlace = -1;
-
 	double secondPlaceGap = 0;
-
 	int pickedBiome = biomeGetCached(inX, inY, &secondPlace, &secondPlaceGap);
-
 	if (pickedBiome != -2)
 	{
 		// hit cached
@@ -3317,11 +3319,7 @@ int computeMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *out
 
 	// else cache miss
 	pickedBiome = -1;
-
-	// try topographical altitude mapping
-
-	setXYRandomSeed(biomeRandSeed);
-
+	setXYRandomSeed(biomeRandSeed);// try topographical altitude mapping
 	double randVal = (getXYFractal(inX, inY, 0.55, 0.83332 + 0.08333 * numBiomes));
 
 	// push into range 0..1, based on sampled min/max values
@@ -3365,8 +3363,8 @@ int computeMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *out
 	// randVal += 0.5;
 	// randVal /= 2.0;
 
+	//OneLife::Debug::write("numBiome: %i", numBiomes);
 	float i = randVal * biomeTotalWeight;
-
 	pickedBiome = 0;
 	while (pickedBiome < numBiomes && i > biomeCumuWeights[pickedBiome])
 	{
@@ -3431,49 +3429,6 @@ int computeMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *out
 	if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = secondPlaceGap; }
 
 	return pickedBiome;
-}
-
-/**
- *
- * @param inX
- * @param inY
- * @param outSecondPlaceIndex
- * @param outSecondPlaceGap
- * @return
- * @note from server/map.cpp
- * // returns -2 on miss
- */
-int biomeGetCached(int inX, int inY, int *outSecondPlaceIndex, double *outSecondPlaceGap)
-{
-	BiomeCacheRecord r = biomeCache[computeXYCacheHash(inX, inY)];
-
-	if (r.x == inX && r.y == inY)
-	{
-		*outSecondPlaceIndex = r.secondPlace;
-		*outSecondPlaceGap   = r.secondPlaceGap;
-
-		return r.biome;
-	}
-	else
-	{
-		return -2;
-	}
-}
-
-/**
- *
- * @param inX
- * @param inY
- * @param inBiome
- * @param inSecondPlace
- * @param inSecondPlaceGap
- * @note from server/map.cpp
- */
-void biomePutCached(int inX, int inY, int inBiome, int inSecondPlace, double inSecondPlaceGap)
-{
-	BiomeCacheRecord r = {inX, inY, inBiome, inSecondPlace, inSecondPlaceGap};
-
-	biomeCache[computeXYCacheHash(inX, inY)] = r;
 }
 
 /**
@@ -6070,4 +6025,158 @@ GridPos getPlayerPos( LiveObject *inPlayer )
 	else {
 		return computePartialMoveSpot( inPlayer );
 	}
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @param inSlot
+ * @param inSubCont
+ * @return
+ * @note from server/map.cpp
+ * returns -1 if not found
+ */
+int dbGet(int inX, int inY, int inSlot, int inSubCont)
+{
+
+	int cachedVal = dbGetCached(inX, inY, inSlot, inSubCont);
+	if (cachedVal != -2) { return cachedVal; }
+
+	unsigned char key[16];
+	unsigned char value[4];
+
+	// look for changes to default in database
+	intQuadToKey(inX, inY, inSlot, inSubCont, key);
+
+	int result = DB_get(&db, key, value);
+
+	int returnVal;
+
+	if (result == 0)
+	{
+		// found
+		returnVal = valueToInt(value);
+	}
+	else
+	{
+		returnVal = -1;
+	}
+
+	dbPutCached(inX, inY, inSlot, inSubCont, returnVal);
+
+	return returnVal;
+}
+
+/**
+ *
+ * @param inEmail
+ * @param outX
+ * @param outY
+ * @param outRadius
+ * @return
+ * @note returns -1 on failure, 1 on success
+ */
+int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius)
+{
+	unsigned char key[50];
+
+	unsigned char value[12];
+
+	emailToKey(inEmail, key);
+
+	int result = DB_get(&eveDB, key, value);
+
+	if (result == 0)
+	{
+		// found
+		*outX      = valueToInt(&(value[0]));
+		*outY      = valueToInt(&(value[4]));
+		*outRadius = valueToInt(&(value[8]));
+
+		return 1;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+/**
+ *
+ * @param inX
+ * @param inY
+ * @return
+ * @note from server/map.cpp
+ */
+char isMapSpotBlocking(int inX, int inY)
+{
+
+	char cachedVal = blockingGetCached(inX, inY);
+	if (cachedVal != -1) { return cachedVal; }
+
+	int target = getMapObject(inX, inY);
+
+	if (target != 0)
+	{
+		ObjectRecord *obj = getObject(target);
+
+		if (obj->blocksWalking)
+		{
+			// only cache direct hits
+			// wide objects that block are difficult to clear from cache
+			// when map cell changes
+			blockingPutCached(inX, inY, 1);
+			return true;
+		}
+	}
+
+	// not directly blocked
+	// need to check for wide objects to left and right
+	int maxR = getMaxWideRadius();
+
+	for (int dx = -maxR; dx <= maxR; dx++)
+	{
+
+		if (dx != 0)
+		{
+
+			int nX = inX + dx;
+
+			int nID = getMapObject(nX, inY);
+
+			if (nID != 0)
+			{
+				ObjectRecord *nO = getObject(nID);
+
+				if (nO->wide)
+				{
+
+					int dist;
+					int minDist;
+
+					if (dx < 0)
+					{
+						dist    = -dx;
+						minDist = nO->rightBlockingRadius;
+					}
+					else
+					{
+						dist    = dx;
+						minDist = nO->leftBlockingRadius;
+					}
+
+					if (dist <= minDist)
+					{
+						// don't cache results from wide objects
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	// cache non-blocking results
+	blockingPutCached(inX, inY, 0);
+	return false;
 }

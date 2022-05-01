@@ -214,5 +214,8 @@ void writeRecentPlacements();
 void wipeMapFiles();
 unsigned char *getChunkMessage(int inStartX, int inStartY, int inWidth, int inHeight, GridPos inRelativeToPos, int *outMessageLength);
 GridPos getPlayerPos( LiveObject *inPlayer );
+int dbGet(int inX, int inY, int inSlot, int inSubCont = 0);
+int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius);
+char isMapSpotBlocking( int inX, int inY );
 
 #endif //ONELIFE_SERVER_COMPONENT_DATABASE_MAP_H

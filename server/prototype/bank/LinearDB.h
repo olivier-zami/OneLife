@@ -31,37 +31,16 @@
 
 #define NUM_RECENT_PLACEMENTS 100
 #define BASE_MAP_CACHE_SIZE 256 // should be a power of 2 cache will contain squared number of records
-#define BIOME_CACHE_SIZE 131072 // optimization:// cache biomeIndex results in RAM // 3.1 MB of RAM for this.
-#define DB_CACHE_SIZE 131072// optimization:// cache dbGet results in RAM// 2.6 MB of RAM for this.
 #define NUM_CONT_SLOT 2
 #define FIRST_CONT_SLOT 3
 
 #define KISSDB_OPEN_MODE_RWCREAT 3
-
-#define CACHE_PRIME_A 776509273
-#define CACHE_PRIME_B 904124281
-#define CACHE_PRIME_C 528383237
-#define CACHE_PRIME_D 148497157
 
 typedef struct DBTimeCacheRecord
 {
 	int       x, y, slot, subCont;
 	timeSec_t timeVal;
 } DBTimeCacheRecord;
-
-typedef struct BiomeCacheRecord
-{
-	int    x, y;
-	int    biome, secondPlace;
-	double secondPlaceGap;
-} BiomeCacheRecord;
-
-typedef struct BlockingCacheRecord
-{
-	int x, y;
-	// -1 if not present
-	char blocking;
-} BlockingCacheRecord;
 
 typedef struct DBCacheRecord
 {
@@ -146,12 +125,9 @@ namespace OneLife::server::bank
 	};
 }
 
-int dbGet(int inX, int inY, int inSlot, int inSubCont = 0);
 void dbPutCached(int inX, int inY, int inSlot, int inSubCont, int inValue);
 int dbGetCached(int inX, int inY, int inSlot, int inSubCont);
 int computeDBCacheHash(int inKeyA, int inKeyB, int inKeyC, int inKeyD);
 void blockingClearCached(int inX, int inY);
-int computeXYCacheHash(int inKeyA, int inKeyB);
-int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius);
 
 #endif //ONELIFE_SERVER_DATATYPE_DATABASE_LINEARDB_H

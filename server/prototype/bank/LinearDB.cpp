@@ -11,6 +11,7 @@
 #include "../../dbCommon.h"
 #include "../../monument.h"
 #include "linearDB/lineardb3.h"
+#include "Cache.h"
 
 extern DB   db;
 extern char dbOpen;
@@ -31,9 +32,7 @@ extern char metaDBOpen;
 
 extern char skipTrackingMapChanges;
 
-BlockingCacheRecord blockingCache[DB_CACHE_SIZE];
 RecentPlacement recentPlacements[NUM_RECENT_PLACEMENTS];
-BiomeCacheRecord biomeCache[BIOME_CACHE_SIZE];
 DBTimeCacheRecord dbTimeCache[DB_CACHE_SIZE];
 DBCacheRecord dbCache[DB_CACHE_SIZE];
 
@@ -50,6 +49,9 @@ OneLife::server::bank::LinearDB::LinearDB(
 	this->dbi = nullptr;
 	this->dbOpen = nullptr;
 	this->dbEmpty = nullptr;
+
+	this->status.enabled = false;
+	this->status.empty = true;
 
 	//!settings
 	int strSize = strlen(path)+1;
@@ -89,6 +91,8 @@ OneLife::server::bank::LinearDB::~LinearDB()
  */
 void OneLife::server::bank::LinearDB::open(DB* db, char* ptrDbOpenStatus, char* ptrEmptyStatus)
 {
+	OneLife::Debug::write("Open database url:%s => %s", this->settings.path, this->dbFile->getFileName());
+
 	if(!this->db)
 	{
 		if(!db) this->db = new DB;
@@ -223,48 +227,6 @@ void OneLife::server::bank::LinearDB::removeDBFile()
 
 /**********************************************************************************************************************/
 
-
-/**
- *
- * @param inX
- * @param inY
- * @param inSlot
- * @param inSubCont
- * @return
- * @note from server/map.cpp
- * returns -1 if not found
- */
-int dbGet(int inX, int inY, int inSlot, int inSubCont)
-{
-
-	int cachedVal = dbGetCached(inX, inY, inSlot, inSubCont);
-	if (cachedVal != -2) { return cachedVal; }
-
-	unsigned char key[16];
-	unsigned char value[4];
-
-	// look for changes to default in database
-	intQuadToKey(inX, inY, inSlot, inSubCont, key);
-
-	int result = DB_get(&db, key, value);
-
-	int returnVal;
-
-	if (result == 0)
-	{
-		// found
-		returnVal = valueToInt(value);
-	}
-	else
-	{
-		returnVal = -1;
-	}
-
-	dbPutCached(inX, inY, inSlot, inSubCont, returnVal);
-
-	return returnVal;
-}
-
 void dbPutCached(int inX, int inY, int inSlot, int inSubCont, int inValue)
 {
 	DBCacheRecord r = {inX, inY, inSlot, inSubCont, inValue};
@@ -309,60 +271,4 @@ int computeDBCacheHash(int inKeyA, int inKeyB, int inKeyC, int inKeyD)
 				  % DB_CACHE_SIZE;
 	if (hashKey < 0) { hashKey += DB_CACHE_SIZE; }
 	return hashKey;
-}
-
-/**
- * @note from server/map.cpp
- */
-void blockingClearCached(int inX, int inY)
-{
-
-	BlockingCacheRecord *r = &(blockingCache[computeXYCacheHash(inX, inY)]);
-
-	if (r->x == inX && r->y == inY) { r->blocking = -1; }
-}
-
-/**
- * @note from server/map.cpp
- */
-int computeXYCacheHash(int inKeyA, int inKeyB)
-{
-
-	int hashKey = (inKeyA * CACHE_PRIME_A + inKeyB * CACHE_PRIME_B) % BIOME_CACHE_SIZE;
-	if (hashKey < 0) { hashKey += BIOME_CACHE_SIZE; }
-	return hashKey;
-}
-
-/**
- *
- * @param inEmail
- * @param outX
- * @param outY
- * @param outRadius
- * @return
- * @note returns -1 on failure, 1 on success
- */
-int eveDBGet(const char *inEmail, int *outX, int *outY, int *outRadius)
-{
-	unsigned char key[50];
-
-	unsigned char value[12];
-
-	emailToKey(inEmail, key);
-
-	int result = DB_get(&eveDB, key, value);
-
-	if (result == 0)
-	{
-		// found
-		*outX      = valueToInt(&(value[0]));
-		*outY      = valueToInt(&(value[4]));
-		*outRadius = valueToInt(&(value[8]));
-
-		return 1;
-	}
-	else
-	{
-		return -1;
-	}
 }

@@ -314,11 +314,6 @@ static void eveDBPut(const char *inEmail, int inX, int inY, int inRadius)
 	DB_put(&eveDB, key, value);
 }
 
-#define BIOME_CACHE_SIZE 131072
-
-extern BiomeCacheRecord biomeCache[BIOME_CACHE_SIZE];
-
-
 // old code, separate height fields per biome that compete
 // and create a patchwork layout
 static int computeMapBiomeIndexOld(int inX, int inY, int *outSecondPlaceIndex = NULL, double *outSecondPlaceGap = NULL)
@@ -681,26 +676,6 @@ void printObjectSamples()
 }
 
 extern DBTimeCacheRecord dbTimeCache[];
-extern BlockingCacheRecord blockingCache[];
-
-// returns -1 on miss
-static char blockingGetCached(int inX, int inY)
-{
-	BlockingCacheRecord r = blockingCache[computeXYCacheHash(inX, inY)];
-
-	if (r.x == inX && r.y == inY && r.blocking != -1) { return r.blocking; }
-	else
-	{
-		return -1;
-	}
-}
-
-static void blockingPutCached(int inX, int inY, char inBlocking)
-{
-	BlockingCacheRecord r = {inX, inY, inBlocking};
-
-	blockingCache[computeXYCacheHash(inX, inY)] = r;
-}
 
 extern char skipLookTimeCleanup;
 extern char skipRemovedObjectCleanup;
@@ -863,78 +838,6 @@ void freeAndNullString(char **inStringPointer)
 		delete[] * inStringPointer;
 		*inStringPointer = NULL;
 	}
-}
-
-char isMapSpotBlocking(int inX, int inY)
-{
-
-	char cachedVal = blockingGetCached(inX, inY);
-	if (cachedVal != -1) { return cachedVal; }
-
-	int target = getMapObject(inX, inY);
-
-	if (target != 0)
-	{
-		ObjectRecord *obj = getObject(target);
-
-		if (obj->blocksWalking)
-		{
-			// only cache direct hits
-			// wide objects that block are difficult to clear from cache
-			// when map cell changes
-			blockingPutCached(inX, inY, 1);
-			return true;
-		}
-	}
-
-	// not directly blocked
-	// need to check for wide objects to left and right
-	int maxR = getMaxWideRadius();
-
-	for (int dx = -maxR; dx <= maxR; dx++)
-	{
-
-		if (dx != 0)
-		{
-
-			int nX = inX + dx;
-
-			int nID = getMapObject(nX, inY);
-
-			if (nID != 0)
-			{
-				ObjectRecord *nO = getObject(nID);
-
-				if (nO->wide)
-				{
-
-					int dist;
-					int minDist;
-
-					if (dx < 0)
-					{
-						dist    = -dx;
-						minDist = nO->rightBlockingRadius;
-					}
-					else
-					{
-						dist    = dx;
-						minDist = nO->leftBlockingRadius;
-					}
-
-					if (dist <= minDist)
-					{
-						// don't cache results from wide objects
-						return true;
-					}
-				}
-			}
-		}
-	}
-
-	// cache non-blocking results
-	blockingPutCached(inX, inY, 0);
-	return false;
 }
 
 static char tooClose(GridPos inA, GridPos inB, int inMinComponentDistance)

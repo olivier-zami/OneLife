@@ -19,6 +19,9 @@ namespace OneLife::server::settings
 			struct{
 				char* url;
 			}lookTime;
+			struct{
+				char* url;
+			}biome;
 		}database;
 	}WorldMap;
 }

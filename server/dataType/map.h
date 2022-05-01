@@ -6,6 +6,7 @@
 #define ONELIFE_SERVER_DATATYPE_MAP_H
 
 #include "../../third_party/minorGems/util/SimpleVector.h"
+#include "record.h"
 
 namespace OneLife::server::dataType::map
 {
@@ -20,7 +21,7 @@ namespace OneLife::server::dataType::map
 	typedef struct BiomeRegion
 	{
 		Region coord;
-		SimpleVector<int> tile;
+		SimpleVector<OneLife::server::dataType::record::Biome> tile;
 	}BiomeRegion;
 }
 

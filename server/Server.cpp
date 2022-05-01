@@ -78,9 +78,7 @@ extern SimpleVector<int> *naturalMapIDs;// one vector per biome
 extern SimpleVector<float> *naturalMapChances;
 extern SimpleVector<int> allNaturalMapIDs;
 extern SimpleVector<MapGridPlacement> gridPlacements;
-extern BlockingCacheRecord blockingCache[];
 extern RecentPlacement recentPlacements[];
-extern BiomeCacheRecord biomeCache[];
 extern DBTimeCacheRecord dbTimeCache[];
 extern DBCacheRecord dbCache[];
 extern GridPos eveLocation;

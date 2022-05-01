@@ -26,6 +26,8 @@ LAYER_SOURCE = \
 main.cpp \
 Server.cpp \
 map.cpp \
+component/cache/Biome.cpp \
+component/cache/Blocking.cpp \
 component/container/Player.cpp \
 component/database/Biome.cpp \
 component/database/LookTime.cpp \
@@ -40,6 +42,7 @@ component/Speech.cpp \
 component/feature/apocalypse.cpp \
 component/Log.cpp \
 dataType/LiveObject.cpp \
+prototype/bank/Cache.cpp \
 prototype/bank/LinearDB.cpp \
 prototype/bank/linearDB/lineardb3.cpp \
 ../commonSource/Debug.cpp \

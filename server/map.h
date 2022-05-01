@@ -39,8 +39,6 @@ void mapEveDeath( const char *inEmail, double inAge, GridPos inDeathMapPos );
 // should be set to -1 (default) except for object set-down
 void setResponsiblePlayer( int inPlayerID );
 
-char isMapSpotBlocking( int inX, int inY );
-
 // is the object returned by getMapObject still in motion with
 // destination inX, inY
 char isMapObjectInTransit( int inX, int inY );

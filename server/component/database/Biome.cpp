@@ -24,7 +24,6 @@ OneLife::server::database::Biome::Biome(
 		unsigned long value_size):
 		OneLife::server::bank::LinearDB::LinearDB(path, mode, hash_table_size, key_size, value_size)
 {
-	OneLife::Debug::write("init biomeDB : %s", this->settings.path);
 	this->recordNumber = 0;
 	this->status.enabled = false;
 	this->status.empty = true;
