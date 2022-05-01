@@ -123,7 +123,6 @@ void initBiomeCache();
 void mapCacheClear();
 int countNewlines(char *inString);
 BaseMapCacheRecord *mapCacheRecordLookup(int inX, int inY);
-int computeMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex = NULL, double *outSecondPlaceGap = NULL);
 int getBiomeIndex(int inBiome);
 void setMapObjectRaw(int inX, int inY, int inID);
 timeSec_t dbLookTimeGet(int inX, int inY);

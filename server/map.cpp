@@ -82,23 +82,21 @@
 #define DB_getNumRecords LINEARDB_getNumRecords
 */
 
-#include "dbCommon.h"
-
 #include <float.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 
+#include "../commonSource/Debug.h"
 #include "../gameSource/GridPos.h"
 #include "../gameSource/objectBank.h"
 #include "../gameSource/transitionBank.h"
-
 #include "../gameSource/GridPos.h"
 #include "../gameSource/objectMetadata.h"
-
+#include "component/cache/Biome.h"
+#include "component/generator/Biome.h"
+#include "dbCommon.h"
 #include "Server.h"
-
-#include "../commonSource/Debug.h"
 
 extern int getBaseMapCallCount;
 extern CustomRandomSource randSource;
@@ -156,7 +154,6 @@ extern float minEveCampRespawnAge;
 extern int barrierRadius;
 extern int barrierOn;
 extern int longTermCullEnabled;
-extern unsigned int biomeRandSeed;
 extern SimpleVector<int> barrierItemList;
 extern FILE *mapChangeLogFile;
 extern double mapChangeLogTimeStart;
@@ -168,9 +165,6 @@ extern int currentResponsiblePlayer;
 extern int    	numBiomes;
 extern int*		biomes;
 extern float*	biomeWeights;
-extern float*	biomeCumuWeights;
-extern int    	regularBiomeLimit;
-extern int    	numSpecialBiomes;
 extern int*  	specialBiomes;
 extern float*	specialBiomeCumuWeights;
 extern float  	specialBiomeTotalWeight;
@@ -211,6 +205,7 @@ extern HashTable<ContRecord> liveDecayRecordLastLookTimeMaxContainedHashTable;
 extern HashTable<double> liveMovementEtaTimes;
 extern SimpleVector<ChangePosition> mapChangePosSinceLastStep;
 extern int apocalypsePossible;
+extern OneLife::server::cache::Biome* cachedBiome;
 
 
 // read from testMap.txt
@@ -311,67 +306,6 @@ static void eveDBPut(const char *inEmail, int inX, int inY, int inRadius)
 	intToValue(inRadius, &(value[8]));
 
 	DB_put(&eveDB, key, value);
-}
-
-// old code, separate height fields per biome that compete
-// and create a patchwork layout
-static int computeMapBiomeIndexOld(int inX, int inY, int *outSecondPlaceIndex = NULL, double *outSecondPlaceGap = NULL)
-{
-
-	int secondPlace = -1;
-
-	double secondPlaceGap = 0;
-
-	int pickedBiome = biomeGetCached(inX, inY, &secondPlace, &secondPlaceGap);
-
-	if (pickedBiome != -2)
-	{
-		// hit cached
-
-		if (outSecondPlaceIndex != NULL) { *outSecondPlaceIndex = secondPlace; }
-		if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = secondPlaceGap; }
-
-		return pickedBiome;
-	}
-
-	// else cache miss
-	pickedBiome = -1;
-
-	double maxValue = -DBL_MAX;
-
-	for (int i = 0; i < numBiomes; i++)
-	{
-		int biome = biomes[i];
-		printf("biome: %d\n", biome);
-		setXYRandomSeed(biome * 263 + biomeRandSeed);
-
-		double randVal = getXYFractal(inX, inY, 0.55, 0.83332 + 0.08333 * numBiomes);
-
-		if (randVal > maxValue)
-		{
-			// a new first place
-
-			// old first moves into second
-			secondPlace    = pickedBiome;
-			secondPlaceGap = randVal - maxValue;
-
-			maxValue    = randVal;
-			pickedBiome = i;
-		}
-		else if (randVal > maxValue - secondPlaceGap)
-		{
-			// a better second place
-			secondPlace    = i;
-			secondPlaceGap = maxValue - randVal;
-		}
-	}
-
-	biomePutCached(inX, inY, pickedBiome, secondPlace, secondPlaceGap);
-
-	if (outSecondPlaceIndex != NULL) { *outSecondPlaceIndex = secondPlace; }
-	if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = secondPlaceGap; }
-
-	return pickedBiome;
 }
 
 // gets procedurally-generated base map at a given spot
@@ -631,7 +565,18 @@ void printBiomeSamples()
 		int x = sampleRandSource.getRandomBoundedInt(-range, range);
 		int y = sampleRandSource.getRandomBoundedInt(-range, range);
 
-		biomeSamples[computeMapBiomeIndex(x, y)]++;
+		int idxBiome;
+		BiomeCacheRecord biomeCacheRecord = cachedBiome->getRecord(x, y);
+		if(biomeCacheRecord.biome != -2)//TODO: (refacto) might be useless check it latter
+		{
+			idxBiome = biomeCacheRecord.biome;
+		}
+		else
+		{
+			idxBiome = computeMapBiomeIndex(x, y);
+			//TODO: (refacto) store idxBiome in cache if required
+		}
+		biomeSamples[idxBiome]++;
 	}
 
 	for (int i = 0; i < numBiomes; i++)

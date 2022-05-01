@@ -36,6 +36,7 @@
 #include "../dataType/record.h"
 #include "cache/Biome.h"
 #include "cache/Blocking.h"
+#include "generator/Biome.h"
 
 // can replace with frozenTime to freeze time
 // or slowTime to slow it down
@@ -62,6 +63,8 @@ extern HashTable<timeSec_t> liveDecayRecordLastLookTimeHashTable;
 extern HashTable<double> liveMovementEtaTimes;
 extern MinPriorityQueue<MovementRecord> liveMovements;
 extern SimpleVector<LiveObject> players;
+extern unsigned int biomeRandSeed;
+extern float* biomeCumuWeights;
 extern char doesEveLineExist(int inEveID);
 
 extern DB biomeDB;
@@ -75,10 +78,6 @@ extern char lookTimeDBEmpty;
 int numBiomes;
 int* biomes;
 float* biomeWeights;
-float* biomeCumuWeights;
-float biomeTotalWeight;
-int regularBiomeLimit;
-int numSpecialBiomes;
 int* specialBiomes;
 float* specialBiomeCumuWeights;
 float specialBiomeTotalWeight;
@@ -106,7 +105,6 @@ int randSeed = 124567;
 //JenkinsRandomSource randSource( randSeed );
 CustomRandomSource randSource(randSeed);
 int getBaseMapCallCount = 0;
-unsigned int biomeRandSeed = 723;
 double recentlyUsedPrimaryEvePositionTimeout = 3600;
 GridPos eveStartSpiralPos = {0, 0};
 char eveStartSpiralPosSet = false;
@@ -640,14 +638,14 @@ void OneLife::server::Map::updateBiomeRegion(OneLife::server::dataType::map::Bio
 	biomeRegion->tile.deleteAll();
 	for (int y = biomeRegion->coord.yMin; y <= biomeRegion->coord.yMax; y++)
 	{
-		int posY = y - biomeRegion->coord.yMin;
+		//int posY = y - biomeRegion->coord.yMin;//TODO: use in one dimension array
 		for (int x = biomeRegion->coord.xMin; x <= biomeRegion->coord.xMax; x++)
 		{
-			int posX = x - biomeRegion->coord.xMin;
-			int idxVector = posY * (biomeRegion->coord.xMax-biomeRegion->coord.xMin) + posX;
-			OneLife::server::dataType::record::Biome biome;
-			biome.type = getMapBiomeIndex(x, y);
-			//biomeRegion->tile.push_back(biome);
+			//int posX = x - biomeRegion->coord.xMin;//TODO: use in one dimension array
+			//int idxVector = posY * (biomeRegion->coord.xMax-biomeRegion->coord.xMin) + posX;//TODO: use in one dimension array
+			OneLife::server::dataType::record::Biome biomeRecord;
+			biomeRecord.type = getMapBiomeIndex(x, y);
+			//biomeRegion->tile.push_back(biomeRecord);
 		}
 	}
 	OneLife::Debug::write("load %i tiles", biomeRegion->tile.size());
@@ -878,11 +876,27 @@ int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSeco
 	}
 
 
+	int pickedBiome;
 	int secondPlace = -1;
 	double secondPlaceGap = 0;
-	int pickedBiome = computeMapBiomeIndex(inX, inY, &secondPlace, &secondPlaceGap);
-	if (outSecondPlaceIndex != NULL) { *outSecondPlaceIndex = secondPlace; }
-	if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = secondPlaceGap; }
+	BiomeCacheRecord biomeCacheRecord = cachedBiome->getRecord(inX, inY);
+	if(biomeCacheRecord.biome != -2)//found in cache ... i guess what about -1 value
+	{
+		pickedBiome = biomeCacheRecord.biome;
+		if (outSecondPlaceIndex != NULL) *outSecondPlaceIndex = biomeCacheRecord.secondPlace;
+		if (outSecondPlaceGap != NULL) *outSecondPlaceGap = biomeCacheRecord.secondPlaceGap;
+		secondPlace = biomeCacheRecord.secondPlace;
+		secondPlaceGap = biomeCacheRecord.secondPlaceGap;
+	}
+	else
+	{
+		pickedBiome = computeMapBiomeIndex(inX, inY, &secondPlace, &secondPlaceGap);
+		if (outSecondPlaceIndex != NULL) *outSecondPlaceIndex = secondPlace;
+		if (outSecondPlaceGap != NULL) *outSecondPlaceGap = secondPlaceGap;
+		biomePutCached(inX, inY, pickedBiome, secondPlace, secondPlaceGap);//store newly generated biome in cache
+	}
+
+
 
 	//OneLife::Debug::write("biome(%i, %i) => %i", inX, inY, pickedBiome);
 
@@ -3289,146 +3303,6 @@ void trackETA(int inX, int inY, int inSlot, timeSec_t inETA, int inSubCont, Tran
 			}
 		}
 	}
-}
-
-/**
- *
- * @param inX
- * @param inY
- * @param outSecondPlaceIndex
- * @param outSecondPlaceGap
- * @return
- * @note from server/map.cpp
- * // new code, topographic rings
- */
-int computeMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSecondPlaceGap)
-{
-	//OneLife::Debug::write("computeMapBiomeIndex");
-	int secondPlace = -1;
-	double secondPlaceGap = 0;
-	int pickedBiome = biomeGetCached(inX, inY, &secondPlace, &secondPlaceGap);
-	if (pickedBiome != -2)
-	{
-		// hit cached
-
-		if (outSecondPlaceIndex != NULL) { *outSecondPlaceIndex = secondPlace; }
-		if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = secondPlaceGap; }
-
-		return pickedBiome;
-	}
-
-	// else cache miss
-	pickedBiome = -1;
-	setXYRandomSeed(biomeRandSeed);// try topographical altitude mapping
-	double randVal = (getXYFractal(inX, inY, 0.55, 0.83332 + 0.08333 * numBiomes));
-
-	// push into range 0..1, based on sampled min/max values
-	randVal -= 0.099668;
-	randVal *= 1.268963;
-
-	// flatten middle
-	// randVal = ( pow( 2*(randVal - 0.5 ), 3 ) + 1 ) / 2;
-
-	// push into range 0..1 with manually tweaked values
-	// these values make it pretty even in terms of distribution:
-	// randVal -= 0.319;
-	// randVal *= 3;
-
-	// these values are more intuitve to make a map that looks good
-	// randVal -= 0.23;
-	// randVal *= 1.9;
-
-	// apply gamma correction
-	// randVal = pow( randVal, 1.5 );
-	/*
-	randVal += 0.4* sin( inX / 40.0 );
-	randVal += 0.4 *sin( inY / 40.0 );
-
-	randVal += 0.8;
-	randVal /= 2.6;
-	*/
-
-	// slow arc n to s:
-
-	// pow version has flat area in middle
-	// randVal += 0.7 * pow( ( inY / 354.0 ), 3 ) ;
-
-	// sin version
-	// randVal += 0.3 * sin( 0.5 * M_PI * inY / 354.0 );
-
-	/*
-		( sin( M_PI * inY / 708 ) +
-		  (1/3.0) * sin( 3 * M_PI * inY / 708 ) );
-	*/
-	// randVal += 0.5;
-	// randVal /= 2.0;
-
-	//OneLife::Debug::write("numBiome: %i", numBiomes);
-	float i = randVal * biomeTotalWeight;
-	pickedBiome = 0;
-	while (pickedBiome < numBiomes && i > biomeCumuWeights[pickedBiome])
-	{
-		pickedBiome++;
-	}
-	if (pickedBiome >= numBiomes) { pickedBiome = numBiomes - 1; }
-
-	if (pickedBiome >= regularBiomeLimit && numSpecialBiomes > 0)
-	{
-		// special case:  on a peak, place a special biome here
-
-		// use patches mode for these
-		pickedBiome = -1;
-
-		double maxValue     = -10;
-		double secondMaxVal = -10;
-
-		for (int i = regularBiomeLimit; i < numBiomes; i++)
-		{
-			int biome = biomes[i];
-
-			setXYRandomSeed(biome * 263 + biomeRandSeed + 38475);
-
-			double randVal = getXYFractal(inX, inY, 0.55, 2.4999 + 0.2499 * numSpecialBiomes);
-
-			if (randVal > maxValue)
-			{
-				if (maxValue != -10) { secondMaxVal = maxValue; }
-				maxValue    = randVal;
-				pickedBiome = i;
-			}
-		}
-
-		if (maxValue - secondMaxVal < 0.03)
-		{
-			// close!  that means we're on a boundary between special biomes
-
-			// stick last regular biome on this boundary, so special
-			// biomes never touch
-			secondPlace    = pickedBiome;
-			secondPlaceGap = 0.1;
-			pickedBiome    = regularBiomeLimit - 1;
-		}
-		else
-		{
-			secondPlace    = regularBiomeLimit - 1;
-			secondPlaceGap = 0.1;
-		}
-	}
-	else
-	{
-		// second place for regular biome rings
-
-		secondPlace = pickedBiome - 1;
-		if (secondPlace < 0) { secondPlace = pickedBiome + 1; }
-		secondPlaceGap = 0.1;
-	}
-
-	biomePutCached(inX, inY, pickedBiome, secondPlace, secondPlaceGap);
-
-	if (outSecondPlaceIndex != NULL) { *outSecondPlaceIndex = secondPlace; }
-	if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = secondPlaceGap; }
-
-	return pickedBiome;
 }
 
 /**

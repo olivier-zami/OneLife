@@ -5,6 +5,7 @@
 #ifndef ONELIFE_SERVER_COMPONENT_CACHE_BIOME_H
 #define ONELIFE_SERVER_COMPONENT_CACHE_BIOME_H
 
+#include "../../dataType/cacheRecord.h"
 #include "../../objectType/bank/Cache.h"
 
 #define BIOME_CACHE_SIZE 131072
@@ -17,6 +18,10 @@ namespace OneLife::server::cache
 		public:
 			Biome();
 			~Biome();
+
+			BiomeCacheRecord getRecord(int x, int y);
+
+
 	};
 }
 

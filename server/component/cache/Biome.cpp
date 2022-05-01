@@ -4,12 +4,47 @@
 
 #include "Biome.h"
 
-#include "../../dataType/cacheRecord.h"
+#include "../../../commonSource/Debug.h"
 
 BiomeCacheRecord biomeCache[BIOME_CACHE_SIZE];
 
 OneLife::server::cache::Biome::Biome() {}
 OneLife::server::cache::Biome::~Biome() {}
+
+/**
+ *
+ * @param x
+ * @param y
+ * @return
+ * @note from computeMapBiomeIndex() in server/map.cpp
+ */
+BiomeCacheRecord OneLife::server::cache::Biome::getRecord(int x, int y)
+{
+	BiomeCacheRecord record;
+	int secondPlace = -1;
+	double secondPlaceGap = 0;
+	int pickedBiome = biomeGetCached(x, y, &secondPlace, &secondPlaceGap);
+
+	/*
+	if (pickedBiome != -2)
+	{
+		// hit cached
+		if (outSecondPlaceIndex != NULL) { *outSecondPlaceIndex = secondPlace; }
+		if (outSecondPlaceGap != NULL) { *outSecondPlaceGap = secondPlaceGap; }
+
+		return pickedBiome;
+	}
+	*/
+
+	record.biome = pickedBiome;
+	record.x = x;
+	record.y = y;
+	record.secondPlace = secondPlace;
+	record.secondPlaceGap = secondPlaceGap;
+
+	return record;
+	OneLife::Debug::write("getCachedRecord(%i, %i)", x, y);
+}
 
 /**
  *
