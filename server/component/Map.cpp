@@ -646,6 +646,7 @@ void OneLife::server::Map::updateBiomeRegion(OneLife::server::dataType::map::Bio
 			OneLife::server::dataType::record::Biome biomeRecord;
 			biomeRecord.type = getMapBiomeIndex(x, y);
 			//biomeRegion->tile.push_back(biomeRecord);
+			OneLife::Debug::write("write region (%i, %i) => %i", x, y, biomeRecord.type);
 		}
 	}
 	OneLife::Debug::write("load %i tiles", biomeRegion->tile.size());
@@ -843,6 +844,7 @@ int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSeco
 {
 	int secondPlaceBiome = -1;
 	int dbBiome = biomeDBGet(inX, inY, &secondPlaceBiome, outSecondPlaceGap);
+	//printf(" biomeDBGet:%i", dbBiome);
 
 	if (dbBiome != -1)
 	{
@@ -880,6 +882,7 @@ int getMapBiomeIndex(int inX, int inY, int *outSecondPlaceIndex, double *outSeco
 	int secondPlace = -1;
 	double secondPlaceGap = 0;
 	BiomeCacheRecord biomeCacheRecord = cachedBiome->getRecord(inX, inY);
+	//printf(" biome cached: %i", biomeCacheRecord.biome);
 	if(biomeCacheRecord.biome != -2)//found in cache ... i guess what about -1 value
 	{
 		pickedBiome = biomeCacheRecord.biome;

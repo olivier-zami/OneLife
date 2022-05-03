@@ -667,6 +667,10 @@ int main()
         }
     */
 
+    settings.map.topography.biomeOrderList = SettingsManager::getIntSettingMulti("biomeOrder");
+    settings.map.topography.biomeWeightList = SettingsManager::getFloatSettingMulti("biomeWeights");
+    settings.map.topography.specialBiomeList = SettingsManager::getIntSettingMulti("specialBiomes");
+
 	oneLifeServer = new OneLife::Server(settings);
 
 	oneLifeServer->loadObjects();
@@ -678,7 +682,11 @@ int main()
 	}
 
 	oneLifeServer->start();
-    
+
+	//!clean settings
+	delete settings.map.topography.biomeOrderList;
+	delete settings.map.topography.biomeWeightList;
+	delete settings.map.topography.specialBiomeList;
 
 
     quitCleanup();

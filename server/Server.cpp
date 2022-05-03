@@ -11,6 +11,7 @@
 #include <random>
 #include <fstream>
 
+#include "component/generator/Image.h"
 #include "arcReport.h"
 #include "component/container/Player.h"
 #include "component/feature/Capitalism.h"
@@ -10872,49 +10873,7 @@ bool OneLife::Server::initMap()
 
 	/******************************************************************************************************************/
 
-	numBiomes        = this->biomeOrderList->size();
-	biomes           = this->biomeOrderList->getElementArray();
-	biomeWeights     = this->biomeWeightList->getElementArray();
-	biomeCumuWeights = new float[numBiomes];
 
-	biomeTotalWeight = 0;
-	for (int i = 0; i < numBiomes; i++)
-	{
-		biomeTotalWeight += biomeWeights[i];
-		biomeCumuWeights[i] = biomeTotalWeight;
-	}
-
-	delete this->biomeOrderList;
-	delete this->biomeWeightList;
-
-
-
-	SimpleVector<int> *specialBiomeList = SettingsManager::getIntSettingMulti("specialBiomes");
-
-	numSpecialBiomes = specialBiomeList->size();
-	specialBiomes    = specialBiomeList->getElementArray();
-
-	regularBiomeLimit = numBiomes - numSpecialBiomes;
-
-	delete specialBiomeList;
-
-	specialBiomeCumuWeights = new float[numSpecialBiomes];
-
-	specialBiomeTotalWeight = 0;
-	for (int i = regularBiomeLimit; i < numBiomes; i++)
-	{
-		specialBiomeTotalWeight += biomeWeights[i];
-		specialBiomeCumuWeights[i - regularBiomeLimit] = specialBiomeTotalWeight;
-	}
-
-	naturalMapIDs     = new SimpleVector<int>[numBiomes];
-	naturalMapChances = new SimpleVector<float>[numBiomes];
-	totalChanceWeight = new float[numBiomes];
-
-	for (int j = 0; j < numBiomes; j++)
-	{
-		totalChanceWeight[j] = 0;
-	}
 
 	CustomRandomSource phaseRandSource(randSeed);
 
@@ -11156,8 +11115,7 @@ bool OneLife::Server::initMap()
 	// printObjectSamples();
 	// printBiomeSamples();
 	// outputMapImage();
-
-	// outputBiomeFractals();
+	 //outputBiomeFractals();
 
 	setupMapChangeLogFile();
 
@@ -11172,17 +11130,19 @@ void OneLife::Server::initBiomes()
 	OneLife::Debug::write("Init biomes data ...\n");
 
 	// manually control order
-	this->biomeOrderList = SettingsManager::getIntSettingMulti("biomeOrder");
-	this->biomeWeightList = SettingsManager::getFloatSettingMulti("biomeWeights");
+	//this->biomeOrderList = SettingsManager::getIntSettingMulti("biomeOrder");
+	//this->biomeWeightList = SettingsManager::getFloatSettingMulti("biomeWeights");
+	//this->biomeOrderList = this->settings.topography.biomeOrderList;
+	//this->biomeWeightList = this->settings.map.topography.biomeWeightList;
 
-	for (int i = 0; i < this->biomeOrderList->size(); i++)
+	for (int i = 0; i < this->settings.map.topography.biomeOrderList->size(); i++)
 	{
-		int b = this->biomeOrderList->getElementDirect(i);
+		int b = this->settings.map.topography.biomeOrderList->getElementDirect(i);
 
 		if (this->biomeList.getElementIndex(b) == -1)
 		{
-			this->biomeOrderList->deleteElement(i);
-			this->biomeWeightList->deleteElement(i);
+			this->settings.map.topography.biomeOrderList->deleteElement(i);
+			this->settings.map.topography.biomeWeightList->deleteElement(i);
 			i--;
 		}
 	}
@@ -11191,13 +11151,60 @@ void OneLife::Server::initBiomes()
 	for (int i = 0; i < this->biomeList.size(); i++)
 	{
 		int b = this->biomeList.getElementDirect(i);
-		if (this->biomeOrderList->getElementIndex(b) == -1)
+		if (this->settings.map.topography.biomeOrderList->getElementIndex(b) == -1)
 		{
-			this->biomeOrderList->push_back(b);
+			this->settings.map.topography.biomeOrderList->push_back(b);
 			// default weight
-			this->biomeWeightList->push_back(0.1);
+			this->settings.map.topography.biomeWeightList->push_back(0.1);
 		}
 	}
+
+	numBiomes        = this->settings.map.topography.biomeOrderList->size();
+	biomes           = this->settings.map.topography.biomeOrderList->getElementArray();
+	biomeWeights     = this->settings.map.topography.biomeWeightList->getElementArray();
+	biomeCumuWeights = new float[numBiomes];
+
+	biomeTotalWeight = 0;
+	for (int i = 0; i < numBiomes; i++)
+	{
+		biomeTotalWeight += biomeWeights[i];
+		biomeCumuWeights[i] = biomeTotalWeight;
+	}
+
+	//!setting special biomes
+	//SimpleVector<int> *specialBiomeList = SettingsManager::getIntSettingMulti("specialBiomes");
+	numSpecialBiomes = this->settings.map.topography.specialBiomeList->size();
+	specialBiomes    = this->settings.map.topography.specialBiomeList->getElementArray();
+	regularBiomeLimit = numBiomes - numSpecialBiomes;
+	specialBiomeCumuWeights = new float[numSpecialBiomes];
+
+	specialBiomeTotalWeight = 0;
+	for (int i = regularBiomeLimit; i < numBiomes; i++)
+	{
+		specialBiomeTotalWeight += biomeWeights[i];
+		specialBiomeCumuWeights[i - regularBiomeLimit] = specialBiomeTotalWeight;
+	}
+
+	/*
+	printf("\n=====>numBiomes:%i", numBiomes);
+	printf("\n=====>numSpecialBiomes:%i", numSpecialBiomes);
+	printf("\n=====>biomes list:");for(int i=0; i<numBiomes; i++)printf("%i ", biomes[i]);
+	printf("\n=====>biomeWeights list:");for(int i=0; i<numBiomes; i++)printf("%f ", biomeWeights[i]);
+	printf("\n=====>biomeCumuWeights list:");for(int i=0; i<numBiomes; i++)printf("%f ", biomeCumuWeights[i]);
+	printf("\n=====>biomeTotalWeight:%f", biomeTotalWeight);
+	printf("\n=====>regularBiomeLimit:%i", regularBiomeLimit);
+	printf("\n=====>specialBiomeTotalWeight:%f", specialBiomeTotalWeight);
+	printf("\n=====>specialBiomeCumuWeights list:");for(int i=0; i<numSpecialBiomes; i++)printf("%f ", specialBiomeCumuWeights[i]);
+*/
+
+	naturalMapIDs     = new SimpleVector<int>[numBiomes];
+	naturalMapChances = new SimpleVector<float>[numBiomes];
+	totalChanceWeight = new float[numBiomes];
+
+	for (int j = 0; j < numBiomes; j++) totalChanceWeight[j] = 0;
+
+	//delete this->biomeOrderList;
+	//delete this->biomeWeightList;
 }
 
 /**
@@ -15810,9 +15817,9 @@ int processLoggedInPlayer( char inAllowReconnect,
 
 			startX = dist(mt);
 			startY = dist(mt);
+			//startX = 0; startY = 0;
 
-			AppLog::infoF( "Player %s seed evaluated to (%d,%d)",
-						   newObject.email, startX, startY );
+			AppLog::infoF( "Player %s seed evaluated to (%d,%d)", newObject.email, startX, startY );
 		}
 
 

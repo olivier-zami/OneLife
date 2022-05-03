@@ -36,6 +36,7 @@ component/feature/Diet.cpp \
 component/feature/Diplomacy.cpp \
 component/feature/Fitness.cpp \
 component/generator/Biome.cpp \
+component/generator/Image.cpp \
 component/handler/Player.cpp \
 component/Map.cpp \
 component/Socket.cpp \
