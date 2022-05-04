@@ -324,12 +324,11 @@ void OneLife::Server::start()
 
 	while( !quit )
 	{
-
 		double curStepTime = Time::getCurrentTime();
 
 		// flush past players hourly
-		if( curStepTime - lastPastPlayerFlushTime > 3600 ) {
-
+		if( curStepTime - lastPastPlayerFlushTime > 3600 )
+		{
 			// default one week
 			int pastPlayerFlushTime =
 					SettingsManager::getIntSetting( "pastPlayerFlushTime", 604000 );
@@ -350,16 +349,14 @@ void OneLife::Server::start()
 			lastPastPlayerFlushTime = curStepTime;
 		}
 
-
 		char periodicStepThisStep = false;
-
-		if( curStepTime - lastPeriodicStepTime > periodicStepTime ) {
+		if( curStepTime - lastPeriodicStepTime > periodicStepTime )
+		{
 			periodicStepThisStep = true;
 			lastPeriodicStepTime = curStepTime;
 		}
-
-
-		if( periodicStepThisStep ) {
+		if( periodicStepThisStep )
+		{
 			shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
 			forceShutdownMode =
 					SettingsManager::getIntSetting( "forceShutdownMode", 0 );
@@ -380,8 +377,8 @@ void OneLife::Server::start()
 			}
 		}
 
-
-		if( forceShutdownMode ) {
+		if( forceShutdownMode )
+		{
 			shutdownMode = 1;
 
 			const char *shutdownMessage = "SD\n#";
@@ -413,7 +410,8 @@ void OneLife::Server::start()
 						"Forced server shutdown";
 			}
 		}
-		else if( shutdownMode ) {
+		else if( shutdownMode )
+		{
 			// any disconnected players should be killed now
 			for( int i=0; i<players.size(); i++ ) {
 				LiveObject *nextPlayer = players.getElement( i );
@@ -429,8 +427,8 @@ void OneLife::Server::start()
 			}
 		}
 
-
-		if( periodicStepThisStep ) {
+		if( periodicStepThisStep ) //!planed task
+		{
 
 			apocalypseStep();
 			monumentStep();
@@ -512,12 +510,10 @@ void OneLife::Server::start()
 			purgeStaleCravings( lowestCravingID );
 		}
 
-
 		int numLive = players.size();
 
-
-
-		if( shouldRunObjectSurvey() ) {
+		if( shouldRunObjectSurvey() )
+		{
 			SimpleVector<GridPos> livePlayerPos;
 
 			for( int i=0; i<numLive; i++ ) {
@@ -537,9 +533,7 @@ void OneLife::Server::start()
 
 		stepLanguage();
 
-
 		double secPerYear = 1.0 / getAgeRate();
-
 
 		// check for timeout for shortest player move or food decrement
 		// so that we wake up from listening to socket to handle it
@@ -547,7 +541,8 @@ void OneLife::Server::start()
 
 		double curTime = Time::getCurrentTime();
 
-		for( int i=0; i<numLive; i++ ) {
+		for( int i=0; i<numLive; i++ )
+		{
 			LiveObject *nextPlayer = players.getElement( i );
 
 			// clear at the start of each step
@@ -653,12 +648,12 @@ void OneLife::Server::start()
 			}
 		}
 
-
 		SocketOrServer *readySock =  NULL;
 
 		double pollTimeout = 2;
 
-		if( minMoveTime < pollTimeout ) {
+		if( minMoveTime < pollTimeout )
+		{
 			// shorter timeout if we have to wake up for a move
 
 			// HOWEVER, always keep max timout at 2 sec
@@ -667,70 +662,68 @@ void OneLife::Server::start()
 			pollTimeout = minMoveTime;
 		}
 
-		if( pollTimeout > 0 ) {
+		if( pollTimeout > 0 )
+		{
 			int shortestDecay = getNextDecayDelta();
-
-			if( shortestDecay != -1 ) {
-
-				if( shortestDecay < pollTimeout ) {
+			if( shortestDecay != -1 )
+			{
+				if( shortestDecay < pollTimeout )
+				{
 					pollTimeout = shortestDecay;
 				}
 			}
 		}
 
-
 		char anyTicketServerRequestsOut = false;
 
-		for( int i=0; i<newConnections.size(); i++ ) {
-
+		for( int i=0; i<newConnections.size(); i++ )
+		{
 			FreshConnection *nextConnection = newConnections.getElement( i );
-
 			if( nextConnection->ticketServerRequest != NULL ) {
 				anyTicketServerRequestsOut = true;
 				break;
 			}
 		}
 
-		if( anyTicketServerRequestsOut ) {
+		if( anyTicketServerRequestsOut )
+		{
 			// need to step outstanding ticket server web requests
 			// sleep a tiny amount of time to avoid cpu spin
 			pollTimeout = 0.01;
 		}
 
-
-		if( areTriggersEnabled() ) {
+		if( areTriggersEnabled() )
+		{
 			// need to handle trigger timing
 			pollTimeout = 0.01;
 		}
 
-		if( someClientMessageReceived ) {
+		if( someClientMessageReceived )
+		{
 			// don't wait at all
 			// we need to check for next message right away
 			pollTimeout = 0;
 		}
 
-		if( tutorialLoadingPlayers.size() > 0 ) {
+		if( tutorialLoadingPlayers.size() > 0 )
+		{
 			// don't wait at all if there are tutorial maps to load
 			pollTimeout = 0;
 		}
 
-
-		if( pollTimeout > 0.1 && activeKillStates.size() > 0 ) {
+		if( pollTimeout > 0.1 && activeKillStates.size() > 0 )
+		{
 			// we have active kill requests pending
 			// want a short timeout so that we can catch kills
 			// when player's paths cross
 			pollTimeout = 0.1;
 		}
 
-
 		// we thus use zero CPU as long as no messages or new connections
 		// come in, and only wake up when some timed action needs to be
 		// handled
 
 		readySock = sockPoll.wait( (int)( pollTimeout * 1000 ) );
-
-
-
 
 		if( readySock != NULL && !readySock->isSocket ) {
 			// server ready
@@ -884,14 +877,13 @@ void OneLife::Server::start()
 			}
 		}
 
-
 		stepTriggers();
-
 
 		// listen for messages from new connections
 		double currentTime = Time::getCurrentTime();
 
-		for( int i=0; i<newConnections.size(); i++ ) {
+		for( int i=0; i<newConnections.size(); i++ )
+		{
 
 			FreshConnection *nextConnection = newConnections.getElement( i );
 
@@ -1010,7 +1002,8 @@ void OneLife::Server::start()
 			}
 			else if( nextConnection->ticketServerRequest != NULL &&
 					 nextConnection->ticketServerAccepted &&
-					 nextConnection->lifeTokenSpent ) {
+					 nextConnection->lifeTokenSpent )
+			{
 				// token spent successfully (or token server not used)
 
 				const char *message = "ACCEPTED\n#";
@@ -1031,7 +1024,8 @@ void OneLife::Server::start()
 							"Socket write failed";
 
 				}
-				else {
+				else
+				{
 					// ready to start normal message exchange
 					// with client
 
@@ -1048,7 +1042,8 @@ void OneLife::Server::start()
 						nextConnection->twinCount > 0 ) {
 						processWaitingTwinConnection( *nextConnection );
 					}
-					else {
+					else
+					{
 						if( nextConnection->twinCode != NULL ) {
 							delete [] nextConnection->twinCode;
 							nextConnection->twinCode = NULL;
@@ -1069,7 +1064,8 @@ void OneLife::Server::start()
 					i--;
 				}
 			}
-			else if( nextConnection->ticketServerRequest == NULL ) {
+			else if( nextConnection->ticketServerRequest == NULL )
+			{
 
 				double timeDelta = Time::getCurrentTime() -
 								   nextConnection->connectionStartTimeSeconds;
@@ -1105,21 +1101,15 @@ void OneLife::Server::start()
 					timeLimit = 5;
 				}
 
-				if( message != NULL ) {
+				if( message != NULL )
+				{
 
-
-					if( strstr( message, "LOGIN" ) != NULL ) {
-
-						SimpleVector<char *> *tokens =
-								tokenizeString( message );
-
-						if( tokens->size() == 4 || tokens->size() == 5 ||
-							tokens->size() == 7 ) {
-
-							nextConnection->email =
-									stringDuplicate(
-											tokens->getElementDirect( 1 ) );
-
+					if( strstr( message, "LOGIN" ) != NULL )
+					{
+						SimpleVector<char *> *tokens = tokenizeString( message );
+						if( tokens->size() == 4 || tokens->size() == 5 || tokens->size() == 7 )
+						{
+							nextConnection->email = stringDuplicate(tokens->getElementDirect( 1 ) );
 
 							// If email contains string delimiter
 							// Set nextConnection's hashedSpawnSeed to hash of seed
@@ -1127,15 +1117,15 @@ void OneLife::Server::start()
 							const size_t minSeedLen = 1;
 							const char seedDelim = '|';
 
-
 							std::string emailAndSeed { tokens->getElementDirect( 1 ) };
-
 							const size_t seedDelimPos = emailAndSeed.find( seedDelim );
 
-							if( seedDelimPos != std::string::npos ) {
+							if( seedDelimPos != std::string::npos )
+							{
 								const size_t seedLen = emailAndSeed.length() - seedDelimPos;
 
-								if( seedLen > minSeedLen ) {
+								if( seedLen > minSeedLen )
+								{
 									// FNV-1a Hashing algorithm
 									auto hashStr = [](std::string &s, const uint32_t FNV_init = 2166136261u){
 										const size_t FNV_prime = 111337;
@@ -1153,9 +1143,7 @@ void OneLife::Server::start()
 									// Get the substr from one after the seed delim
 									std::string seed { emailAndSeed.substr( seedDelimPos + 1 ) };
 									std::string seedSalt { SettingsManager::getStringSetting("seedSalt", "default salt") };
-
-									nextConnection->hashedSpawnSeed =
-											hashStr(seed, hashStr(seedSalt));
+									nextConnection->hashedSpawnSeed = hashStr(seed, hashStr(seedSalt));
 								}
 
 								// Remove seed from email
@@ -1203,12 +1191,10 @@ void OneLife::Server::start()
 							// this may return -1 if curse server
 							// request is pending
 							// we'll catch that case later above
-							nextConnection->curseStatus =
-									getCurseLevel( nextConnection->email );
+							nextConnection->curseStatus = getCurseLevel( nextConnection->email );
 
-
-							if( requireClientPassword &&
-								! nextConnection->error  ) {
+							if( requireClientPassword && ! nextConnection->error  )
+							{
 
 								char *trueHash =
 										hmac_sha1(
@@ -1255,11 +1241,9 @@ void OneLife::Server::start()
 
 								delete [] url;
 							}
-							else if( !requireTicketServerCheck &&
-									 !nextConnection->error ) {
-
+							else if( !requireTicketServerCheck && !nextConnection->error )
+							{
 								// let them in without checking
-
 								const char *message = "ACCEPTED\n#";
 								int messageLength = strlen( message );
 
@@ -1287,8 +1271,7 @@ void OneLife::Server::start()
 									delete nextConnection->ticketServerRequest;
 									nextConnection->ticketServerRequest = NULL;
 
-									delete []
-											nextConnection->sequenceNumberString;
+									delete [] nextConnection->sequenceNumberString;
 									nextConnection->sequenceNumberString = NULL;
 
 
@@ -1358,10 +1341,9 @@ void OneLife::Server::start()
 			}
 		}
 
-
-
 		// make sure all twin-waiting sockets are still connected
-		for( int i=0; i<waitingForTwinConnections.size(); i++ ) {
+		for( int i=0; i<waitingForTwinConnections.size(); i++ )
+		{
 			FreshConnection *nextConnection =
 					waitingForTwinConnections.getElement( i );
 
@@ -1385,8 +1367,6 @@ void OneLife::Server::start()
 						"Socket read failed";
 			}
 		}
-
-
 
 		// now clean up any new connections that have errors
 
@@ -1499,12 +1479,7 @@ void OneLife::Server::start()
 
 		}
 
-
-
-
-
 		someClientMessageReceived = false;
-
 		numLive = players.size();
 
 
@@ -1513,23 +1488,15 @@ void OneLife::Server::start()
 		// track index of each player that needs an update sent about it
 		// we compose the full update message below
 		SimpleVector<int> playerIndicesToSendUpdatesAbout;
-
 		SimpleVector<int> playerIndicesToSendLineageAbout;
-
 		SimpleVector<int> playerIndicesToSendCursesAbout;
-
 		SimpleVector<int> playerIndicesToSendNamesAbout;
-
 		SimpleVector<int> playerIndicesToSendDyingAbout;
-
 		SimpleVector<int> playerIndicesToSendHealingAbout;
-
-
 		SimpleVector<GridPos> newOwnerPos;
 
 		newOwnerPos.push_back_other( &recentlyRemovedOwnerPos );
 		recentlyRemovedOwnerPos.deleteAll();
-
 
 		SimpleVector<UpdateRecord> newUpdates;
 		SimpleVector<ChangePosition> newUpdatesPos;
@@ -1539,24 +1506,16 @@ void OneLife::Server::start()
 		SimpleVector<int> newFlipFacingLeft;
 		SimpleVector<GridPos> newFlipPositions;
 
-
 		// these are global, so they're not tagged with positions for
 		// spatial filtering
 		SimpleVector<UpdateRecord> newDeleteUpdates;
-
-
 		SimpleVector<MapChangeRecord> mapChanges;
 		SimpleVector<ChangePosition> mapChangesPos;
-
-
 		SimpleVector<FlightDest> newFlightDest;
-
-
-
-
 		timeSec_t curLookTime = Time::timeSec();
 
-		for( int i=0; i<numLive; i++ ) {
+		for( int i=0; i<numLive; i++ )
+		{
 			LiveObject *nextPlayer = players.getElement( i );
 
 			nextPlayer->updateSent = false;
@@ -1830,24 +1789,22 @@ void OneLife::Server::start()
 				}
 			}
 
+			//!receive player message
 			char *message = NULL;
-
-			if( nextPlayer->connected ) {
-				char result =
-						readSocketFull( nextPlayer->sock, nextPlayer->sockBuffer );
-
-				if( ! result ) {
-					setPlayerDisconnected( nextPlayer, "Socket read failed" );
-				}
-				else {
+			if( nextPlayer->connected )
+			{
+				char result = readSocketFull( nextPlayer->sock, nextPlayer->sockBuffer );
+				if( ! result ) setPlayerDisconnected( nextPlayer, "Socket read failed" );
+				else
+				{
 					// don't even bother parsing message buffer for players
 					// that are not currently connected
 					message = getNextClientMessage( nextPlayer->sockBuffer );
 				}
 			}
 
-
-			if( message != NULL ) {
+			if( message != NULL )
+			{
 				someClientMessageReceived = true;
 
 				AppLog::infoF( "Got client message from %d: %s",
@@ -2230,7 +2187,8 @@ void OneLife::Server::start()
 										 strlen( message ) );
 					delete [] message;
 				}
-				else if( m.type == DIE ) {
+				else if( m.type == DIE )
+				{
 					if( computeAge( nextPlayer ) < 2 ) {
 
 						// killed self
@@ -6351,8 +6309,6 @@ printf( "\n" );
 			}
 		}
 
-
-
 		// process pending KILL actions
 		for( int i=0; i<activeKillStates.size(); i++ ) {
 			KillState *s = activeKillStates.getElement( i );
@@ -7995,13 +7951,8 @@ printf( "\n" );
 						}
 					}
 				}
-
 			}
-
-
 		}
-
-
 
 		// check for any that have been individually flagged, but
 		// aren't on our list yet (updates caused by external triggers)
@@ -8014,7 +7965,6 @@ printf( "\n" );
 				nextPlayer->needsUpdate = false;
 			}
 		}
-
 
 		if( playerIndicesToSendUpdatesAbout.size() > 0 ) {
 
@@ -8037,8 +7987,6 @@ printf( "\n" );
 						   updateListString );
 			delete [] updateListString;
 		}
-
-
 
 		double currentTimeHeat = Time::getCurrentTime();
 
@@ -8066,9 +8014,6 @@ printf( "\n" );
 			}
 			lastHeatUpdateTime = currentTimeHeat;
 		}
-
-
-
 
 		// update personal heat value of any player that is due
 		// once every 2 seconds
@@ -8250,8 +8195,6 @@ printf( "\n" );
 			nextPlayer->lastHeatUpdate = currentTime;
 		}
 
-
-
 		for( int i=0; i<playerIndicesToSendUpdatesAbout.size(); i++ ) {
 			LiveObject *nextPlayer = players.getElement(
 					playerIndicesToSendUpdatesAbout.getElementDirect( i ) );
@@ -8304,8 +8247,6 @@ printf( "\n" );
 			nextPlayer->updateGlobal = false;
 		}
 
-
-
 		if( newUpdates.size() > 0 ) {
 
 			SimpleVector<char> trueUpdateList;
@@ -8326,32 +8267,12 @@ printf( "\n" );
 			delete [] updateListString;
 		}
 
-
-
-
 		SimpleVector<ChangePosition> movesPos;
-
 		SimpleVector<MoveRecord> moveList = getMoveRecords( true, &movesPos );
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 		// add changes from auto-decays on map,
 		// mixed with player-caused changes
 		stepMap( &mapChanges, &mapChangesPos );
-
-
-
 
 		if( periodicStepThisStep ) {
 
@@ -8377,10 +8298,6 @@ printf( "\n" );
 				delete [] email;
 			}
 		}
-
-
-
-
 
 		unsigned char *lineageMessage = NULL;
 		int lineageMessageLength = 0;
@@ -8422,9 +8339,6 @@ printf( "\n" );
 				}
 			}
 		}
-
-
-
 
 		unsigned char *cursesMessage = NULL;
 		int cursesMessageLength = 0;
@@ -8472,9 +8386,6 @@ printf( "\n" );
 			}
 		}
 
-
-
-
 		unsigned char *namesMessage = NULL;
 		int namesMessageLength = 0;
 
@@ -8519,8 +8430,6 @@ printf( "\n" );
 				}
 			}
 		}
-
-
 
 		unsigned char *dyingMessage = NULL;
 		int dyingMessageLength = 0;
@@ -8576,9 +8485,6 @@ printf( "\n" );
 			}
 		}
 
-
-
-
 		unsigned char *healingMessage = NULL;
 		int healingMessageLength = 0;
 
@@ -8623,9 +8529,6 @@ printf( "\n" );
 				}
 			}
 		}
-
-
-
 
 		unsigned char *emotMessage = NULL;
 		int emotMessageLength = 0;
@@ -8688,33 +8591,26 @@ printf( "\n" );
 			}
 		}
 
-
 		SimpleVector<char*> newOwnerStrings;
-		for( int u=0; u<newOwnerPos.size(); u++ ) {
+		for( int u=0; u<newOwnerPos.size(); u++ )
+		{
 			newOwnerStrings.push_back(
 					getOwnershipString( newOwnerPos.getElementDirect( u ) ) );
 		}
 
-
-
-
 		// send moves and updates to clients
-
 
 		SimpleVector<int> playersReceivingPlayerUpdate;
 
-
-		for( int i=0; i<numLive; i++ ) {
-
+		for( int i=0; i<numLive; i++ )
+		{
 			LiveObject *nextPlayer = players.getElement(i);
-
 
 			// everyone gets all flight messages
 			// even if they haven't gotten first message yet
 			// (because the flier will get their first message again
 			// when they land, and we need to tell them about flight first)
-			if( nextPlayer->firstMapSent ||
-				nextPlayer->inFlight ) {
+			if( nextPlayer->firstMapSent || nextPlayer->inFlight ) {
 
 				if( newFlightDest.size() > 0 ) {
 
@@ -8738,379 +8634,12 @@ printf( "\n" );
 				}
 			}
 
+			//!now send message back if any
+			if(nextPlayer->firstMessageSent)
+			{
+				double maxDist = getMaxChunkDimension();
+				double maxDist2 = maxDist * 2;
 
-
-			double maxDist = getMaxChunkDimension();
-			double maxDist2 = maxDist * 2;
-
-
-			if( ! nextPlayer->firstMessageSent ) {
-
-
-				// first, send the map chunk around them
-
-				int numSent = sendMapChunkMessage( nextPlayer );
-
-				if( numSent == -2 ) {
-					// still not sent, try again later
-					continue;
-				}
-
-
-				// next send info about valley lines
-
-				int valleySpacing =
-						SettingsManager::getIntSetting( "valleySpacing", 40 );
-
-				char *valleyMessage =
-						autoSprintf( "VS\n"
-									 "%d %d\n#",
-									 valleySpacing,
-									 nextPlayer->birthPos.y % valleySpacing );
-
-				sendMessageToPlayer( nextPlayer,
-									 valleyMessage, strlen( valleyMessage ) );
-
-				delete [] valleyMessage;
-
-
-
-				SimpleVector<int> outOfRangePlayerIDs;
-
-
-				// now send starting message
-				SimpleVector<char> messageBuffer;
-
-				messageBuffer.appendElementString( "PU\n" );
-
-				int numPlayers = players.size();
-
-				// must be last in message
-				char *playersLine = NULL;
-
-				for( int i=0; i<numPlayers; i++ ) {
-
-					LiveObject *o = players.getElement( i );
-
-					if( ( o != nextPlayer && o->error )
-						||
-						o->vogMode ) {
-						continue;
-					}
-
-					char oWasForced = o->posForced;
-
-					if( nextPlayer->inFlight ||
-						nextPlayer->vogMode || nextPlayer->postVogMode ) {
-						// not a true first message
-
-						// force all positions for all players
-						o->posForced = true;
-					}
-
-
-					// true mid-move positions for first message
-					// all relative to new player's birth pos
-					char *messageLine = getUpdateLine( o,
-													   nextPlayer->birthPos,
-													   getPlayerPos(
-															   nextPlayer ),
-													   false, true );
-
-					if( nextPlayer->inFlight ||
-						nextPlayer->vogMode || nextPlayer->postVogMode ) {
-						// restore
-						o->posForced = oWasForced;
-					}
-
-
-					// skip sending info about errored players in
-					// first message
-					if( o->id != nextPlayer->id ) {
-						messageBuffer.appendElementString( messageLine );
-						delete [] messageLine;
-
-						double d = intDist( o->xd, o->yd,
-											nextPlayer->xd,
-											nextPlayer->yd );
-
-						if( d > maxDist ) {
-							outOfRangePlayerIDs.push_back( o->id );
-						}
-					}
-					else {
-						// save until end
-						playersLine = messageLine;
-					}
-				}
-
-				if( playersLine != NULL ) {
-					messageBuffer.appendElementString( playersLine );
-					delete [] playersLine;
-				}
-
-				messageBuffer.push_back( '#' );
-
-				char *message = messageBuffer.getElementString();
-
-
-				sendMessageToPlayer( nextPlayer, message, strlen( message ) );
-
-				delete [] message;
-
-
-				// send out-of-range message for all players in PU above
-				// that were out of range
-				if( outOfRangePlayerIDs.size() > 0 ) {
-					SimpleVector<char> messageChars;
-
-					messageChars.appendElementString( "PO\n" );
-
-					for( int i=0; i<outOfRangePlayerIDs.size(); i++ ) {
-						char buffer[20];
-						sprintf( buffer, "%d\n",
-								 outOfRangePlayerIDs.getElementDirect( i ) );
-
-						messageChars.appendElementString( buffer );
-					}
-					messageChars.push_back( '#' );
-
-					char *outOfRangeMessageText =
-							messageChars.getElementString();
-
-					sendMessageToPlayer( nextPlayer, outOfRangeMessageText,
-										 strlen( outOfRangeMessageText ) );
-
-					delete [] outOfRangeMessageText;
-				}
-
-
-
-				char *movesMessage =
-						getMovesMessage( false,
-										 nextPlayer->birthPos,
-										 getPlayerPos( nextPlayer ) );
-
-				if( movesMessage != NULL ) {
-
-
-					sendMessageToPlayer( nextPlayer, movesMessage,
-										 strlen( movesMessage ) );
-
-					delete [] movesMessage;
-				}
-
-
-
-				// send lineage for everyone alive
-
-
-				SimpleVector<char> linWorking;
-				linWorking.appendElementString( "LN\n" );
-
-				int numAdded = 0;
-
-				for( int i=0; i<numPlayers; i++ ) {
-
-					LiveObject *o = players.getElement( i );
-
-					if( o->error ) {
-						continue;
-					}
-
-					getLineageLineForPlayer( o, &linWorking );
-					numAdded++;
-				}
-
-				linWorking.push_back( '#' );
-
-				if( numAdded > 0 ) {
-					char *linMessage = linWorking.getElementString();
-
-
-					sendMessageToPlayer( nextPlayer, linMessage,
-										 strlen( linMessage ) );
-
-					delete [] linMessage;
-				}
-
-
-
-				// send names for everyone alive
-
-				SimpleVector<char> namesWorking;
-				namesWorking.appendElementString( "NM\n" );
-
-				numAdded = 0;
-
-				for( int i=0; i<numPlayers; i++ ) {
-
-					LiveObject *o = players.getElement( i );
-
-					if( o->error || o->displayedName == NULL) {
-						continue;
-					}
-
-					char *line = autoSprintf( "%d %s\n", o->id, o->displayedName );
-					namesWorking.appendElementString( line );
-					delete [] line;
-
-					numAdded++;
-				}
-
-				namesWorking.push_back( '#' );
-
-				if( numAdded > 0 ) {
-					char *namesMessage = namesWorking.getElementString();
-
-
-					sendMessageToPlayer( nextPlayer, namesMessage,
-										 strlen( namesMessage ) );
-
-					delete [] namesMessage;
-				}
-
-
-
-				// send cursed status for all living cursed
-
-				SimpleVector<char> cursesWorking;
-				cursesWorking.appendElementString( "CU\n" );
-
-				numAdded = 0;
-
-				for( int i=0; i<numPlayers; i++ ) {
-
-					LiveObject *o = players.getElement( i );
-
-					if( o->error ) {
-						continue;
-					}
-
-					int level = o->curseStatus.curseLevel;
-
-					if( level == 0 ) {
-
-						if( usePersonalCurses ) {
-							if( isCursed( nextPlayer->email,
-										  o->email ) ) {
-								level = 1;
-							}
-						}
-					}
-
-					if( level == 0 ) {
-						continue;
-					}
-
-
-					char *line = autoSprintf( "%d %d\n", o->id, level );
-					cursesWorking.appendElementString( line );
-					delete [] line;
-
-					numAdded++;
-				}
-
-				cursesWorking.push_back( '#' );
-
-				if( numAdded > 0 ) {
-					char *cursesMessage = cursesWorking.getElementString();
-
-
-					sendMessageToPlayer( nextPlayer, cursesMessage,
-										 strlen( cursesMessage ) );
-
-					delete [] cursesMessage;
-				}
-
-
-				if( nextPlayer->curseStatus.curseLevel > 0 ) {
-					// send player their personal report about how
-					// many excess curse points they have
-
-					char *message = autoSprintf(
-							"CS\n%d#",
-							nextPlayer->curseStatus.excessPoints );
-
-					sendMessageToPlayer( nextPlayer, message,
-										 strlen( message ) );
-
-					delete [] message;
-				}
-
-
-
-
-				// send dying for everyone who is dying
-
-				SimpleVector<char> dyingWorking;
-				dyingWorking.appendElementString( "DY\n" );
-
-				numAdded = 0;
-
-				for( int i=0; i<numPlayers; i++ ) {
-
-					LiveObject *o = players.getElement( i );
-
-					if( o->error || ! o->dying ) {
-						continue;
-					}
-
-					char *line = autoSprintf( "%d\n", o->id );
-					dyingWorking.appendElementString( line );
-					delete [] line;
-
-					numAdded++;
-				}
-
-				dyingWorking.push_back( '#' );
-
-				if( numAdded > 0 ) {
-					char *dyingMessage = dyingWorking.getElementString();
-
-
-					sendMessageToPlayer( nextPlayer, dyingMessage,
-										 strlen( dyingMessage ) );
-
-					delete [] dyingMessage;
-				}
-
-				// tell them about all permanent emots
-				SimpleVector<char> emotMessageWorking;
-				emotMessageWorking.appendElementString( "PE\n" );
-				for( int i=0; i<numPlayers; i++ ) {
-
-					LiveObject *o = players.getElement( i );
-
-					if( o->error ) {
-						continue;
-					}
-					for( int e=0; e< o->permanentEmots.size(); e ++ ) {
-						// ttl -2 for permanent but not new
-						char *line = autoSprintf(
-								"%d %d -2\n",
-								o->id,
-								o->permanentEmots.getElementDirect( e ) );
-						emotMessageWorking.appendElementString( line );
-						delete [] line;
-					}
-				}
-				emotMessageWorking.push_back( '#' );
-
-				char *emotMessage = emotMessageWorking.getElementString();
-
-				sendMessageToPlayer( nextPlayer, emotMessage,
-									 strlen( emotMessage ) );
-
-				delete [] emotMessage;
-
-
-
-				nextPlayer->firstMessageSent = true;
-				nextPlayer->inFlight = false;
-				nextPlayer->postVogMode = false;
-			}
-			else {
 				// this player has first message, ready for updates/moves
 
 
@@ -10463,6 +9992,7 @@ printf( "\n" );
 				nextPlayer->curseTokenUpdate = false;
 
 			}
+			else oneLifeServer->sendFirstMessages(nextPlayer);
 		}
 
 
@@ -10471,14 +10001,13 @@ printf( "\n" );
 			delete [] r->formatString;
 		}
 
-
-
 		for( int u=0; u<mapChanges.size(); u++ ) {
 			MapChangeRecord *r = mapChanges.getElement( u );
 			delete [] r->formatString;
 		}
 
-		if( newUpdates.size() > 0 ) {
+		if( newUpdates.size() > 0 )
+		{
 
 			SimpleVector<char> playerList;
 
@@ -10501,50 +10030,52 @@ printf( "\n" );
 			delete [] playerListString;
 		}
 
-
-		for( int u=0; u<newUpdates.size(); u++ ) {
+		for( int u=0; u<newUpdates.size(); u++ )
+		{
 			UpdateRecord *r = newUpdates.getElement( u );
 			delete [] r->formatString;
 		}
 
-		for( int u=0; u<newDeleteUpdates.size(); u++ ) {
+		for( int u=0; u<newDeleteUpdates.size(); u++ )
+		{
 			UpdateRecord *r = newDeleteUpdates.getElement( u );
 			delete [] r->formatString;
 		}
 
-
-		if( lineageMessage != NULL ) {
+		if( lineageMessage != NULL )
+		{
 			delete [] lineageMessage;
 		}
-		if( cursesMessage != NULL ) {
+		if( cursesMessage != NULL )
+		{
 			delete [] cursesMessage;
 		}
-		if( namesMessage != NULL ) {
+		if( namesMessage != NULL )
+		{
 			delete [] namesMessage;
 		}
-		if( dyingMessage != NULL ) {
+		if( dyingMessage != NULL )
+		{
 			delete [] dyingMessage;
 		}
-		if( healingMessage != NULL ) {
+		if( healingMessage != NULL )
+		{
 			delete [] healingMessage;
 		}
-		if( emotMessage != NULL ) {
+		if( emotMessage != NULL )
+		{
 			delete [] emotMessage;
 		}
 
-
 		newOwnerStrings.deallocateStringElements();
-
 
 		// these are global, so we must clear it every loop
 		newSpeechPos.deleteAll();
 		newSpeechPlayerIDs.deleteAll();
 		newSpeechCurseFlags.deleteAll();
 		newSpeechPhrases.deallocateStringElements();
-
 		newLocationSpeech.deallocateStringElements();
 		newLocationSpeechPos.deleteAll();
-
 		newGraves.deleteAll();
 		newGraveMoves.deleteAll();
 
@@ -10556,13 +10087,12 @@ printf( "\n" );
 		newEmotIndices.deleteAll();
 		newEmotTTLs.deleteAll();
 
-
-
 		// handle end-of-frame for all players that need it
 		const char *frameMessage = "FM\n#";
 		int frameMessageLength = strlen( frameMessage );
 
-		for( int i=0; i<players.size(); i++ ) {
+		for( int i=0; i<players.size(); i++ )
+		{
 			LiveObject *nextPlayer = players.getElement(i);
 
 			if( nextPlayer->gotPartOfThisFrame && nextPlayer->connected ) {
@@ -10579,10 +10109,9 @@ printf( "\n" );
 			nextPlayer->gotPartOfThisFrame = false;
 		}
 
-
-
 		// handle closing any that have an error
-		for( int i=0; i<players.size(); i++ ) {
+		for( int i=0; i<players.size(); i++ )
+		{
 			LiveObject *nextPlayer = players.getElement(i);
 
 			if( nextPlayer->error && nextPlayer->deleteSent &&
@@ -10673,8 +10202,8 @@ printf( "\n" );
 			}
 		}
 
-
-		if( players.size() == 0 && newConnections.size() == 0 ) {
+		if( players.size() == 0 && newConnections.size() == 0 )
+		{
 			if( shutdownMode ) {
 				AppLog::info( "No live players or connections in shutdown "
 							  " mode, auto-quitting." );
@@ -11205,6 +10734,380 @@ void OneLife::Server::initBiomes()
 
 	//delete this->biomeOrderList;
 	//delete this->biomeWeightList;
+}
+
+/**
+ *
+ */
+void OneLife::Server::sendFirstMessages(LiveObject *nextPlayer)
+{
+	double maxDist = getMaxChunkDimension();
+
+	// first, send the map chunk around them
+
+	int numSent = sendMapChunkMessage( nextPlayer );
+
+	// still not sent, try again later
+	if( numSent == -2 ) return;
+
+
+//!------------
+	// next send info about valley lines
+
+	int valleySpacing = SettingsManager::getIntSetting( "valleySpacing", 40 );
+
+	char *valleyMessage =
+			autoSprintf( "VS\n"
+						 "%d %d\n#",
+						 valleySpacing,
+						 nextPlayer->birthPos.y % valleySpacing );
+
+	sendMessageToPlayer( nextPlayer,
+						 valleyMessage, strlen( valleyMessage ) );
+
+	delete [] valleyMessage;
+
+
+
+	SimpleVector<int> outOfRangePlayerIDs;
+
+//!------------
+	// now send starting message
+	SimpleVector<char> messageBuffer;
+
+	messageBuffer.appendElementString( "PU\n" );
+
+	int numPlayers = players.size();
+
+	// must be last in message
+	char *playersLine = NULL;
+
+	for( int i=0; i<numPlayers; i++ ) {
+
+		LiveObject *o = players.getElement( i );
+
+		if( ( o != nextPlayer && o->error )
+			||
+			o->vogMode ) {
+			continue;
+		}
+
+		char oWasForced = o->posForced;
+
+		if( nextPlayer->inFlight ||
+			nextPlayer->vogMode || nextPlayer->postVogMode ) {
+			// not a true first message
+
+			// force all positions for all players
+			o->posForced = true;
+		}
+
+
+		// true mid-move positions for first message
+		// all relative to new player's birth pos
+		char *messageLine = getUpdateLine( o,
+										   nextPlayer->birthPos,
+										   getPlayerPos(
+												   nextPlayer ),
+										   false, true );
+
+		if( nextPlayer->inFlight ||
+			nextPlayer->vogMode || nextPlayer->postVogMode ) {
+			// restore
+			o->posForced = oWasForced;
+		}
+
+
+		// skip sending info about errored players in
+		// first message
+		if( o->id != nextPlayer->id ) {
+			messageBuffer.appendElementString( messageLine );
+			delete [] messageLine;
+
+			double d = intDist( o->xd, o->yd,
+								nextPlayer->xd,
+								nextPlayer->yd );
+
+			if( d > maxDist ) {
+				outOfRangePlayerIDs.push_back( o->id );
+			}
+		}
+		else {
+			// save until end
+			playersLine = messageLine;
+		}
+	}
+
+	if( playersLine != NULL ) {
+		messageBuffer.appendElementString( playersLine );
+		delete [] playersLine;
+	}
+
+	messageBuffer.push_back( '#' );
+
+	char *message = messageBuffer.getElementString();
+
+
+	sendMessageToPlayer( nextPlayer, message, strlen( message ) );
+
+	delete [] message;
+
+//!------------
+	// send out-of-range message for all players in PU above
+	// that were out of range
+	if( outOfRangePlayerIDs.size() > 0 ) {
+		SimpleVector<char> messageChars;
+
+		messageChars.appendElementString( "PO\n" );
+
+		for( int i=0; i<outOfRangePlayerIDs.size(); i++ ) {
+			char buffer[20];
+			sprintf( buffer, "%d\n",
+					 outOfRangePlayerIDs.getElementDirect( i ) );
+
+			messageChars.appendElementString( buffer );
+		}
+		messageChars.push_back( '#' );
+
+		char *outOfRangeMessageText =
+				messageChars.getElementString();
+
+		sendMessageToPlayer( nextPlayer, outOfRangeMessageText,
+							 strlen( outOfRangeMessageText ) );
+
+		delete [] outOfRangeMessageText;
+	}
+
+
+//!------------
+	char *movesMessage =
+			getMovesMessage( false,
+							 nextPlayer->birthPos,
+							 getPlayerPos( nextPlayer ) );
+
+	if( movesMessage != NULL ) {
+
+
+		sendMessageToPlayer( nextPlayer, movesMessage,
+							 strlen( movesMessage ) );
+
+		delete [] movesMessage;
+	}
+
+
+
+	// send lineage for everyone alive
+
+
+	SimpleVector<char> linWorking;
+	linWorking.appendElementString( "LN\n" );
+
+	int numAdded = 0;
+
+	for( int i=0; i<numPlayers; i++ ) {
+
+		LiveObject *o = players.getElement( i );
+
+		if( o->error ) {
+			continue;
+		}
+
+		getLineageLineForPlayer( o, &linWorking );
+		numAdded++;
+	}
+
+	linWorking.push_back( '#' );
+
+	if( numAdded > 0 ) {
+		char *linMessage = linWorking.getElementString();
+
+
+		sendMessageToPlayer( nextPlayer, linMessage,
+							 strlen( linMessage ) );
+
+		delete [] linMessage;
+	}
+
+
+
+	// send names for everyone alive
+
+	SimpleVector<char> namesWorking;
+	namesWorking.appendElementString( "NM\n" );
+
+	numAdded = 0;
+
+	for( int i=0; i<numPlayers; i++ ) {
+
+		LiveObject *o = players.getElement( i );
+
+		if( o->error || o->displayedName == NULL) {
+			continue;
+		}
+
+		char *line = autoSprintf( "%d %s\n", o->id, o->displayedName );
+		namesWorking.appendElementString( line );
+		delete [] line;
+
+		numAdded++;
+	}
+
+	namesWorking.push_back( '#' );
+
+	if( numAdded > 0 ) {
+		char *namesMessage = namesWorking.getElementString();
+
+
+		sendMessageToPlayer( nextPlayer, namesMessage,
+							 strlen( namesMessage ) );
+
+		delete [] namesMessage;
+	}
+
+
+
+	// send cursed status for all living cursed
+
+	SimpleVector<char> cursesWorking;
+	cursesWorking.appendElementString( "CU\n" );
+
+	numAdded = 0;
+
+	for( int i=0; i<numPlayers; i++ ) {
+
+		LiveObject *o = players.getElement( i );
+
+		if( o->error ) {
+			continue;
+		}
+
+		int level = o->curseStatus.curseLevel;
+
+		if( level == 0 ) {
+
+			if( usePersonalCurses ) {
+				if( isCursed( nextPlayer->email,
+							  o->email ) ) {
+					level = 1;
+				}
+			}
+		}
+
+		if( level == 0 ) {
+			continue;
+		}
+
+
+		char *line = autoSprintf( "%d %d\n", o->id, level );
+		cursesWorking.appendElementString( line );
+		delete [] line;
+
+		numAdded++;
+	}
+
+	cursesWorking.push_back( '#' );
+
+	if( numAdded > 0 )
+	{
+		char *cursesMessage = cursesWorking.getElementString();
+
+
+		sendMessageToPlayer( nextPlayer, cursesMessage,
+							 strlen( cursesMessage ) );
+
+		delete [] cursesMessage;
+	}
+
+
+	if( nextPlayer->curseStatus.curseLevel > 0 )
+	{
+		// send player their personal report about how
+		// many excess curse points they have
+
+		char *message = autoSprintf(
+				"CS\n%d#",
+				nextPlayer->curseStatus.excessPoints );
+
+		sendMessageToPlayer( nextPlayer, message,
+							 strlen( message ) );
+
+		delete [] message;
+	}
+
+
+
+
+	// send dying for everyone who is dying
+
+	SimpleVector<char> dyingWorking;
+	dyingWorking.appendElementString( "DY\n" );
+
+	numAdded = 0;
+
+	for( int i=0; i<numPlayers; i++ )
+	{
+
+		LiveObject *o = players.getElement( i );
+
+		if( o->error || ! o->dying ) {
+			continue;
+		}
+
+		char *line = autoSprintf( "%d\n", o->id );
+		dyingWorking.appendElementString( line );
+		delete [] line;
+
+		numAdded++;
+	}
+
+	dyingWorking.push_back( '#' );
+
+	if( numAdded > 0 )
+	{
+		char *dyingMessage = dyingWorking.getElementString();
+
+
+		sendMessageToPlayer( nextPlayer, dyingMessage,
+							 strlen( dyingMessage ) );
+
+		delete [] dyingMessage;
+	}
+
+	// tell them about all permanent emots
+	SimpleVector<char> emotMessageWorking;
+	emotMessageWorking.appendElementString( "PE\n" );
+	for( int i=0; i<numPlayers; i++ )
+	{
+
+		LiveObject *o = players.getElement( i );
+
+		if( o->error ) {
+			continue;
+		}
+		for( int e=0; e< o->permanentEmots.size(); e ++ ) {
+			// ttl -2 for permanent but not new
+			char *line = autoSprintf(
+					"%d %d -2\n",
+					o->id,
+					o->permanentEmots.getElementDirect( e ) );
+			emotMessageWorking.appendElementString( line );
+			delete [] line;
+		}
+	}
+	emotMessageWorking.push_back( '#' );
+
+	char *emotMessage = emotMessageWorking.getElementString();
+
+	sendMessageToPlayer( nextPlayer, emotMessage,
+						 strlen( emotMessage ) );
+
+	delete [] emotMessage;
+
+
+
+	nextPlayer->firstMessageSent = true;
+	nextPlayer->inFlight = false;
+	nextPlayer->postVogMode = false;
 }
 
 /**
@@ -14811,23 +14714,22 @@ int processLoggedInPlayer( char inAllowReconnect,
 						   GridPos *inForcePlayerPos) {
 
 
-	usePersonalCurses = SettingsManager::getIntSetting( "usePersonalCurses",
-														0 );
-
-	if( usePersonalCurses ) {
+	usePersonalCurses = SettingsManager::getIntSetting( "usePersonalCurses",0 );
+	if( usePersonalCurses )
+	{
 		// ignore what old curse system said
 		inCurseStatus.curseLevel = 0;
 		inCurseStatus.excessPoints = 0;
-
 		initPersonalCurseTest( inEmail );
 
-		for( int p=0; p<players.size(); p++ ) {
+		for( int p=0; p<players.size(); p++ )
+		{
 			LiveObject *o = players.getElement( p );
-
 			if( ! o->error &&
 				! o->isTutorial &&
 				o->curseStatus.curseLevel == 0 &&
-				strcmp( o->email, inEmail ) != 0 ) {
+				strcmp( o->email, inEmail ) != 0 )
+			{
 
 				// non-tutorial, non-cursed, non-us player
 				addPersonToPersonalCurseTest( o->email, inEmail,
@@ -14846,7 +14748,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 
 	// to make it work, force-mark
 	// the old connection as broken
-	for( int p=0; p<players.size(); p++ ) {
+	for( int p=0; p<players.size(); p++ )
+	{
 		LiveObject *o = players.getElement( p );
 
 		if( ! o->error &&
@@ -14862,7 +14765,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 
 
 	// see if player was previously disconnected
-	for( int i=0; i<players.size(); i++ ) {
+	for( int i=0; i<players.size(); i++ )
+	{
 		LiveObject *o = players.getElement( i );
 
 		if( ! o->error && ! o->connected &&
@@ -14927,35 +14831,32 @@ int processLoggedInPlayer( char inAllowReconnect,
 	}
 
 
-
 	// a baby needs to be born
-
 	char eveWindow = isEveWindow();
 	char forceGirl = false;
-
-	int familyLimitAfterEveWindow = SettingsManager::getIntSetting(
-			"familyLimitAfterEveWindow", 15 );
-
+	int familyLimitAfterEveWindow = SettingsManager::getIntSetting("familyLimitAfterEveWindow", 15 );
 	int cM = countFertileMothers();
 	int cB = countHelplessBabies();
 	int cFam = countFamilies();
 
-	if( ! eveWindow ) {
+	if( ! eveWindow )
+	{
 
-		float ratio = SettingsManager::getFloatSetting(
-				"babyMotherApocalypseRatio", 6.0 );
-
-		if( cM == 0 || (float)cB / (float)cM >= ratio ) {
+		float ratio = SettingsManager::getFloatSetting("babyMotherApocalypseRatio", 6.0 );
+		if( cM == 0 || (float)cB / (float)cM >= ratio )
+		{
 			// too many babies per mother inside barrier
-
 			triggerApocalypseNow();
 		}
-		else {
+		else
+		{
 			int minFertile = players.size() / 15;
-			if( minFertile < 2 ) {
+			if( minFertile < 2 )
+			{
 				minFertile = 2;
 			}
-			if( cM < minFertile ) {
+			if( cM < minFertile )
+			{
 				// less than 1/15 of the players are fertile mothers
 				forceGirl = true;
 			}
@@ -15009,10 +14910,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 	newObject.id = nextID;
 	nextID++;
 
-
-
-
-	if( familyDataLogFile != NULL ) {
+	if( familyDataLogFile != NULL )
+	{
 		int eveCount = 0;
 		int inCount = 0;
 
@@ -15061,55 +14960,37 @@ int processLoggedInPlayer( char inAllowReconnect,
 				 averageAge );
 	}
 
-
-
 	newObject.fitnessScore = inFitnessScore;
-
-
-	SettingsManager::setSetting( "nextPlayerID",
-								 (int)nextID );
-
+	SettingsManager::setSetting( "nextPlayerID", (int)nextID );
 
 	newObject.responsiblePlayerID = -1;
-
 	newObject.displayID = getRandomPersonObject();
-
 	newObject.isEve = false;
-
 	newObject.isTutorial = false;
 
-	if( inTutorialNumber > 0 ) {
+	if( inTutorialNumber > 0 )
+	{
 		newObject.isTutorial = true;
 	}
 
 	newObject.trueStartTimeSeconds = Time::getCurrentTime();
 	newObject.lifeStartTimeSeconds = newObject.trueStartTimeSeconds;
-
-
 	newObject.lastSayTimeSeconds = Time::getCurrentTime();
-
-
 	newObject.heldByOther = false;
 	newObject.everHeldByParent = false;
 
-
 	int numPlayers = players.size();
-
 	SimpleVector<LiveObject*> parentChoices;
-
 	int numBirthLocationsCurseBlocked = 0;
-
 	int numOfAge = 0;
 
 
 	// first, find all mothers that could possibly have us
-
 	// three passes, once with birth cooldown limit and lineage limits on,
 	// then more passes with them off (if needed)
 	char checkCooldown = true;
-
-
-	for( int p=0; p<2; p++ ) {
+	for( int p=0; p<2; p++ )
+	{
 
 		for( int i=0; i<numPlayers; i++ ) {
 			LiveObject *player = players.getElement( i );
@@ -15222,10 +15103,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 
 	}
 
-
-
-
-	if( parentChoices.size() == 0 && numBirthLocationsCurseBlocked > 0 ) {
+	if( parentChoices.size() == 0 && numBirthLocationsCurseBlocked > 0 )
+	{
 		// they are blocked from being born EVERYWHERE by curses
 
 		AppLog::infoF( "No available mothers, and %d are curse blocked, "
@@ -15237,18 +15116,19 @@ int processLoggedInPlayer( char inAllowReconnect,
 		inCurseStatus.excessPoints = 1;
 	}
 
-
-
-	if( inTutorialNumber > 0 ) {
+	if( inTutorialNumber > 0 )
+	{
 		// Tutorial always played full-grown
 		parentChoices.deleteAll();
 	}
 
-	if( inForceParentID == -2 ) {
+	if( inForceParentID == -2 )
+	{
 		// force eve
 		parentChoices.deleteAll();
 	}
-	else if( inForceParentID > -1 ) {
+	else if( inForceParentID > -1 )
+	{
 		// force parent choice
 		parentChoices.deleteAll();
 
@@ -15259,49 +15139,41 @@ int processLoggedInPlayer( char inAllowReconnect,
 		}
 	}
 
-
-	if( SettingsManager::getIntSetting( "forceAllPlayersEve", 0 ) ) {
+	if( SettingsManager::getIntSetting( "forceAllPlayersEve", 0 ) )
+	{
 		parentChoices.deleteAll();
 	}
-
-	if( hashedSpawnSeed != 0 && SettingsManager::getIntSetting( "forceEveOnSeededSpawn", 0 ) ) {
+	if( hashedSpawnSeed != 0 && SettingsManager::getIntSetting( "forceEveOnSeededSpawn", 0 ) )
+	{
 		parentChoices.deleteAll();
 	}
-
-
-
 
 	newObject.parentChainLength = 1;
 
-	if( parentChoices.size() == 0 ) {
+	if( parentChoices.size() == 0 )
+	{
 		// new Eve
 		// she starts almost full grown
 
 		newObject.isEve = true;
 		newObject.lineageEveID = newObject.id;
-
 		newObject.lifeStartTimeSeconds -= 14 * ( 1.0 / getAgeRate() );
 
 		// she starts off craving a food right away
-		newObject.cravingFood = getCravedFood( newObject.lineageEveID,
-											   newObject.parentChainLength );
+		newObject.cravingFood = getCravedFood( newObject.lineageEveID, newObject.parentChainLength );
 		// initilize increment
 		newObject.cravingFoodYumIncrement = 1;
 
 		int femaleID = getRandomFemalePersonObject();
 
-		if( femaleID != -1 ) {
+		if( femaleID != -1 )
+		{
 			newObject.displayID = femaleID;
 		}
-
 	}
 
-
 	// else player starts as newborn
-
-
 	newObject.foodCapModifier = 1.0;
-
 	newObject.fever = 0;
 
 	// start full up to capacity with food
@@ -15338,20 +15210,13 @@ int processLoggedInPlayer( char inAllowReconnect,
 	newObject.heatUpdate = false;
 	newObject.lastHeatUpdate = currentTime;
 	newObject.isIndoors = false;
-
-
-	newObject.foodDecrementETASeconds =
-			currentTime +
-			computeFoodDecrementTimeSeconds( &newObject );
-
+	newObject.foodDecrementETASeconds = currentTime + computeFoodDecrementTimeSeconds( &newObject );
 	newObject.foodUpdate = true;
 	newObject.lastAteID = 0;
 	newObject.lastAteFillMax = 0;
 	newObject.justAte = false;
 	newObject.justAteID = 0;
-
 	newObject.yummyBonusStore = 0;
-
 	newObject.clothing = getEmptyClothingSet();
 
 	for( int c=0; c<NUM_CLOTHING_PIECES; c++ ) {
@@ -15488,7 +15353,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 
 
 
-		if( ! newObject.isEve ) {
+		if( ! newObject.isEve )
+		{
 			// mother giving birth to baby
 			// take a ton out of her food store
 
@@ -15610,7 +15476,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 		}
 
 		if( parent->xs == parent->xd &&
-			parent->ys == parent->yd ) {
+			parent->ys == parent->yd )
+		{
 
 			// stationary parent
 			newObject.xs = parent->xs;
@@ -15756,7 +15623,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 		uint32_t tempHashedSpawnSeed;
 		int useSeedList = SettingsManager::getIntSetting( "useSeedList", 0 );
 		//pick a random seed from a list to be the default spawn
-		if ( useSeedList && hashedSpawnSeed == 0 ) {
+		if ( useSeedList && hashedSpawnSeed == 0 )
+		{
 
 			//parse the seeds
 			SimpleVector<char *> *list =
@@ -15796,16 +15664,15 @@ int processLoggedInPlayer( char inAllowReconnect,
 
 			// Get the substr from one after the seed delim
 			std::string seedSalt { SettingsManager::getStringSetting("seedSalt", "default salt") };
-
-			tempHashedSpawnSeed =
-					hashStr(seed, hashStr(seedSalt));
+			tempHashedSpawnSeed = hashStr(seed, hashStr(seedSalt));
 		}
 		else {
 			//use defalt seed configuration
 			tempHashedSpawnSeed = hashedSpawnSeed;
 		}
 
-		if( tempHashedSpawnSeed != 0 ) {
+		if( tempHashedSpawnSeed != 0 )
+		{
 			// Get bounding box from setting, default to 10k
 			int seedSpawnBoundingBox =
 					SettingsManager::getIntSetting( "seedSpawnBoundingBox", 10000 );

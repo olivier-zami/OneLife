@@ -28,6 +28,8 @@ namespace OneLife
 			bool initMap();
 			void initBiomes();
 
+			void sendFirstMessages(LiveObject *nextPlayer);
+
 			OneLife::server::Settings settings;
 			OneLife::server::Map* worldMapDatabase;
 
