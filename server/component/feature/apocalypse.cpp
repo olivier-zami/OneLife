@@ -15,7 +15,7 @@
 #include "../../component/handler/Player.h"
 #include "../../component/Map.h"
 #include "../../Server.h"
-#include "../Socket.h"
+#include "../connection/Tcp.h"
 
 
 extern OneLife::Server* oneLifeServer;

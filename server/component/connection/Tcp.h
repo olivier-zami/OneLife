@@ -5,11 +5,11 @@
 #ifndef ONELIFE_SERVER_COMPONENT_SOCKET_H
 #define ONELIFE_SERVER_COMPONENT_SOCKET_H
 
-#include "../dataType/LiveObject.h"
+#include "../../dataType/LiveObject.h"
 
-namespace OneLife::server
+namespace OneLife::server::connection
 {
-	class Socket
+	class Tcp
 	{
 
 	};

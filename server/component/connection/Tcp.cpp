@@ -2,16 +2,16 @@
 // Created by olivier on 22/04/2022.
 //
 
-#include "Socket.h"
+#include "Tcp.h"
 
-#include "../../third_party/minorGems/io/file/File.h"
-#include "../../third_party/minorGems/network/SocketPoll.h"
-#include "../../third_party/minorGems/util/log/AppLog.h"
-#include "../../third_party/minorGems/util/SettingsManager.h"
-#include "../../third_party/minorGems/util/SimpleVector.h"
-#include "../component/Map.h"
-#include "../Server.h"
-#include "feature/Diet.h"
+#include "../../../third_party/minorGems/io/file/File.h"
+#include "../../../third_party/minorGems/network/SocketPoll.h"
+#include "../../../third_party/minorGems/util/log/AppLog.h"
+#include "../../../third_party/minorGems/util/SettingsManager.h"
+#include "../../../third_party/minorGems/util/SimpleVector.h"
+#include "../Map.h"
+#include "../../Server.h"
+#include "../feature/Diet.h"
 
 extern int chunkDimensionX;
 extern int chunkDimensionY;

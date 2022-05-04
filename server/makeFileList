@@ -28,6 +28,7 @@ Server.cpp \
 map.cpp \
 component/cache/Biome.cpp \
 component/cache/Blocking.cpp \
+component/connection/Tcp.cpp \
 component/container/Player.cpp \
 component/database/Biome.cpp \
 component/database/LookTime.cpp \
@@ -39,7 +40,6 @@ component/generator/Biome.cpp \
 component/generator/Image.cpp \
 component/handler/Player.cpp \
 component/Map.cpp \
-component/Socket.cpp \
 component/Speech.cpp \
 component/feature/apocalypse.cpp \
 component/Log.cpp \

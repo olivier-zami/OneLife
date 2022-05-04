@@ -28,7 +28,13 @@ namespace OneLife
 			bool initMap();
 			void initBiomes();
 
+			bool isLastSendingCanceled();
+			bool isLastSendingFailed();
+
+
 			void sendFirstMessages(LiveObject *nextPlayer);
+			void sendStartingMap(LiveObject *inO, char inDestOverride = false, int inDestOverrideX = 0, int inDestOverrideY = 0);
+			void sendTravelingMap(LiveObject *inO, char inDestOverride = false, int inDestOverrideX = 0, int inDestOverrideY = 0);
 
 			OneLife::server::Settings settings;
 			OneLife::server::Map* worldMapDatabase;
@@ -41,6 +47,10 @@ namespace OneLife
 			SimpleVector<int> biomeList;
 			SimpleVector<int> *biomeOrderList;
 			SimpleVector<float> *biomeWeightList;
+
+		private:
+			bool lastSendingCanceled;
+			bool lastSendingFailed;
 	};
 }
 

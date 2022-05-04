@@ -7,6 +7,8 @@
 
 #include <string>
 
+#include "settings/map.h"
+
 namespace OneLife::server::settings
 {
 	typedef struct WorldMap
@@ -37,10 +39,7 @@ namespace OneLife::server
 		int port;
 		std::string strInfertilitySuffix;
 
-		struct{
-			SimpleVector<int> *biomeOrderList;
-			SimpleVector<float> *biomeWeightList;
-		}topography;
+		OneLife::server::settings::Map map;
 
 		OneLife::server::settings::WorldMap worldMap;
 	}Settings;

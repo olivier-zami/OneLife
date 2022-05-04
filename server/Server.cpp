@@ -21,7 +21,7 @@
 #include "component/handler/Player.h"
 #include "component/Log.h"
 #include "component/Map.h"
-#include "component/Socket.h"
+#include "component/connection/Tcp.h"
 #include "component/Speech.h"
 #include "curseDB.h"
 #include "curses.h"
@@ -43,6 +43,7 @@
 #include "playerStats.h"
 #include "spiral.h"
 #include "triggers.h"
+#include "../commonSource/dataType/message.h"
 #include "../commonSource/math/geometry.h"
 #include "../commonSource/math/misc.h"
 #include "../commonSource/sayLimit.h"
@@ -267,6 +268,8 @@ OneLife::Server::Server(OneLife::server::Settings settings)
 {
 	this->settings = settings;
 	this->worldMapDatabase = nullptr;
+	this->lastSendingCanceled = false;
+	this->lastSendingFailed = false;
 }
 
 OneLife::Server::~Server() {}
@@ -10736,6 +10739,11 @@ void OneLife::Server::initBiomes()
 	//delete this->biomeWeightList;
 }
 
+bool OneLife::Server::isLastSendingCanceled()
+{
+	return this->lastSendingCanceled;
+}
+
 /**
  *
  */
@@ -10743,17 +10751,12 @@ void OneLife::Server::sendFirstMessages(LiveObject *nextPlayer)
 {
 	double maxDist = getMaxChunkDimension();
 
-	// first, send the map chunk around them
-
-	int numSent = sendMapChunkMessage( nextPlayer );
-
-	// still not sent, try again later
-	if( numSent == -2 ) return;
+	//!first, send the map chunk around them
+	oneLifeServer->sendStartingMap(nextPlayer);
+	if(oneLifeServer->isLastSendingCanceled()) return;// still not sent, try again later
 
 
-//!------------
-	// next send info about valley lines
-
+	//!next send info about valley lines
 	int valleySpacing = SettingsManager::getIntSetting( "valleySpacing", 40 );
 
 	char *valleyMessage =
@@ -11109,6 +11112,232 @@ void OneLife::Server::sendFirstMessages(LiveObject *nextPlayer)
 	nextPlayer->inFlight = false;
 	nextPlayer->postVogMode = false;
 }
+
+/**
+ *
+ * @param inO
+ * @param inDestOverride
+ * @param inDestOverrideX
+ * @param inDestOverrideY
+ * @note sendMapChunkMessage(LiveObject*, char, int, int) in from server/server.cpp => server/main.cpp
+ * sets lastSentMap in inO if chunk goes through
+ * auto-marks error in inO
+ * send full rect centered on x,y
+ */
+void OneLife::Server::sendStartingMap(LiveObject *inO, char inDestOverride, int inDestOverrideX, int inDestOverrideY)
+{
+	if(!inO->connected) return; // act like it was a successful send so we can move on until they reconnect later
+
+	OneLife::dataType::message::MapChunk mapChunk;
+	mapChunk.origin.x = inO->xd - (chunkDimensionX/2);
+	mapChunk.origin.y = inO->yd - (chunkDimensionY/2);
+	mapChunk.dimension.width = chunkDimensionX;
+	mapChunk.dimension.height = chunkDimensionX;
+
+	int messageLength = 0;
+	unsigned char *mapChunkMessage = getChunkMessage(
+			mapChunk.origin.x,
+			mapChunk.origin.y,
+			mapChunk.dimension.width,
+			mapChunk.dimension.height,
+			inO->birthPos,
+			&messageLength
+			);
+	int numSent = inO->sock->send( mapChunkMessage, messageLength, false, false );
+	delete [] mapChunkMessage;
+
+	inO->firstMapSent = true;
+	inO->gotPartOfThisFrame = true;
+
+	if(numSent == messageLength)//sent correctly
+	{
+		inO->lastSentMapX = inO->xd;
+		inO->lastSentMapY = inO->yd;
+	}
+	else
+	{
+		if(numSent == -1)
+		{
+			this->lastSendingCanceled = false;
+			this->lastSendingFailed = true;
+		}
+		else if(numSent == -2)
+		{
+			this->lastSendingCanceled = true;
+			this->lastSendingFailed = false;
+		}
+		else
+		{
+			setPlayerDisconnected( inO, "Socket write failed" );
+			this->lastSendingCanceled = false;
+			this->lastSendingFailed = true;
+		}
+	}
+}
+
+/**
+ *
+ * @param inO
+ * @param inDestOverride
+ * @param inDestOverrideX
+ * @param inDestOverrideY
+ */
+void OneLife::Server::sendTravelingMap(LiveObject *inO, char inDestOverride, int inDestOverrideX, int inDestOverrideY)
+{
+	/*
+	if(!inO->connected) return 1; // act like it was a successful send so we can move on until they reconnect later
+
+	int messageLength = 0;
+
+	int xd = inO->xd;
+	int yd = inO->yd;
+
+	if( inDestOverride )
+	{
+		xd = inDestOverrideX;
+		yd = inDestOverrideY;
+	}
+
+
+	int halfW = chunkDimensionX / 2;
+	int halfH = chunkDimensionY / 2;
+
+	int fullStartX = xd - halfW;
+	int fullStartY = yd - halfH;
+
+	int numSent = 0;
+
+
+
+	if( ! inO->firstMapSent )
+	{
+		// send full rect centered on x,y
+
+		inO->firstMapSent = true;
+
+		unsigned char *mapChunkMessage = getChunkMessage( fullStartX,
+														  fullStartY,
+														  chunkDimensionX,
+														  chunkDimensionY,
+														  inO->birthPos,
+														  &messageLength );
+
+		numSent +=
+				inO->sock->send( mapChunkMessage,
+								 messageLength,
+								 false, false );
+
+		delete [] mapChunkMessage;
+	}
+	else
+	{
+
+		// our closest previous chunk center
+		int lastX = inO->lastSentMapX;
+		int lastY = inO->lastSentMapY;
+
+
+		// split next chunk into two bars by subtracting last chunk
+
+		int horBarStartX = fullStartX;
+		int horBarStartY = fullStartY;
+		int horBarW = chunkDimensionX;
+		int horBarH = chunkDimensionY;
+
+		if( yd > lastY ) {
+			// remove bottom of bar
+			horBarStartY = lastY + halfH;
+			horBarH = yd - lastY;
+		}
+		else {
+			// remove top of bar
+			horBarH = lastY - yd;
+		}
+
+
+		int vertBarStartX = fullStartX;
+		int vertBarStartY = fullStartY;
+		int vertBarW = chunkDimensionX;
+		int vertBarH = chunkDimensionY;
+
+		if( xd > lastX ) {
+			// remove left part of bar
+			vertBarStartX = lastX + halfW;
+			vertBarW = xd - lastX;
+		}
+		else {
+			// remove right part of bar
+			vertBarW = lastX - xd;
+		}
+
+		// now trim vert bar where it intersects with hor bar
+		if( yd > lastY ) {
+			// remove top of vert bar
+			vertBarH -= horBarH;
+		}
+		else {
+			// remove bottom of vert bar
+			vertBarStartY = horBarStartY + horBarH;
+			vertBarH -= horBarH;
+		}
+
+
+		// only send if non-zero width and height
+		if( horBarW > 0 && horBarH > 0 ) {
+			int len;
+			unsigned char *mapChunkMessage = getChunkMessage( horBarStartX,
+															  horBarStartY,
+															  horBarW,
+															  horBarH,
+															  inO->birthPos,
+															  &len );
+			messageLength += len;
+
+			numSent +=
+					inO->sock->send( mapChunkMessage,
+									 len,
+									 false, false );
+
+			delete [] mapChunkMessage;
+		}
+		if( vertBarW > 0 && vertBarH > 0 ) {
+			int len;
+			unsigned char *mapChunkMessage = getChunkMessage( vertBarStartX,
+															  vertBarStartY,
+															  vertBarW,
+															  vertBarH,
+															  inO->birthPos,
+															  &len );
+			messageLength += len;
+
+			numSent +=
+					inO->sock->send( mapChunkMessage,
+									 len,
+									 false, false );
+
+			delete [] mapChunkMessage;
+		}
+	}
+
+
+	inO->gotPartOfThisFrame = true;
+
+
+	if( numSent == messageLength ) {
+		// sent correctly
+		inO->lastSentMapX = xd;
+		inO->lastSentMapY = yd;
+	}
+	else {
+		setPlayerDisconnected( inO, "Socket write failed" );
+	}
+	return numSent;
+	*/
+}
+
+
+
+/**********************************************************************************************************************/
 
 /**
  *
