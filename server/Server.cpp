@@ -270,6 +270,8 @@ OneLife::Server::Server(OneLife::server::Settings settings)
 	this->worldMapDatabase = nullptr;
 	this->lastSendingCanceled = false;
 	this->lastSendingFailed = false;
+	this->errMsg.content = nullptr;
+	this->errMsg.size = 0;
 }
 
 OneLife::Server::~Server() {}
@@ -303,6 +305,12 @@ void OneLife::Server::loadObjects()
 void OneLife::Server::start()
 {
 	int shutdownMode = this->settings.shutdownMode;
+
+	//!
+	this->errMsg.size = 128*sizeof(char);
+	this->errMsg.content = (char*)malloc(this->errMsg.size);
+	memset(this->errMsg.content, 0, this->errMsg.size);
+
 	double lastPastPlayerFlushTime = 0;
 	double minFlightSpeed = 15;// min speed for takeoff
 	double playerCrossingCheckStepTime = 0.25;// how often do we check what a player is standing on top of for attack effects?
@@ -1008,24 +1016,12 @@ void OneLife::Server::start()
 					 nextConnection->lifeTokenSpent )
 			{
 				// token spent successfully (or token server not used)
-
-				const char *message = "ACCEPTED\n#";
-				int messageLength = strlen( message );
-
-				int numSent =
-						nextConnection->sock->send(
-								(unsigned char*)message,
-								messageLength,
-								false, false );
-
-
-				if( numSent != messageLength ) {
-					AppLog::info( "Failed to write to client socket, "
-								  "client rejected." );
+				oneLifeServer->sendAcceptanceMessage(nextConnection);
+				if(oneLifeServer->isLastSendingFailed())
+				{
+					AppLog::info(oneLifeServer->getErrorMessage());
 					nextConnection->error = true;
-					nextConnection->errorCauseString =
-							"Socket write failed";
-
+					nextConnection->errorCauseString = "Socket write failed";
 				}
 				else
 				{
@@ -1247,25 +1243,15 @@ void OneLife::Server::start()
 							else if( !requireTicketServerCheck && !nextConnection->error )
 							{
 								// let them in without checking
-								const char *message = "ACCEPTED\n#";
-								int messageLength = strlen( message );
-
-								int numSent =
-										nextConnection->sock->send(
-												(unsigned char*)message,
-												messageLength,
-												false, false );
-
-
-								if( numSent != messageLength ) {
-									AppLog::info(
-											"Failed to send on client socket, "
-											"client rejected." );
+								oneLifeServer->sendAcceptanceMessage(nextConnection);
+								if(oneLifeServer->isLastSendingFailed())
+								{
+									AppLog::info(oneLifeServer->getErrorMessage());
 									nextConnection->error = true;
-									nextConnection->errorCauseString =
-											"Socket write failed";
+									nextConnection->errorCauseString = "Socket write failed";
 								}
-								else {
+								else
+								{
 									// ready to start normal message exchange
 									// with client
 
@@ -10225,6 +10211,9 @@ printf( "\n" );
 	delete server;
 }
 
+
+/**********************************************************************************************************************/
+
 /**
  *
  * @return
@@ -10739,9 +10728,48 @@ void OneLife::Server::initBiomes()
 	//delete this->biomeWeightList;
 }
 
+/**
+ *
+ * @return
+ */
 bool OneLife::Server::isLastSendingCanceled()
 {
 	return this->lastSendingCanceled;
+}
+
+/**
+ *
+ * @return
+ */
+bool OneLife::Server::isLastSendingFailed()
+{
+	return this->lastSendingFailed;
+}
+
+/**
+ *
+ * @return
+ */
+const char * OneLife::Server::getErrorMessage()
+{
+	return this->errMsg.content;
+}
+
+/**
+ *
+ * @param nextConnection
+ */
+void OneLife::Server::sendAcceptanceMessage(FreshConnection *nextConnection)
+{
+	const char *message = "ACCEPTED\n#";
+	int messageLength = strlen( message );
+	int numSent = nextConnection->sock->send((unsigned char*)message, messageLength, false, false );
+	if( numSent != messageLength )
+	{
+		this->lastSendingCanceled = false;
+		this->lastSendingFailed = true;
+		this->setErrorMessage("Failed to send on client socket, client rejected.");
+	}
 }
 
 /**
@@ -10750,6 +10778,13 @@ bool OneLife::Server::isLastSendingCanceled()
 void OneLife::Server::sendFirstMessages(LiveObject *nextPlayer)
 {
 	double maxDist = getMaxChunkDimension();
+
+	/*
+	char *worldSettingsMessage = autoSprintf(
+			"WS\n%i\n#",
+			9);
+	sendMessageToPlayer(nextPlayer, worldSettingsMessage, strlen(worldSettingsMessage));
+	delete[] worldSettingsMessage;*/
 
 	//!first, send the map chunk around them
 	oneLifeServer->sendStartingMap(nextPlayer);
@@ -11116,15 +11151,12 @@ void OneLife::Server::sendFirstMessages(LiveObject *nextPlayer)
 /**
  *
  * @param inO
- * @param inDestOverride
- * @param inDestOverrideX
- * @param inDestOverrideY
  * @note sendMapChunkMessage(LiveObject*, char, int, int) in from server/server.cpp => server/main.cpp
  * sets lastSentMap in inO if chunk goes through
  * auto-marks error in inO
  * send full rect centered on x,y
  */
-void OneLife::Server::sendStartingMap(LiveObject *inO, char inDestOverride, int inDestOverrideX, int inDestOverrideY)
+void OneLife::Server::sendStartingMap(LiveObject *inO)
 {
 	if(!inO->connected) return; // act like it was a successful send so we can move on until they reconnect later
 
@@ -11333,6 +11365,17 @@ void OneLife::Server::sendTravelingMap(LiveObject *inO, char inDestOverride, int
 	}
 	return numSent;
 	*/
+}
+
+/**
+ *
+ * @param message
+ */
+void OneLife::Server::setErrorMessage(const char *message)
+{
+	if(strlen(message)>this->errMsg.size);//TODO: call clean exit procedure
+	memset(this->errMsg.content, 0, this->errMsg.size);
+	strcpy(this->errMsg.content, message);
 }
 
 

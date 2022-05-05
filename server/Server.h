@@ -31,10 +31,14 @@ namespace OneLife
 			bool isLastSendingCanceled();
 			bool isLastSendingFailed();
 
+			const char* getErrorMessage();
 
+			void sendAcceptanceMessage(FreshConnection *nextConnection);
 			void sendFirstMessages(LiveObject *nextPlayer);
-			void sendStartingMap(LiveObject *inO, char inDestOverride = false, int inDestOverrideX = 0, int inDestOverrideY = 0);
+			void sendStartingMap(LiveObject *inO);
 			void sendTravelingMap(LiveObject *inO, char inDestOverride = false, int inDestOverrideX = 0, int inDestOverrideY = 0);
+
+			void setErrorMessage(const char* message);
 
 			OneLife::server::Settings settings;
 			OneLife::server::Map* worldMapDatabase;
@@ -51,6 +55,10 @@ namespace OneLife
 		private:
 			bool lastSendingCanceled;
 			bool lastSendingFailed;
+			struct{
+				char* content;
+				size_t size;
+			}errMsg;
 	};
 }
 
