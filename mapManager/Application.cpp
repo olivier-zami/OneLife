@@ -16,6 +16,7 @@
 #include <stdio.h>
 
 #include "../gameSource/GridPos.h"
+#include "../server/component/cache/Biome.h"
 #include "../server/component/Log.h"
 #include "../server/component/Map.h"
 #include "../server/dataType/LiveObject.h"
@@ -27,6 +28,17 @@
 #if !SDL_VERSION_ATLEAST(2,0,17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif
+
+extern int numBiomes;
+extern int* biomes;
+extern float* biomeWeights;
+extern int numSpecialBiomes;
+extern int* specialBiomes;
+extern float* biomeCumuWeights;
+extern float biomeTotalWeight;
+extern int regularBiomeLimit;
+extern float* specialBiomeCumuWeights;
+extern float specialBiomeTotalWeight;
 
 //!Should not user Server class because it may share data with a running one so declare same shared var here
 int apocalypsePossible = 0;
@@ -43,8 +55,88 @@ HashTable<double> liveMovementEtaTimes(1024, 0);// clock time in fractional seco
 MinPriorityQueue<MovementRecord> liveMovements;
 SimpleVector<LiveObject> players;
 
+extern OneLife::server::cache::Biome* cachedBiome;
+
 OneLife::mapManager::Application::Application()
 {
+	//!
+	this->worldMap = new OneLife::server::Map();
+
+	OneLife::server::settings::WorldMap settings = {
+			0,
+			0,
+			0.80,
+			0,
+			nullptr,
+			nullptr
+	};
+	settings.database.lookTime.url = (char*)malloc(64);
+	memset(settings.database.lookTime.url, 0, 64);
+	strcpy(settings.database.lookTime.url, "../src/server/lookTime.db");
+
+	settings.database.biome.url = (char*)malloc(64);
+	memset(settings.database.biome.url, 0, 64);
+	strcpy(settings.database.biome.url, "../src/server/biome.db");
+
+	cachedBiome = new OneLife::server::cache::Biome();
+
+	//!---------------------------------------------
+	numBiomes = 9;
+	biomes = (int*)malloc(numBiomes*sizeof(int));
+	biomeWeights = (float*)malloc(numBiomes*sizeof(float));
+	numSpecialBiomes = 3;
+	specialBiomes = (int*)malloc(numSpecialBiomes*sizeof(int));
+	//printf("\n=====>numBiomes:%i", numBiomes);
+	//printf("\n=====>numSpecialBiomes:%i", numSpecialBiomes);
+
+	biomes[0] = 7;biomeWeights[0] = 0.18;specialBiomes[0] = 6;
+	biomes[1] = 8;biomeWeights[1] = 0.04;specialBiomes[1] = 5;
+	biomes[2] = 0;biomeWeights[2] = 0.18;specialBiomes[2] = 4;
+	biomes[3] = 1;biomeWeights[3] = 0.13;
+	biomes[4] = 2;biomeWeights[4] = 0.08;
+	biomes[5] = 3;biomeWeights[5] = 0.09;
+	biomes[6] = 6;biomeWeights[6] = 0.09;
+	biomes[7] = 5;biomeWeights[7] = 0.11;
+	biomes[8] = 4;biomeWeights[8] = 0.12;
+
+	//printf("\n=====>biomes list:");for(int i=0; i<numBiomes; i++)printf("%i ", biomes[i]);
+	//printf("\n=====>biomeWeights list:");for(int i=0; i<numBiomes; i++)printf("%f ", biomeWeights[i]);
+
+	biomeCumuWeights = new float[numBiomes];
+	biomeTotalWeight = 0;
+	for (int i = 0; i < numBiomes; i++)
+	{
+		biomeTotalWeight += biomeWeights[i];
+		biomeCumuWeights[i] = biomeTotalWeight;
+	}
+	//printf("\n=====>biomeCumuWeights list:");for(int i=0; i<numBiomes; i++)printf("%f ", biomeCumuWeights[i]);
+	//printf("\n=====>biomeTotalWeight:%f", biomeTotalWeight);
+
+	regularBiomeLimit = numBiomes - numSpecialBiomes;
+	specialBiomeCumuWeights = new float[numSpecialBiomes];
+	specialBiomeTotalWeight = 0;
+	for (int i = regularBiomeLimit; i < numBiomes; i++)
+	{
+		specialBiomeTotalWeight += biomeWeights[i];
+		specialBiomeCumuWeights[i - regularBiomeLimit] = specialBiomeTotalWeight;
+	}
+	//printf("\n=====>regularBiomeLimit:%i", regularBiomeLimit);
+	//printf("\n=====>specialBiomeTotalWeight:%f", specialBiomeTotalWeight);
+	//printf("\n=====>specialBiomeCumuWeights list:");for(int i=0; i<numSpecialBiomes; i++)printf("%f ", specialBiomeCumuWeights[i]);
+
+	//!---------------------------------------------
+
+
+	this->worldMap->init(settings);//TODO: use flag to disable unused feature
+
+	free(settings.database.lookTime.url);
+
+
+	OneLife::server::dataType::map::BiomeRegion biomeRegion;
+	biomeRegion.coord = {-10, -10, 10, 10};
+
+	this->worldMap->updateBiomeRegion(&biomeRegion);
+
 	// Setup SDL
 	// (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
 	// depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled.. updating to latest version of SDL is recommended!)
@@ -66,12 +158,25 @@ OneLife::mapManager::Application::Application()
 		return ;//false;
 	}
 
+	//!
 	this->mapWindow = new OneLife::mapManager::MapWindow(this->renderer);
-	this->worldMap = new OneLife::mapManager::WorldMap(this->renderer);
+	this->winBiomeMatrix = new OneLife::mapManager::window::BiomeMatrix(this->renderer);
+	this->winExample = new OneLife::mapManager::window::Example(this->renderer);
+	this->winToolBox = new OneLife::mapManager::window::ToolBox(this->renderer);
+	this->winPreview = new OneLife::mapManager::window::Preview(this->renderer);
+
+	//!
+	this->winToolBox;
 }
 
 OneLife::mapManager::Application::~Application()
 {
+	free(biomes);
+	free(biomeWeights);
+	free(specialBiomes);
+	delete[] biomeCumuWeights;
+	delete[] specialBiomeCumuWeights;
+
 	SDL_DestroyRenderer(this->renderer);
 	SDL_DestroyWindow(this->window);
 	SDL_Quit();
@@ -119,6 +224,8 @@ void OneLife::mapManager::Application::start()
 	bool show_demo_window = true;
 	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+	this->winExample->handle(&clear_color);
+	this->winExample->control(this->winToolBox);
 
 	// Main loop
 	bool done = false;
@@ -146,45 +253,12 @@ void OneLife::mapManager::Application::start()
 		ImGui_ImplSDL2_NewFrame(this->window);
 		ImGui::NewFrame();
 
-		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-		if (show_demo_window)
-			ImGui::ShowDemoWindow(&show_demo_window);
-
-		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-		{
-			static float f = 0.0f;
-			static int counter = 0;
-
-			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-			ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-			ImGui::Checkbox("Another Window", &show_another_window);
-
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-				counter++;
-			ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
-
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::End();
-		}
-
-		// 3. Show another simple window.
-		if (show_another_window)
-		{
-			ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			ImGui::Text("Hello from another window!");
-			if (ImGui::Button("Close Me"))
-				show_another_window = false;
-			ImGui::End();
-		}
-
+		//!
 		this->mapWindow->render();
-		this->worldMap->render();
+		this->winBiomeMatrix->render();
+		this->winExample->render();
+		this->winToolBox->render();
+		this->winPreview->render();
 
 		// Rendering
 		ImGui::Render();

@@ -2,12 +2,12 @@
 // Created by olivier on 09/04/2022.
 //
 
-#include "WorldMap.h"
+#include "BiomeMatrix.h"
 
 #include <SDL2/SDL_image.h>
 
 
-OneLife::mapManager::WorldMap::WorldMap(SDL_Renderer* renderer)
+OneLife::mapManager::window::BiomeMatrix::BiomeMatrix(SDL_Renderer* renderer)
 {
 	this->showWindow = true;
 	if(renderer) this->renderer = renderer;
@@ -55,7 +55,7 @@ OneLife::mapManager::WorldMap::WorldMap(SDL_Renderer* renderer)
 
 }
 
-OneLife::mapManager::WorldMap::~WorldMap()
+OneLife::mapManager::window::BiomeMatrix::~BiomeMatrix()
 {
 	if(this->mapSurface){SDL_FreeSurface(this->mapSurface); this->mapSurface=nullptr;}
 	if(this->mapTilesSurface){SDL_FreeSurface(this->mapTilesSurface); this->mapTilesSurface=nullptr;}
@@ -63,13 +63,13 @@ OneLife::mapManager::WorldMap::~WorldMap()
 	SDL_DestroyTexture(this->mapTilesTexture);
 }
 
-void OneLife::mapManager::WorldMap::render()
+void OneLife::mapManager::window::BiomeMatrix::render()
 {
 	if(!this->showWindow) return;
 
 	ImVec2 screen_pos = ImGui::GetCursorScreenPos();
 
-	ImGui::Begin("World Map", &(this->showWindow), ImGuiWindowFlags_MenuBar);
+	ImGui::Begin("Biome Matrix", &(this->showWindow), ImGuiWindowFlags_MenuBar);
 
 	ImGuiIO& io = ImGui::GetIO();
 	ImVec2 pos = ImGui::GetCursorScreenPos();

@@ -52,7 +52,7 @@ int SettingsManager::getIntSetting(const char *inSettingName, int inDefaultValue
 void logMapChange(int inX, int inY, int inID){}//from server/map.cpp
 
 TransRecord *getMetaTrans( int inActor, int inTarget, char inLastUseActor, char inLastUseTarget){return nullptr;}//from gameSource/objectMetadata.cpp
-//void setLastMetadataID( int inMetadataID ){}//from gameSource/objectMetadata.cpp
+void setLastMetadataID( int inMetadataID ){}//from gameSource/objectMetadata.cpp
 
 //void writeRecentPlacements(){}//from server/component/Log.h
 

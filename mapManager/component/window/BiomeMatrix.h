@@ -9,13 +9,13 @@
 
 #include <SDL.h>
 
-namespace OneLife::mapManager
+namespace OneLife::mapManager::window
 {
-	class WorldMap
+	class BiomeMatrix
 	{
 		public:
-			WorldMap(SDL_Renderer* renderer=nullptr);
-			~WorldMap();
+			BiomeMatrix(SDL_Renderer* renderer=nullptr);
+			~BiomeMatrix();
 
 			void render();
 
