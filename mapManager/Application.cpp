@@ -24,6 +24,7 @@
 #include "../third_party/minorGems/system/Time.h"
 #include "../third_party/minorGems/util/log/AppLog.h"
 #include "../third_party/minorGems/util/MinPriorityQueue.h"
+#include "../third_party/openLife/src/extension/Sdl2.h"
 
 #if !SDL_VERSION_ATLEAST(2,0,17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
@@ -157,13 +158,20 @@ OneLife::mapManager::Application::Application()
 		SDL_Log("Error creating SDL_Renderer!");
 		return ;//false;
 	}
+	openLife::extension::Sdl2::setRenderer(this->renderer);
+
 
 	//!
 	this->mapWindow = new OneLife::mapManager::MapWindow(this->renderer);
 	this->winBiomeMatrix = new OneLife::mapManager::window::BiomeMatrix(this->renderer);
 	this->winExample = new OneLife::mapManager::window::Example(this->renderer);
 	this->winToolBox = new OneLife::mapManager::window::ToolBox(this->renderer);
-	this->winPreview = new OneLife::mapManager::window::Preview(this->renderer);
+
+	this->winPreview = new OneLife::mapManager::window::Preview({
+		this->renderer,
+		{0,0},
+		{{{1000, 500}}}
+	});
 
 	//!
 	this->winToolBox;
@@ -256,8 +264,8 @@ void OneLife::mapManager::Application::start()
 		//!
 		this->mapWindow->render();
 		this->winBiomeMatrix->render();
-		this->winExample->render();
-		this->winToolBox->render();
+		//this->winExample->render();
+		//this->winToolBox->render();
 		this->winPreview->render();
 
 		// Rendering
