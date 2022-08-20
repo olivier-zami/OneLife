@@ -13,8 +13,8 @@
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/stringUtils.h"//translate?
+#include "panel/DemoCodePanel.h"
 #include "sdl.h"
-#include "ui/DemoCodePanel.h"
 
 #include <SDL/SDL.h>
 #include <GL/gl.h>
