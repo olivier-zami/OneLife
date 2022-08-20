@@ -12,8 +12,6 @@ int binVersionNumber = versionNumber;
 // in a way that breaks old clients.
 int accountHmacVersionNumber = 0;
 
-
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -25,60 +23,35 @@ int accountHmacVersionNumber = 0;
 #include <malloc.h>
 #endif
 
-
 #include "minorGems/graphics/Color.h"
-
-
-
-
-
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/random/CustomRandomSource.h"
-
 #include "minorGems/io/file/File.h"
-
 #include "minorGems/system/Time.h"
-
 #include "minorGems/crypto/hashes/sha1.h"
-
 
 // static seed
 CustomRandomSource randSource( 34957197 );
 
-
-
 #include "minorGems/util/log/AppLog.h"
-
-
-
 #include "minorGems/game/game.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
-
-
-
-
-
 #include "spriteBank.h"
 #include "objectBank.h"
 #include "categoryBank.h"
 #include "transitionBank.h"
 #include "soundBank.h"
-
 #include "liveObjectSet.h"
-
 #include "groundSprites.h"
-
 #include "emotion.h"
 #include "photos.h"
 #include "lifeTokens.h"
 #include "fitnessScore.h"
-
-
 #include "FinalMessagePage.h"
 #include "LoadingPage.h"
 #include "AutoUpdatePage.h"
@@ -103,41 +76,31 @@ CustomRandomSource randSource( 34957197 );
 
 #include "message.h"
 
+char *currentUserTypedMessage = NULL;
 
 // should we pull the map
 static char mapPullMode = 0;
 static char autoLogIn = 0;
-
-
 char loginEditOverride = false;
-
 
 // start at reflector URL
 char *reflectorURL = NULL;
-
 char usingCustomServer = false;
 char *serverIP = NULL;
 int serverPort = 0;
-
-
 char useSpawnSeed;
-
 char *userEmail = NULL;
 char *accountKey = NULL;
 char *userTwinCode = NULL;
 int userTwinCount = 0;
 char userReconnect = false;
 
-
 // these are needed by ServerActionPage, but we don't use them
 int userID = -1;
 int serverSequenceNumber = 0;
 
-
 FinalMessagePage *finalMessagePage;
-
 ServerActionPage *getServerAddressPage;
-
 LoadingPage *loadingPage;
 AutoUpdatePage *autoUpdatePage;
 LivingLifePage *livingLifePage;
@@ -151,26 +114,15 @@ PollPage *pollPage;
 GeneticHistoryPage *geneticHistoryPage;
 //TestPage *testPage = NULL;
 
-
 GamePage *currentGamePage = NULL;
-
 int loadingPhase = 0;
-
 int loadingStepBatchSize = 1;
 double loadingPhaseStartTime;
-
 int numLoadingSteps = 20;
-
-
-
 SpriteHandle instructionsSprite;
-
-
 
 // position of view in world
 doublePair lastScreenViewCenter = {0, 0 };
-
-
 
 // world width of one view
 //FOV
@@ -181,11 +133,8 @@ float gui_fov_target_scale_hud = 1.0f;
 float gui_fov_preferred_max_scale = 3.0f;
 int gui_fov_offset_x = (int)(((1280 * gui_fov_target_scale_hud) - 1280)/2);
 int gui_fov_offset_y = (int)(((720 * gui_fov_target_scale_hud) - 720)/2);
-
-
 double viewWidth = 1280;
 double viewHeight = 720;
-
 
 // this is the desired visible width
 // if our screen is wider than this (wider than 16:9 aspect ratio)
@@ -193,8 +142,6 @@ double viewHeight = 720;
 // Usually, if screen is not 16:9, it will be taller, not wider,
 // and we will put letterbox bars on the top and bottom 
 double visibleViewWidth = viewWidth;
-
-
 
 void setFOVScale() {
 
@@ -227,17 +174,11 @@ void setFOVScale() {
     visibleViewWidth = viewWidth;
 }
 
-
 // fraction of viewWidth visible vertically (aspect ratio)
 double viewHeightFraction;
-
 int screenW, screenH;
-
 char initDone = false;
-
 float mouseSpeed;
-
-
 int maxSimultaneousExpectedSoundEffects = 10;
 
 // fraction of full volume devoted to music
@@ -251,60 +192,39 @@ int maxSimultaneousExpectedSoundEffects = 10;
 // so it's subjectively louder
 double musicHeadroom = 1.0;
 
-
-
-
 int musicOff = 0;
 float musicLoudness;
-
 int webRetrySeconds;
-
-
 double frameRateFactor = 1;
 int baseFramesPerSecond = 60;
 int targetFramesPerSecond = baseFramesPerSecond;
-
 char firstDrawFrameCalled = false;
 int firstServerMessagesReceived = 0;
-
-
 char upKey = 'w';
 char leftKey = 'a';
 char downKey = 's';
 char rightKey = 'd';
 
-
-
-
-
-
-
 char doesOverrideGameImageSize() {
     return true;
     }
-
-
 
 void getGameImageSize( int *outWidth, int *outHeight ) {
     *outWidth = (int)viewWidth;
     *outHeight = (int)viewHeight;
     }
 
-
 char shouldNativeScreenResolutionBeUsed() {
     return true;
     }
-
 
 char isNonIntegerScalingAllowed() {
     return true;
     }
 
-
 const char *getWindowTitle() {
     return "OneLife";
     }
-
 
 const char *getAppName() {
     return "OneLife";
@@ -319,32 +239,15 @@ const char *getLinuxAppName() {
     return "OneLifeApp";
     }
 
-
-
 const char *getFontTGAFileName() {
     return "newfont_32_64.tga";
     }
-
 
 char isDemoMode() {
     return false;
     }
 
-
-const char *getDemoCodeSharedSecret() {
-    return "fundamental_right";
-    }
-
-
-const char *getDemoCodeServerURL() {
-    return "http://FIXME/demoServer/server.php";
-    }
-
-
-
 char gamePlayingBack = false;
-
-
 Font *mainFont;
 Font *mainFontFixed;
 // closer spacing
@@ -353,31 +256,15 @@ Font *numbersFontFixed;
 Font *handwritingFont;
 Font *pencilFont;
 Font *pencilErasedFont;
-
 Font *smallFont;
-
 Font *titleFont;
-
-
 char *shutdownMessage = NULL;
 
-
-
-
-
-
-
-
 static float pauseScreenFade = 0;
-
-static char *currentUserTypedMessage = NULL;
-
-
 
 // for delete key repeat during message typing
 static int holdDeleteKeySteps = -1;
 static int stepsBetweenDeleteRepeat;
-
 
 
 static void updateDataVersionNumber() {
@@ -397,8 +284,6 @@ static void updateDataVersionNumber() {
             }
         }
     }
-
-
 
 
 #define SETTINGS_HASH_SALT "another_loss"
@@ -438,8 +323,6 @@ char *getCustomRecordedGameData() {
     return result;
     }
 
-
-
 char showMouseDuringPlayback() {
     // since we rely on the system mouse pointer during the game (and don't
     // draw our own pointer), we need to see the recorded pointer position
@@ -447,14 +330,9 @@ char showMouseDuringPlayback() {
     return true;
     }
 
-
-
 char *getHashSalt() {
     return stringDuplicate( SETTINGS_HASH_SALT );
     }
-
-
-
 
 void initDrawString( int inWidth, int inHeight ) {
 
@@ -483,13 +361,6 @@ void initDrawString( int inWidth, int inHeight ) {
     setViewSize( viewWidth );
     setLetterbox( visibleViewWidth, viewHeight );
     }
-
-
-void freeDrawString() {
-    delete mainFont;
-    }
-
-
 
 void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
                       const char *inCustomRecordedGameData,
@@ -736,118 +607,10 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     initDone = true;
     }
 
-
-
-void freeFrameDrawer() {
-
-
-    freeSprite( instructionsSprite );
-    
-    delete mainFontReview;
-    delete mainFontFixed;
-    delete numbersFontFixed;
-    
-    delete handwritingFont;
-    delete pencilFont;
-    delete pencilErasedFont;
-    
-    delete smallFont;
-    
-    if( currentUserTypedMessage != NULL ) {
-        delete [] currentUserTypedMessage;
-        currentUserTypedMessage = NULL;
-        }
-
-    
-
-    if( shutdownMessage != NULL ) {
-        delete [] shutdownMessage;
-        shutdownMessage = NULL;
-        }
-    
-
-    delete getServerAddressPage;
-    
-    delete finalMessagePage;
-    delete loadingPage;
-    delete autoUpdatePage;
-    if( livingLifePage != NULL ) {
-        delete livingLifePage;
-        livingLifePage = NULL;
-        }
-
-    delete existingAccountPage;
-    delete extendedMessagePage;
-    delete rebirthChoicePage;
-    delete settingsPage;
-    delete reviewPage;
-    delete twinPage;
-    delete pollPage;
-    delete geneticHistoryPage;
-    
-    //if( testPage != NULL ) {
-    //    delete testPage;
-    //    testPage = NULL;
-    //    }
-
-    
-    freeGroundSprites();
-
-    freeAnimationBank();
-    freeObjectBank();
-    freeSpriteBank();
-
-    freeTransBank();
-    
-    freeCategoryBank();
-
-    freeLiveObjectSet();
-
-    freeSoundBank();
-    
-    freeMusicPlayer();
-    freeEmotion();
-    
-    freePhotos();
-    freeLifeTokens();
-    freeFitnessScore();
-
-    if( reflectorURL != NULL ) {
-        delete [] reflectorURL;
-        reflectorURL = NULL;
-        }
-
-    if( serverIP != NULL ) {
-        delete [] serverIP;
-        serverIP = NULL;
-        }
-    
-
-    if( userEmail != NULL ) {
-        delete [] userEmail;
-        }
-    if( accountKey != NULL ) {
-        delete [] accountKey;
-        }
-    if( userTwinCode != NULL ) {
-        delete [] userTwinCode;
-        }
-    }
-
-
-
-
-
-    
-
-
 // draw code separated from updates
 // some updates are still embedded in draw code, so pass a switch to 
 // turn them off
 static void drawFrameNoUpdate( char inUpdate );
-
-
-
 
 static void drawPauseScreen() {
 
@@ -1160,8 +923,6 @@ static void drawPauseScreen() {
 
     }
 
-
-
 void deleteCharFromUserTypedMessage() {
     if( currentUserTypedMessage != NULL ) {
                     
@@ -1181,10 +942,6 @@ void deleteCharFromUserTypedMessage() {
             }
         }
     }
-
-
-
-
 
 static void startConnecting() {
     userReconnect = false;
@@ -1236,8 +993,6 @@ static void startConnecting() {
 
     }
 
-
-
 void showDiedPage() {
     userReconnect = false;
     
@@ -1266,8 +1021,6 @@ void showDiedPage() {
     currentGamePage->base_makeActive( true );
     }
 
-
-
 void showReconnectPage() {
     lastScreenViewCenter.x = 0;
     lastScreenViewCenter.y = 0;
@@ -1292,8 +1045,6 @@ void showReconnectPage() {
     
     currentGamePage->base_makeActive( true );
     }
-
-    
 
 void drawFrame( char inUpdate ) {    
 
@@ -2197,17 +1948,11 @@ void drawFrame( char inUpdate ) {
         }
     }
 
-
-
-
 void drawFrameNoUpdate( char inUpdate ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_draw( lastScreenViewCenter, viewWidth );
         }
     }
-
-
-
 
 // store mouse data for use as unguessable randomizing data
 // for key generation, etc.
@@ -2218,8 +1963,6 @@ int nextMouseDataIndex = 0;
 // doesn't overwrite data from actual motion
 float lastBufferedMouseValue = 0;
 float mouseDataBuffer[ MOUSE_DATA_BUFFER_SIZE ];
-
-
 
 void pointerMove( float inX, float inY ) {
 
@@ -2248,10 +1991,6 @@ void pointerMove( float inX, float inY ) {
         }
     }
 
-
-
-
-
 void pointerDown( float inX, float inY ) {
     if( isPaused() ) {
         return;
@@ -2261,8 +2000,6 @@ void pointerDown( float inX, float inY ) {
         currentGamePage->base_pointerDown( inX, inY );
         }
     }
-
-
 
 void pointerDrag( float inX, float inY ) {
     if( isPaused() ) {
@@ -2274,8 +2011,6 @@ void pointerDrag( float inX, float inY ) {
         }
     }
 
-
-
 void pointerUp( float inX, float inY ) {
     if( isPaused() ) {
         return;
@@ -2284,12 +2019,6 @@ void pointerUp( float inX, float inY ) {
         currentGamePage->base_pointerUp( inX, inY );
         }
     }
-
-
-
-
-
-
 
 void keyDown( unsigned char inASCII ) {
 
@@ -2369,8 +2098,6 @@ void keyDown( unsigned char inASCII ) {
         }
     }
 
-
-
 void keyUp( unsigned char inASCII ) {
     if( inASCII == 127 || inASCII == 8 ) {
         // delete no longer held
@@ -2387,12 +2114,6 @@ void keyUp( unsigned char inASCII ) {
 
     }
 
-
-
-
-
-
-
 void specialKeyDown( int inKey ) {
     if( isPaused() ) {
         return;
@@ -2402,8 +2123,6 @@ void specialKeyDown( int inKey ) {
         currentGamePage->base_specialKeyDown( inKey );
         }
 	}
-
-
 
 void specialKeyUp( int inKey ) {
     if( isPaused() ) {
@@ -2415,21 +2134,10 @@ void specialKeyUp( int inKey ) {
         }
 	} 
 
-
-
-
 char getUsesSound() {
     
     return ! musicOff;
     }
-
-
-
-
-
-
-
-
 
 void drawString( const char *inString, char inForceCenter ) {
     
@@ -2478,6 +2186,22 @@ void drawString( const char *inString, char inForceCenter ) {
         }
     delete [] lines;
     }
+
+/**********************************************************************************************************************/
+
+#include <SDL/SDL_main.h>// let SDL override our main function with SDLMain
+
+// must do this before SDL include to prevent WinMain linker errors on win32
+int mainFunction( int inArgCount, char **inArgs );
+
+int main( int inArgCount, char **inArgs )
+{
+	return mainFunction( inArgCount, inArgs );
+}
+
+#include <SDL/SDL.h>
+
+
 
 
 
