@@ -1,3 +1,6 @@
+=> create procedure io for TGA procedure::io::TGA::writeFile(name, content) getDataFromFile()
+=> put all read/write TGAFile in container so default directory can be stored
+	Application extends container
 => graphics directory modification
 => remove translate() cal in GameSceneHandler  (stringUtils.h ?)
 => remove function that contain //!main_var in src/third_party/openLife/src/gameSDL.cpp

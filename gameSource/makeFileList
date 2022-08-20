@@ -21,7 +21,6 @@ LAYER_SOURCE = \
 ../third_party/openLife/src/debug/Console.cpp \
 ../third_party/openLife/src/Debug.cpp \
 ../third_party/openLife/src/system/Console.cpp \
-Application.cpp \
 component/Socket.cpp \
 minitech.cpp \
 game/Application.cpp \

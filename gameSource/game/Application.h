@@ -5,7 +5,24 @@
 #ifndef ONE_LIFE__GAME__APPLICATION_H
 #define ONE_LIFE__GAME__APPLICATION_H
 
-//class Application {};
+#include <map>
+#include <string>
+
+namespace oneLife::game
+{
+	class Application
+	{
+		public:
+			Application();
+			~Application();
+
+			const char* getDirectory(std::string name);
+			void setDirectory(std::string name, std::string path);
+
+		private:
+			std::map<std::string, std::string>* directory;
+	};
+}
 
 char getCountingOnVsync();
 void loadingComplete();

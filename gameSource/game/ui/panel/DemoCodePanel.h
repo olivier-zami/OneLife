@@ -13,8 +13,7 @@ class DemoCodePanel
 
 };
 
-// shows panel until a correct code has been entered
-// assumes font TGA in "graphics" folder
+
 void showDemoCodePanel( ScreenGL *inScreen, const char *inFontTGAFileName, int inWidth, int inHeight );
 
 // use this to check if demo checking done

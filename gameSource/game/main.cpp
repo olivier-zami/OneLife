@@ -2,6 +2,7 @@
 // Created by olivier on 18/08/2022.
 //
 
+#include "Application.h"
 #include "../../third_party/minorGems/game/game.h"
 #include "ui/GameSceneHandler.h"
 #include "ui/sdl.h"
@@ -22,6 +23,7 @@
 #include <cstdio>
 #include <vector>
 
+oneLife::game::Application* appGame = nullptr;
 NoClip totalAudioMixNoClip;
 
 extern FILE *aiffOutFile;
@@ -236,6 +238,10 @@ int mainFunction( int inNumArgs, char **inArgs )
             }
         }
 #endif
+
+    appGame = new oneLife::game::Application();
+    appGame->setDirectory("graphics", "path/to/graphics");
+    printf("\ntest affichage path graphics : %s", appGame->getDirectory("graphics"));
 
 	// check result below, after opening log, so we can log failure
 	Uint32 flags = SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE;
