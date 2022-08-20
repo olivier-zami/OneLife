@@ -1,4 +1,4 @@
-=> move mainFunction() GameSceneHandler class in application
+=> graphics directory modification
 => remove translate() cal in GameSceneHandler  (stringUtils.h ?)
 => remove function that contain //!main_var in src/third_party/openLife/src/gameSDL.cpp
 => rename this dir client and implement filetree

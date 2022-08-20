@@ -4,7 +4,7 @@
 
 #include "sdl.h"
 
-#include "../../game/graphics/GameSceneHandler.h"
+#include "../../game/ui/GameSceneHandler.h"
 
 #include "../../FinalMessagePage.h"
 #include "../../LoadingPage.h"

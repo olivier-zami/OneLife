@@ -26,9 +26,9 @@ component/Socket.cpp \
 minitech.cpp \
 game/Application.cpp \
 game/main.cpp \
-game/graphics/GameSceneHandler.cpp \
-game/graphics/sdl.cpp \
-game/graphics/ui/DemoCodePanel.cpp \
+game/ui/GameSceneHandler.cpp \
+game/ui/sdl.cpp \
+game/ui/panel/DemoCodePanel.cpp \
 game.cpp \
 spriteBank.cpp \
 objectBank.cpp \

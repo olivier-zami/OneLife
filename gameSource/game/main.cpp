@@ -3,9 +3,9 @@
 //
 
 #include "../../third_party/minorGems/game/game.h"
-#include "graphics/GameSceneHandler.h"
-#include "graphics/sdl.h"
-#include "graphics/ui/DemoCodePanel.h"
+#include "ui/GameSceneHandler.h"
+#include "ui/sdl.h"
+#include "ui/panel/DemoCodePanel.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/io/file/File.h"
 #include "minorGems/sound/audioNoClip.h"

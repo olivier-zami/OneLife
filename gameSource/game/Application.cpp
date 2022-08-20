@@ -3,7 +3,7 @@
 //
 
 #include "Application.h"
-#include "graphics/GameSceneHandler.h"
+#include "ui/GameSceneHandler.h"
 #include "minorGems/graphics/openGL/ScreenGL.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/stringUtils.h"//stringDuplicate?
