@@ -14,13 +14,20 @@ ROOT_PATH = ../third_party
 
 
 LAYER_SOURCE = \
+../commonSource/Debug.cpp \
+../commonSource/fractalNoise.cpp \
+../commonSource/math/GridPos.cpp \
+../commonSource/sayLimit.cpp \
 ../third_party/openLife/src/debug/Console.cpp \
 ../third_party/openLife/src/Debug.cpp \
 ../third_party/openLife/src/system/Console.cpp \
-../commonSource/Debug.cpp \
-Application.cpp \
 component/Socket.cpp \
 minitech.cpp \
+game/Application.cpp \
+game/main.cpp \
+game/ui/GameSceneHandler.cpp \
+game/ui/sdl.cpp \
+game/ui/panel/DemoCodePanel.cpp \
 game.cpp \
 spriteBank.cpp \
 objectBank.cpp \
@@ -79,9 +86,6 @@ lifeTokens.cpp \
 PollPage.cpp \
 fitnessScore.cpp \
 GeneticHistoryPage.cpp \
-../commonSource/fractalNoise.cpp \
-../commonSource/math/GridPos.cpp \
-../commonSource/sayLimit.cpp \
 
 
 

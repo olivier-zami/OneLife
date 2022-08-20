@@ -1,8 +1,6 @@
 #include "zoomView.h"
 
-
 #include "minorGems/game/gameGraphics.h"
-
 
 void drawZoomView( doublePair inZoomLocation, int inZoomRadius,
                    int inBlowupFactor, doublePair inDrawLocation ) {
