@@ -76,6 +76,8 @@ CustomRandomSource randSource( 34957197 );
 
 #include "message.h"
 
+char *currentUserTypedMessage = NULL;
+
 // should we pull the map
 static char mapPullMode = 0;
 static char autoLogIn = 0;
@@ -98,9 +100,7 @@ int userID = -1;
 int serverSequenceNumber = 0;
 
 FinalMessagePage *finalMessagePage;
-
 ServerActionPage *getServerAddressPage;
-
 LoadingPage *loadingPage;
 AutoUpdatePage *autoUpdatePage;
 LivingLifePage *livingLifePage;
@@ -247,14 +247,6 @@ char isDemoMode() {
     return false;
     }
 
-const char *getDemoCodeSharedSecret() {
-    return "fundamental_right";
-    }
-
-const char *getDemoCodeServerURL() {
-    return "http://FIXME/demoServer/server.php";
-    }
-
 char gamePlayingBack = false;
 Font *mainFont;
 Font *mainFontFixed;
@@ -267,10 +259,8 @@ Font *pencilErasedFont;
 Font *smallFont;
 Font *titleFont;
 char *shutdownMessage = NULL;
+
 static float pauseScreenFade = 0;
-static char *currentUserTypedMessage = NULL;
-
-
 
 // for delete key repeat during message typing
 static int holdDeleteKeySteps = -1;
@@ -370,10 +360,6 @@ void initDrawString( int inWidth, int inHeight ) {
 
     setViewSize( viewWidth );
     setLetterbox( visibleViewWidth, viewHeight );
-    }
-
-void freeDrawString() {
-    delete mainFont;
     }
 
 void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
@@ -619,102 +605,6 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     currentGamePage->base_makeActive( true );
 
     initDone = true;
-    }
-
-void freeFrameDrawer() {
-
-
-    freeSprite( instructionsSprite );
-    
-    delete mainFontReview;
-    delete mainFontFixed;
-    delete numbersFontFixed;
-    
-    delete handwritingFont;
-    delete pencilFont;
-    delete pencilErasedFont;
-    
-    delete smallFont;
-    
-    if( currentUserTypedMessage != NULL ) {
-        delete [] currentUserTypedMessage;
-        currentUserTypedMessage = NULL;
-        }
-
-    
-
-    if( shutdownMessage != NULL ) {
-        delete [] shutdownMessage;
-        shutdownMessage = NULL;
-        }
-    
-
-    delete getServerAddressPage;
-    
-    delete finalMessagePage;
-    delete loadingPage;
-    delete autoUpdatePage;
-    if( livingLifePage != NULL ) {
-        delete livingLifePage;
-        livingLifePage = NULL;
-        }
-
-    delete existingAccountPage;
-    delete extendedMessagePage;
-    delete rebirthChoicePage;
-    delete settingsPage;
-    delete reviewPage;
-    delete twinPage;
-    delete pollPage;
-    delete geneticHistoryPage;
-    
-    //if( testPage != NULL ) {
-    //    delete testPage;
-    //    testPage = NULL;
-    //    }
-
-    
-    freeGroundSprites();
-
-    freeAnimationBank();
-    freeObjectBank();
-    freeSpriteBank();
-
-    freeTransBank();
-    
-    freeCategoryBank();
-
-    freeLiveObjectSet();
-
-    freeSoundBank();
-    
-    freeMusicPlayer();
-    freeEmotion();
-    
-    freePhotos();
-    freeLifeTokens();
-    freeFitnessScore();
-
-    if( reflectorURL != NULL ) {
-        delete [] reflectorURL;
-        reflectorURL = NULL;
-        }
-
-    if( serverIP != NULL ) {
-        delete [] serverIP;
-        serverIP = NULL;
-        }
-    
-
-    if( userEmail != NULL ) {
-        delete [] userEmail;
-        }
-    if( accountKey != NULL ) {
-        delete [] accountKey;
-        }
-    if( userTwinCode != NULL ) {
-        delete [] userTwinCode;
-        }
     }
 
 // draw code separated from updates
@@ -2299,6 +2189,8 @@ void drawString( const char *inString, char inForceCenter ) {
 
 /**********************************************************************************************************************/
 
+#include <SDL/SDL_main.h>// let SDL override our main function with SDLMain
+
 // must do this before SDL include to prevent WinMain linker errors on win32
 int mainFunction( int inArgCount, char **inArgs );
 
@@ -2306,6 +2198,10 @@ int main( int inArgCount, char **inArgs )
 {
 	return mainFunction( inArgCount, inArgs );
 }
+
+#include <SDL/SDL.h>
+
+
 
 
 
