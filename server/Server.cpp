@@ -304,7 +304,7 @@ void OneLife::Server::loadObjects()
  */
 void OneLife::Server::start()
 {
-	int shutdownMode = this->settings.shutdownMode;
+	this->shutdownMode = this->settings.shutdownMode;
 
 	//!
 	this->errMsg.size = 128*sizeof(char);
@@ -324,14 +324,12 @@ void OneLife::Server::start()
 	static double heatUpdateTimeStep = 0.1;
 	static double heatUpdateSeconds = 2;// how often the player's personal heat advances toward their environmental// heat value
 
-	char someClientMessageReceived = this->settings.someClientMessageReceived;
 	int forceShutdownMode = this->settings.forceShutdownMode;
-	int versionNumber = this->settings.versionNumber;
 	std::string strInfertilitySuffix = settings.strInfertilitySuffix;
 
-	int port = this->settings.port;
-	SocketServer *server = new SocketServer( port, 256 );
-	sockPoll.addSocketServer( server );
+	this->port = this->settings.port;
+	this->socket = new SocketServer( this->port, 256 );
+	sockPoll.addSocketServer( this->socket );
 
 	while( !quit )
 	{
@@ -368,7 +366,7 @@ void OneLife::Server::start()
 		}
 		if( periodicStepThisStep )
 		{
-			shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
+			this->shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
 			forceShutdownMode =
 					SettingsManager::getIntSetting( "forceShutdownMode", 0 );
 
@@ -383,14 +381,14 @@ void OneLife::Server::start()
 				// (cron jobs stop running if filesystem read-only)
 				system( "../scripts/checkServerRunningCron.sh" );
 
-				shutdownMode = 1;
+				this->shutdownMode = 1;
 				forceShutdownMode = 1;
 			}
 		}
 
 		if( forceShutdownMode )
 		{
-			shutdownMode = 1;
+			this->shutdownMode = 1;
 
 			const char *shutdownMessage = "SD\n#";
 			int messageLength = strlen( shutdownMessage );
@@ -421,7 +419,7 @@ void OneLife::Server::start()
 						"Forced server shutdown";
 			}
 		}
-		else if( shutdownMode )
+		else if( this->shutdownMode )
 		{
 			// any disconnected players should be killed now
 			for( int i=0; i<players.size(); i++ ) {
@@ -548,7 +546,7 @@ void OneLife::Server::start()
 
 		// check for timeout for shortest player move or food decrement
 		// so that we wake up from listening to socket to handle it
-		double minMoveTime = 999999;
+		this->minMoveTime = 999999;
 
 		double curTime = Time::getCurrentTime();
 
@@ -574,13 +572,13 @@ void OneLife::Server::start()
 					moveTimeLeft = 0;
 				}
 
-				if( moveTimeLeft < minMoveTime ) {
-					minMoveTime = moveTimeLeft;
+				if( moveTimeLeft < this->minMoveTime ) {
+					this->minMoveTime = moveTimeLeft;
 				}
 			}
 
 
-			double timeLeft = minMoveTime;
+			double timeLeft = this->minMoveTime;
 
 			if( ! nextPlayer->vogMode ) {
 				// look at food decrement time too
@@ -591,8 +589,8 @@ void OneLife::Server::start()
 				if( timeLeft < 0 ) {
 					timeLeft = 0;
 				}
-				if( timeLeft < minMoveTime ) {
-					minMoveTime = timeLeft;
+				if( timeLeft < this->minMoveTime ) {
+					this->minMoveTime = timeLeft;
 				}
 			}
 
@@ -604,8 +602,8 @@ void OneLife::Server::start()
 				if( timeLeft < 0 ) {
 					timeLeft = 0;
 				}
-				if( timeLeft < minMoveTime ) {
-					minMoveTime = timeLeft;
+				if( timeLeft < this->minMoveTime ) {
+					this->minMoveTime = timeLeft;
 				}
 			}
 
@@ -616,8 +614,8 @@ void OneLife::Server::start()
 					if( timeLeft < 0 ) {
 						timeLeft = 0;
 					}
-					if( timeLeft < minMoveTime ) {
-						minMoveTime = timeLeft;
+					if( timeLeft < this->minMoveTime ) {
+						this->minMoveTime = timeLeft;
 					}
 				}
 				for( int cc=0; cc<nextPlayer->clothingContained[c].size();
@@ -632,8 +630,8 @@ void OneLife::Server::start()
 						if( timeLeft < 0 ) {
 							timeLeft = 0;
 						}
-						if( timeLeft < minMoveTime ) {
-							minMoveTime = timeLeft;
+						if( timeLeft < this->minMoveTime ) {
+							this->minMoveTime = timeLeft;
 						}
 					}
 				}
@@ -644,249 +642,23 @@ void OneLife::Server::start()
 
 			double ageSecondsLeft = ageLeft * secPerYear;
 
-			if( ageSecondsLeft < minMoveTime ) {
-				minMoveTime = ageSecondsLeft;
+			if( ageSecondsLeft < this->minMoveTime ) {
+				this->minMoveTime = ageSecondsLeft;
 
-				if( minMoveTime < 0 ) {
-					minMoveTime = 0;
+				if( this->minMoveTime < 0 ) {
+					this->minMoveTime = 0;
 				}
 			}
 
 
 			// as low as it can get, no need to check other players
-			if( minMoveTime == 0 ) {
+			if( this->minMoveTime == 0 ) {
 				break;
 			}
 		}
 
-		SocketOrServer *readySock =  NULL;
+		this->_procedureCreateNewConnection();
 
-		double pollTimeout = 2;
-
-		if( minMoveTime < pollTimeout )
-		{
-			// shorter timeout if we have to wake up for a move
-
-			// HOWEVER, always keep max timout at 2 sec
-			// so we always wake up periodically to catch quit signals, etc
-
-			pollTimeout = minMoveTime;
-		}
-
-		if( pollTimeout > 0 )
-		{
-			int shortestDecay = getNextDecayDelta();
-			if( shortestDecay != -1 )
-			{
-				if( shortestDecay < pollTimeout )
-				{
-					pollTimeout = shortestDecay;
-				}
-			}
-		}
-
-		char anyTicketServerRequestsOut = false;
-
-		for( int i=0; i<newConnections.size(); i++ )
-		{
-			FreshConnection *nextConnection = newConnections.getElement( i );
-			if( nextConnection->ticketServerRequest != NULL ) {
-				anyTicketServerRequestsOut = true;
-				break;
-			}
-		}
-
-		if( anyTicketServerRequestsOut )
-		{
-			// need to step outstanding ticket server web requests
-			// sleep a tiny amount of time to avoid cpu spin
-			pollTimeout = 0.01;
-		}
-
-		if( areTriggersEnabled() )
-		{
-			// need to handle trigger timing
-			pollTimeout = 0.01;
-		}
-
-		if( someClientMessageReceived )
-		{
-			// don't wait at all
-			// we need to check for next message right away
-			pollTimeout = 0;
-		}
-
-		if( tutorialLoadingPlayers.size() > 0 )
-		{
-			// don't wait at all if there are tutorial maps to load
-			pollTimeout = 0;
-		}
-
-		if( pollTimeout > 0.1 && activeKillStates.size() > 0 )
-		{
-			// we have active kill requests pending
-			// want a short timeout so that we can catch kills
-			// when player's paths cross
-			pollTimeout = 0.1;
-		}
-
-		// we thus use zero CPU as long as no messages or new connections
-		// come in, and only wake up when some timed action needs to be
-		// handled
-
-		readySock = sockPoll.wait( (int)( pollTimeout * 1000 ) );
-
-		if( readySock != NULL && !readySock->isSocket ) {
-			// server ready
-			Socket *sock = server->acceptConnection( 0 );
-
-			if( sock != NULL ) {
-				HostAddress *a = sock->getRemoteHostAddress();
-
-				if( a == NULL ) {
-					AppLog::info( "Got connection from unknown address" );
-				}
-				else {
-					AppLog::infoF( "Got connection from %s:%d",
-								   a->mAddressString, a->mPort );
-					delete a;
-				}
-
-
-				FreshConnection newConnection;
-
-				newConnection.connectionStartTimeSeconds =
-						Time::getCurrentTime();
-
-				newConnection.email = NULL;
-
-				newConnection.sock = sock;
-
-				newConnection.sequenceNumber = nextSequenceNumber;
-
-
-
-				char *secretString =
-						SettingsManager::getStringSetting(
-								"statsServerSharedSecret", "sdfmlk3490sadfm3ug9324" );
-
-				char *numberString =
-						autoSprintf( "%lu", newConnection.sequenceNumber );
-
-				char *nonce = hmac_sha1( secretString, numberString );
-
-				delete [] secretString;
-				delete [] numberString;
-
-				newConnection.sequenceNumberString =
-						autoSprintf( "%s%lu", nonce,
-									 newConnection.sequenceNumber );
-
-				delete [] nonce;
-
-
-				newConnection.tutorialNumber = 0;
-				newConnection.curseStatus.curseLevel = 0;
-				newConnection.curseStatus.excessPoints = 0;
-
-				newConnection.twinCode = NULL;
-				newConnection.twinCount = 0;
-
-
-				nextSequenceNumber ++;
-
-				SettingsManager::setSetting( "sequenceNumber",
-											 (int)nextSequenceNumber );
-
-				char *message;
-
-				int maxPlayers =
-						SettingsManager::getIntSetting( "maxPlayers", 200 );
-
-				int currentPlayers = players.size() + newConnections.size();
-
-
-				if( apocalypseTriggered || shutdownMode ) {
-
-					AppLog::info( "We are in shutdown mode, "
-								  "deflecting new connection" );
-
-					AppLog::infoF( "%d player(s) still alive on server.",
-								   players.size() );
-
-					message = autoSprintf( "SHUTDOWN\n"
-										   "%d/%d\n"
-										   "#",
-										   currentPlayers, maxPlayers );
-					newConnection.shutdownMode = true;
-				}
-				else if( currentPlayers >= maxPlayers ) {
-					AppLog::infoF( "%d of %d permitted players connected, "
-								   "deflecting new connection",
-								   currentPlayers, maxPlayers );
-
-					message = autoSprintf( "SERVER_FULL\n"
-										   "%d/%d\n"
-										   "#",
-										   currentPlayers, maxPlayers );
-
-					newConnection.shutdownMode = true;
-				}
-				else {
-					message = autoSprintf( "SN\n"
-										   "%d/%d\n"
-										   "%s\n"
-										   "%lu\n#",
-										   currentPlayers, maxPlayers,
-										   newConnection.sequenceNumberString,
-										   versionNumber );
-					newConnection.shutdownMode = false;
-				}
-
-
-				// wait for email and hashes to come from client
-				// (and maybe ticket server check isn't required by settings)
-				newConnection.ticketServerRequest = NULL;
-				newConnection.ticketServerAccepted = false;
-				newConnection.lifeTokenSpent = false;
-
-				newConnection.error = false;
-				newConnection.errorCauseString = "";
-				newConnection.rejectedSendTime = 0;
-
-				int messageLength = strlen( message );
-
-				int numSent =
-						sock->send( (unsigned char*)message,
-									messageLength,
-									false, false );
-
-				delete [] message;
-
-
-				if( numSent != messageLength ) {
-					// failed or blocked on our first send attempt
-
-					// reject it right away
-
-					delete sock;
-					sock = NULL;
-				}
-				else {
-					// first message sent okay
-					newConnection.sockBuffer = new SimpleVector<char>();
-
-
-					sockPoll.addSocket( sock );
-
-					newConnections.push_back( newConnection );
-				}
-
-				AppLog::infoF( "Listening for another connection on port %d",
-							   port );
-
-			}
-		}
 
 		stepTriggers();
 
@@ -1468,7 +1240,7 @@ void OneLife::Server::start()
 
 		}
 
-		someClientMessageReceived = false;
+		this->someClientMessageReceived = false;
 		numLive = players.size();
 
 
@@ -1794,7 +1566,7 @@ void OneLife::Server::start()
 
 			if( message != NULL )
 			{
-				someClientMessageReceived = true;
+				this->someClientMessageReceived = true;
 
 				AppLog::infoF( "Got client message from %d: %s",
 							   nextPlayer->id, message );
@@ -6504,7 +6276,7 @@ printf( "\n" );
 							  nextPlayer->murderPerpID,
 							  nextPlayer->murderPerpEmail );
 
-					if( shutdownMode ) {
+					if( this->shutdownMode ) {
 						handleShutdownDeath(
 								nextPlayer, nextPlayer->xd, nextPlayer->yd );
 					}
@@ -6796,7 +6568,7 @@ printf( "\n" );
 								  players.size() - 1,
 								  disconnect );
 
-						if( shutdownMode ) {
+						if( this->shutdownMode ) {
 							handleShutdownDeath(
 									nextPlayer, dropPos.x, dropPos.y );
 						}
@@ -7882,7 +7654,7 @@ printf( "\n" );
 									  false );
 						}
 
-						if( shutdownMode &&
+						if( this->shutdownMode &&
 							! decrementedPlayer->isTutorial ) {
 							handleShutdownDeath( decrementedPlayer,
 												 deathPos.x, deathPos.y );
@@ -10193,7 +9965,7 @@ printf( "\n" );
 
 		if( players.size() == 0 && newConnections.size() == 0 )
 		{
-			if( shutdownMode ) {
+			if( this->shutdownMode ) {
 				AppLog::info( "No live players or connections in shutdown "
 							  " mode, auto-quitting." );
 				quit = true;
@@ -10208,7 +9980,7 @@ printf( "\n" );
 
 	// Closing the server socket makes these connection requests fail
 	// instantly (instead of relying on client timeouts).
-	delete server;
+	delete this->socket;
 }
 
 
@@ -10753,6 +10525,202 @@ bool OneLife::Server::isLastSendingFailed()
 const char * OneLife::Server::getErrorMessage()
 {
 	return this->errMsg.content;
+}
+
+/**
+ *
+ */
+void OneLife::Server::_procedureCreateNewConnection()
+{
+	this->someClientMessageReceived = this->settings.someClientMessageReceived;
+	int versionNumber = this->settings.versionNumber;
+	SocketOrServer *readySock =  NULL;
+	double pollTimeout = 2;
+
+	if( this->minMoveTime < pollTimeout )
+	{
+		// shorter timeout if we have to wake up for a move
+		// HOWEVER, always keep max timout at 2 sec
+		// so we always wake up periodically to catch quit signals, etc
+		pollTimeout = this->minMoveTime;
+	}
+
+	if( pollTimeout > 0 )
+	{
+		int shortestDecay = getNextDecayDelta();
+		if( shortestDecay != -1 )
+		{
+			if( shortestDecay < pollTimeout )
+			{
+				pollTimeout = shortestDecay;
+			}
+		}
+	}
+
+	char anyTicketServerRequestsOut = false;
+
+	for( int i=0; i<newConnections.size(); i++ )
+	{
+		FreshConnection *nextConnection = newConnections.getElement( i );
+		if( nextConnection->ticketServerRequest != NULL )
+		{
+			anyTicketServerRequestsOut = true;
+			break;
+		}
+	}
+
+	if( anyTicketServerRequestsOut )
+	{
+		// need to step outstanding ticket server web requests
+		// sleep a tiny amount of time to avoid cpu spin
+		pollTimeout = 0.01;
+	}
+
+	if( areTriggersEnabled() )
+	{
+		pollTimeout = 0.01;// need to handle trigger timing
+	}
+
+	if( this->someClientMessageReceived )
+	{
+		pollTimeout = 0;// don't wait at all. We need to check for next message right away
+	}
+
+	if( tutorialLoadingPlayers.size() > 0 )
+	{
+		pollTimeout = 0;// don't wait at all if there are tutorial maps to load
+	}
+
+	if( pollTimeout > 0.1 && activeKillStates.size() > 0 )
+	{
+		// we have active kill requests pending
+		// want a short timeout so that we can catch kills
+		// when player's paths cross
+		pollTimeout = 0.1;
+	}
+
+	// we thus use zero CPU as long as no messages or new connections
+	// come in, and only wake up when some timed action needs to be
+	// handled
+	readySock = sockPoll.wait( (int)( pollTimeout * 1000 ) );
+
+	if( readySock != NULL && !readySock->isSocket )
+	{
+		// server ready
+		Socket *sock = this->socket->acceptConnection( 0 );
+
+		if( sock != NULL )
+		{
+			HostAddress *a = sock->getRemoteHostAddress();
+
+			if( a == NULL )
+			{
+				AppLog::info( "Got connection from unknown address" );
+			}
+			else
+			{
+				AppLog::infoF( "Got connection from %s:%d", a->mAddressString, a->mPort );
+				delete a;
+			}
+
+			FreshConnection newConnection;
+			newConnection.connectionStartTimeSeconds = Time::getCurrentTime();
+			newConnection.email = NULL;
+			newConnection.sock = sock;
+			newConnection.sequenceNumber = nextSequenceNumber;
+
+			char *secretString = SettingsManager::getStringSetting("statsServerSharedSecret", "sdfmlk3490sadfm3ug9324" );
+			char *numberString = autoSprintf( "%lu", newConnection.sequenceNumber );
+			char *nonce = hmac_sha1( secretString, numberString );
+
+			delete [] secretString;
+			delete [] numberString;
+			newConnection.sequenceNumberString = autoSprintf( "%s%lu", nonce, newConnection.sequenceNumber );
+			delete [] nonce;
+
+			newConnection.tutorialNumber = 0;
+			newConnection.curseStatus.curseLevel = 0;
+			newConnection.curseStatus.excessPoints = 0;
+			newConnection.twinCode = NULL;
+			newConnection.twinCount = 0;
+			nextSequenceNumber ++;
+
+			SettingsManager::setSetting( "sequenceNumber", (int)nextSequenceNumber );
+
+			char *message;
+			int maxPlayers = SettingsManager::getIntSetting( "maxPlayers", 200 );
+			int currentPlayers = players.size() + newConnections.size();
+
+			if( apocalypseTriggered || this->shutdownMode )
+			{
+				AppLog::info( "We are in shutdown mode, " "deflecting new connection" );
+				AppLog::infoF( "%d player(s) still alive on server.", players.size() );
+				message = autoSprintf( "SHUTDOWN\n"
+									   "%d/%d\n"
+									   "#",
+									   currentPlayers, maxPlayers );
+				newConnection.shutdownMode = true;
+			}
+			else if( currentPlayers >= maxPlayers )
+			{
+				AppLog::infoF( "%d of %d permitted players connected, "
+							   "deflecting new connection",
+							   currentPlayers, maxPlayers );
+
+				message = autoSprintf( "SERVER_FULL\n"
+									   "%d/%d\n"
+									   "#",
+									   currentPlayers, maxPlayers );
+				newConnection.shutdownMode = true;
+			}
+			else
+			{
+				int totalBiome = 15;
+				message = autoSprintf( "SN\n"
+									   "%d/%d\n"
+									   "%s\n"
+									   "%lu\n"
+										"%i#",
+									   currentPlayers, maxPlayers,
+									   newConnection.sequenceNumberString,
+									   versionNumber,
+									   totalBiome);
+				newConnection.shutdownMode = false;
+			}
+
+			// wait for email and hashes to come from client
+			// (and maybe ticket server check isn't required by settings)
+			newConnection.ticketServerRequest = NULL;
+			newConnection.ticketServerAccepted = false;
+			newConnection.lifeTokenSpent = false;
+			newConnection.error = false;
+			newConnection.errorCauseString = "";
+			newConnection.rejectedSendTime = 0;
+
+			int messageLength = strlen( message );
+			int numSent = sock->send( (unsigned char*)message,
+								messageLength,
+								false, false );
+
+			delete [] message;
+
+			if( numSent != messageLength )
+			{
+				// failed or blocked on our first send attempt
+				// reject it right away
+				delete sock;
+				sock = NULL;
+			}
+			else
+			{
+				// first message sent okay
+				newConnection.sockBuffer = new SimpleVector<char>();
+				sockPoll.addSocket( sock );
+				newConnections.push_back( newConnection );
+			}
+			AppLog::infoF( "Listening for another connection on port %d", this->port );
+		}
+	}
 }
 
 /**

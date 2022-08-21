@@ -7,11 +7,12 @@
 
 #include "../gameSource/GridPos.h"
 #include "../gameSource/transitionBank.h"
-#include "../third_party/minorGems/network/Socket.h"
 #include "component/Map.h"
 #include "dataType/connection.h"
 #include "dataType/LiveObject.h"
 #include "dataType/Settings.h"
+#include "minorGems/network/Socket.h"
+#include "minorGems/network/SocketServer.h"
 
 namespace OneLife
 {
@@ -52,13 +53,21 @@ namespace OneLife
 			SimpleVector<int> *biomeOrderList;
 			SimpleVector<float> *biomeWeightList;
 
+		protected:
+			void _procedureCreateNewConnection();//TODO: temporary function or code isolation don't keep it
+
 		private:
+			double minMoveTime;
 			bool lastSendingCanceled;
 			bool lastSendingFailed;
 			struct{
 				char* content;
 				size_t size;
 			}errMsg;
+			int port;
+			int shutdownMode;
+			SocketServer *socket;
+			char someClientMessageReceived;
 	};
 }
 
