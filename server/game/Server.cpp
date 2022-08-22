@@ -267,12 +267,13 @@ extern OneLife::Server* oneLifeServer;
 
 OneLife::Server::Server(OneLife::server::Settings settings)
 {
-	this->settings = settings;
+	this->init(settings);
 	this->worldMapDatabase = nullptr;
 	this->lastSendingCanceled = false;
 	this->lastSendingFailed = false;
 	this->errMsg.content = nullptr;
 	this->errMsg.size = 0;
+	this->playerRegistry = new oneLife::server::game::registry::Player();
 }
 
 OneLife::Server::~Server() {}
@@ -305,7 +306,7 @@ void OneLife::Server::loadObjects()
  */
 void OneLife::Server::start()
 {
-	this->shutdownMode = this->settings.shutdownMode;
+	this->shutdownMode = this->server.shutdownMode;
 
 	//!
 	this->errMsg.size = 128*sizeof(char);
@@ -325,10 +326,10 @@ void OneLife::Server::start()
 	static double heatUpdateTimeStep = 0.1;
 	static double heatUpdateSeconds = 2;// how often the player's personal heat advances toward their environmental// heat value
 
-	int forceShutdownMode = this->settings.forceShutdownMode;
+	int forceShutdownMode = this->server.forceShutdownMode;
 	std::string strInfertilitySuffix = settings.strInfertilitySuffix;
 
-	this->port = this->settings.port;
+	this->port = this->server.port;
 	this->socket = new SocketServer( this->port, 256 );
 	sockPoll.addSocketServer( this->socket );
 
@@ -521,7 +522,6 @@ void OneLife::Server::start()
 		}
 
 		int numLive = players.size();
-
 		if( shouldRunObjectSurvey() )
 		{
 			SimpleVector<GridPos> livePlayerPos;
@@ -658,6 +658,7 @@ void OneLife::Server::start()
 			}
 		}
 
+		this->playerRegistry;
 		this->_procedureCreateNewConnection();
 
 
@@ -1185,7 +1186,8 @@ void OneLife::Server::start()
 		// 5 ms
 		double timeLimit = 0.005;
 
-		for( int i=0; i<tutorialLoadingPlayers.size(); i++ ) {
+		for( int i=0; i<tutorialLoadingPlayers.size(); i++ )
+		{
 			LiveObject *nextPlayer = tutorialLoadingPlayers.getElement( i );
 
 			char moreLeft = loadTutorialStep( &( nextPlayer->tutorialLoad ),
@@ -1286,7 +1288,6 @@ void OneLife::Server::start()
 				continue;
 			}
 
-
 			if( nextPlayer->fitnessScore == -1 ) {
 				// see if result ready yet
 				int fitResult =
@@ -1300,24 +1301,24 @@ void OneLife::Server::start()
 				}
 			}
 
-
 			double curCrossTime = Time::getCurrentTime();
 
 			char checkCrossing = true;
-
 			if( curCrossTime < nextPlayer->playerCrossingCheckTime +
-							   playerCrossingCheckStepTime ) {
+							   playerCrossingCheckStepTime )
+			{
 				// player not due for another check yet
 				checkCrossing = false;
 			}
-			else {
+			else
+			{
 				// time for next check for this player
 				nextPlayer->playerCrossingCheckTime = curCrossTime;
 				checkCrossing = true;
 			}
 
-
-			if( checkCrossing ) {
+			if( checkCrossing )
+			{
 				GridPos curPos = { nextPlayer->xd, nextPlayer->yd };
 
 				if( nextPlayer->xd != nextPlayer->xs ||
@@ -1505,8 +1506,8 @@ void OneLife::Server::start()
 				}
 			}
 
-
-			if( curLookTime - nextPlayer->lastRegionLookTime > 5 ) {
+			if( curLookTime - nextPlayer->lastRegionLookTime > 5 )
+			{
 				lookAtRegion( nextPlayer->xd - 8, nextPlayer->yd - 7,
 							  nextPlayer->xd + 8, nextPlayer->yd + 7 );
 				nextPlayer->lastRegionLookTime = curLookTime;
@@ -1517,7 +1518,8 @@ void OneLife::Server::start()
 			if( nextPlayer->xs == nextPlayer->xd && nextPlayer->ys == nextPlayer->yd ) {
 				playerPos.x = nextPlayer->xd;
 				playerPos.y = nextPlayer->yd;
-			} else {
+			}
+			else {
 				playerPos = computePartialMoveSpot( nextPlayer );
 			}
 
@@ -6072,7 +6074,8 @@ printf( "\n" );
 		}
 
 		// process pending KILL actions
-		for( int i=0; i<activeKillStates.size(); i++ ) {
+		for( int i=0; i<activeKillStates.size(); i++ )
+		{
 			KillState *s = activeKillStates.getElement( i );
 
 			LiveObject *killer = getLiveObject( s->killerID );
@@ -6143,7 +6146,8 @@ printf( "\n" );
 		}
 
 		//2HOL: check if player is afk or has food effects
-		for( int i=0; i<numLive; i++ ) {
+		for( int i=0; i<numLive; i++ )
+		{
 			LiveObject *nextPlayer = players.getElement( i );
 			double curTime = Time::getCurrentTime();
 
@@ -6234,7 +6238,8 @@ printf( "\n" );
 		// for example, if a player later in the list sends a message
 		// killing an earlier player, we need to check to see that
 		// player deleted afterward here
-		for( int i=0; i<numLive; i++ ) {
+		for( int i=0; i<numLive; i++ )
+		{
 			LiveObject *nextPlayer = players.getElement( i );
 
 			double curTime = Time::getCurrentTime();
@@ -7718,7 +7723,8 @@ printf( "\n" );
 
 		// check for any that have been individually flagged, but
 		// aren't on our list yet (updates caused by external triggers)
-		for( int i=0; i<players.size() ; i++ ) {
+		for( int i=0; i<players.size() ; i++ )
+		{
 			LiveObject *nextPlayer = players.getElement( i );
 
 			if( nextPlayer->needsUpdate ) {
@@ -7728,7 +7734,8 @@ printf( "\n" );
 			}
 		}
 
-		if( playerIndicesToSendUpdatesAbout.size() > 0 ) {
+		if( playerIndicesToSendUpdatesAbout.size() > 0 )
+		{
 
 			SimpleVector<char> updateList;
 
@@ -7752,7 +7759,8 @@ printf( "\n" );
 
 		double currentTimeHeat = Time::getCurrentTime();
 
-		if( currentTimeHeat - lastHeatUpdateTime >= heatUpdateTimeStep ) {
+		if( currentTimeHeat - lastHeatUpdateTime >= heatUpdateTimeStep )
+		{
 			// a heat step has passed
 
 
@@ -7780,7 +7788,8 @@ printf( "\n" );
 		// update personal heat value of any player that is due
 		// once every 2 seconds
 		currentTime = Time::getCurrentTime();
-		for( int i=0; i< players.size(); i++ ) {
+		for( int i=0; i< players.size(); i++ )
+		{
 			LiveObject *nextPlayer = players.getElement( i );
 
 			if( nextPlayer->error ||
@@ -7957,7 +7966,8 @@ printf( "\n" );
 			nextPlayer->lastHeatUpdate = currentTime;
 		}
 
-		for( int i=0; i<playerIndicesToSendUpdatesAbout.size(); i++ ) {
+		for( int i=0; i<playerIndicesToSendUpdatesAbout.size(); i++ )
+		{
 			LiveObject *nextPlayer = players.getElement(
 					playerIndicesToSendUpdatesAbout.getElementDirect( i ) );
 
@@ -8009,7 +8019,8 @@ printf( "\n" );
 			nextPlayer->updateGlobal = false;
 		}
 
-		if( newUpdates.size() > 0 ) {
+		if( newUpdates.size() > 0 )
+		{
 
 			SimpleVector<char> trueUpdateList;
 
@@ -8036,7 +8047,8 @@ printf( "\n" );
 		// mixed with player-caused changes
 		stepMap( &mapChanges, &mapChangesPos );
 
-		if( periodicStepThisStep ) {
+		if( periodicStepThisStep )
+		{
 
 			// figure out who has recieved a new curse token
 			// they are sent a message about it below (CX)
@@ -8064,7 +8076,8 @@ printf( "\n" );
 		unsigned char *lineageMessage = NULL;
 		int lineageMessageLength = 0;
 
-		if( playerIndicesToSendLineageAbout.size() > 0 ) {
+		if( playerIndicesToSendLineageAbout.size() > 0 )
+		{
 			SimpleVector<char> linWorking;
 			linWorking.appendElementString( "LN\n" );
 
@@ -8105,7 +8118,8 @@ printf( "\n" );
 		unsigned char *cursesMessage = NULL;
 		int cursesMessageLength = 0;
 
-		if( playerIndicesToSendCursesAbout.size() > 0 ) {
+		if( playerIndicesToSendCursesAbout.size() > 0 )
+		{
 			SimpleVector<char> curseWorking;
 			curseWorking.appendElementString( "CU\n" );
 
@@ -8151,7 +8165,8 @@ printf( "\n" );
 		unsigned char *namesMessage = NULL;
 		int namesMessageLength = 0;
 
-		if( playerIndicesToSendNamesAbout.size() > 0 ) {
+		if( playerIndicesToSendNamesAbout.size() > 0 )
+		{
 			SimpleVector<char> namesWorking;
 			namesWorking.appendElementString( "NM\n" );
 
@@ -8196,7 +8211,8 @@ printf( "\n" );
 		unsigned char *dyingMessage = NULL;
 		int dyingMessageLength = 0;
 
-		if( playerIndicesToSendDyingAbout.size() > 0 ) {
+		if( playerIndicesToSendDyingAbout.size() > 0 )
+		{
 			SimpleVector<char> dyingWorking;
 			dyingWorking.appendElementString( "DY\n" );
 
@@ -8250,7 +8266,8 @@ printf( "\n" );
 		unsigned char *healingMessage = NULL;
 		int healingMessageLength = 0;
 
-		if( playerIndicesToSendHealingAbout.size() > 0 ) {
+		if( playerIndicesToSendHealingAbout.size() > 0 )
+		{
 			SimpleVector<char> healingWorking;
 			healingWorking.appendElementString( "HE\n" );
 
@@ -8295,7 +8312,8 @@ printf( "\n" );
 		unsigned char *emotMessage = NULL;
 		int emotMessageLength = 0;
 
-		if( newEmotPlayerIDs.size() > 0 ) {
+		if( newEmotPlayerIDs.size() > 0 )
+		{
 			SimpleVector<char> emotWorking;
 			emotWorking.appendElementString( "PE\n" );
 
@@ -9758,12 +9776,14 @@ printf( "\n" );
 		}
 
 
-		for( int u=0; u<moveList.size(); u++ ) {
+		for( int u=0; u<moveList.size(); u++ )
+		{
 			MoveRecord *r = moveList.getElement( u );
 			delete [] r->formatString;
 		}
 
-		for( int u=0; u<mapChanges.size(); u++ ) {
+		for( int u=0; u<mapChanges.size(); u++ )
+		{
 			MapChangeRecord *r = mapChanges.getElement( u );
 			delete [] r->formatString;
 		}
@@ -10149,22 +10169,16 @@ bool OneLife::Server::initMap()
 	}
 
 	/******************************************************************************************************************/
-	this->settings.worldMap.flushLookTimes = SettingsManager::getIntSetting("flushLookTimes", 0);
-	this->settings.worldMap.skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
-	this->settings.worldMap.maxLoadForOpenCalls = (double)SettingsManager::getFloatSetting( "maxLoadForOpenCalls", 0.80 );
-	this->settings.worldMap.staleSec = SettingsManager::getIntSetting("mapCellForgottenSeconds", 0);
-
-	//!Settings lookTimeDB
-	this->settings.worldMap.database.lookTime.url = SettingsManager::getStringSetting( "lookTimeDB_name", "lookTime.db" );
-
 	//!Init Map Database
 	if(!this->worldMapDatabase) this->worldMapDatabase = new OneLife::server::Map();
 
-	this->worldMapDatabase->init(this->settings.worldMap);
-
-	//!Free settings value memory allocation
-	delete [] this->settings.worldMap.database.lookTime.url;
-
+	OneLife::server::settings::WorldMap worldMapSettings;
+	worldMapSettings.staleSec = this->server.worldMap.staleSec;
+	worldMapSettings.maxLoadForOpenCalls = this->server.worldMap.maxLoadForOpenCalls;
+	worldMapSettings.skipLookTimeCleanup = this->server.worldMap.skipLookTimeCleanup;
+	worldMapSettings.flushLookTimes = this->server.worldMap.flushLookTimes;
+	worldMapSettings.database.lookTime.url = this->server.worldMap.database.lookTime.url;
+	this->worldMapDatabase->init(worldMapSettings);
 	/******************************************************************************************************************/
 
 
@@ -10426,17 +10440,17 @@ void OneLife::Server::initBiomes()
 	// manually control order
 	//this->biomeOrderList = SettingsManager::getIntSettingMulti("biomeOrder");
 	//this->biomeWeightList = SettingsManager::getFloatSettingMulti("biomeWeights");
-	//this->biomeOrderList = this->settings.topography.biomeOrderList;
-	//this->biomeWeightList = this->settings.map.topography.biomeWeightList;
+	//this->biomeOrderList = this->server.topography.biomeOrderList;
+	//this->biomeWeightList = this->server.map.topography.biomeWeightList;
 
-	for (int i = 0; i < this->settings.map.topography.biomeOrderList->size(); i++)
+	for (int i = 0; i < this->server.map.topography.biomeOrderList->size(); i++)
 	{
-		int b = this->settings.map.topography.biomeOrderList->getElementDirect(i);
+		int b = this->server.map.topography.biomeOrderList->getElementDirect(i);
 
 		if (this->biomeList.getElementIndex(b) == -1)
 		{
-			this->settings.map.topography.biomeOrderList->deleteElement(i);
-			this->settings.map.topography.biomeWeightList->deleteElement(i);
+			this->server.map.topography.biomeOrderList->deleteElement(i);
+			this->server.map.topography.biomeWeightList->deleteElement(i);
 			i--;
 		}
 	}
@@ -10445,17 +10459,17 @@ void OneLife::Server::initBiomes()
 	for (int i = 0; i < this->biomeList.size(); i++)
 	{
 		int b = this->biomeList.getElementDirect(i);
-		if (this->settings.map.topography.biomeOrderList->getElementIndex(b) == -1)
+		if (this->server.map.topography.biomeOrderList->getElementIndex(b) == -1)
 		{
-			this->settings.map.topography.biomeOrderList->push_back(b);
+			this->server.map.topography.biomeOrderList->push_back(b);
 			// default weight
-			this->settings.map.topography.biomeWeightList->push_back(0.1);
+			this->server.map.topography.biomeWeightList->push_back(0.1);
 		}
 	}
 
-	numBiomes        = this->settings.map.topography.biomeOrderList->size();
-	biomes           = this->settings.map.topography.biomeOrderList->getElementArray();
-	biomeWeights     = this->settings.map.topography.biomeWeightList->getElementArray();
+	numBiomes        = this->server.map.topography.biomeOrderList->size();
+	biomes           = this->server.map.topography.biomeOrderList->getElementArray();
+	biomeWeights     = this->server.map.topography.biomeWeightList->getElementArray();
 	biomeCumuWeights = new float[numBiomes];
 
 	biomeTotalWeight = 0;
@@ -10467,8 +10481,8 @@ void OneLife::Server::initBiomes()
 
 	//!setting special biomes
 	//SimpleVector<int> *specialBiomeList = SettingsManager::getIntSettingMulti("specialBiomes");
-	numSpecialBiomes = this->settings.map.topography.specialBiomeList->size();
-	specialBiomes    = this->settings.map.topography.specialBiomeList->getElementArray();
+	numSpecialBiomes = this->server.map.topography.specialBiomeList->size();
+	specialBiomes    = this->server.map.topography.specialBiomeList->getElementArray();
 	regularBiomeLimit = numBiomes - numSpecialBiomes;
 	specialBiomeCumuWeights = new float[numSpecialBiomes];
 
@@ -10530,11 +10544,43 @@ const char * OneLife::Server::getErrorMessage()
 
 /**
  *
+ * @return
+ */
+oneLife::server::game::application::Information OneLife::Server::getInformation()
+{
+	return this->server;
+}
+
+void OneLife::Server::init(OneLife::server::Settings settings)
+{
+	//!larger of dataVersionNumber.txt or serverCodeVersionNumber.txt
+	int versionNumber = 1;
+	this->server.about.versionNumber = settings.dataVersion;
+	if(settings.codeVersion > versionNumber) versionNumber = settings.codeVersion;
+	this->server.about.versionNumber = versionNumber;
+
+	this->server.shutdownMode = settings.shutdownMode;
+	this->server.forceShutdownMode = settings.forceShutdownMode;
+	this->server.port = settings.port;
+
+	this->server.map.topography.biomeOrderList = settings.mapBiomeOrder;
+	this->server.map.topography.biomeWeightList = settings.mapBiomeWeight;
+	this->server.map.topography.specialBiomeList = settings.mapBiomeSpecial;
+
+	this->server.worldMap.flushLookTimes = settings.flushLookTimes;
+	this->server.worldMap.skipLookTimeCleanup = settings.skipLookTimeCleanup;
+	this->server.worldMap.maxLoadForOpenCalls = settings.maxLoadForOpenCalls;
+	this->server.worldMap.staleSec = settings.staleSec;
+	this->server.worldMap.database.lookTime.url = settings.lookTimeDbName;
+}
+
+/**
+ *
  */
 void OneLife::Server::_procedureCreateNewConnection()
 {
-	this->someClientMessageReceived = this->settings.someClientMessageReceived;
-	int versionNumber = this->settings.versionNumber;
+	this->someClientMessageReceived = false; //this->server.someClientMessageReceived;
+	int versionNumber = this->server.about.versionNumber;
 	SocketOrServer *readySock =  NULL;
 	double pollTimeout = 2;
 

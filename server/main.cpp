@@ -22,19 +22,13 @@
 #include "minorGems/network/SocketPoll.h"
 #include "minorGems/network/web/WebRequest.h"
 #include "minorGems/network/web/URLUtils.h"
-
 #include "minorGems/crypto/hashes/sha1.h"
-
 #include "minorGems/system/Thread.h"
 #include "minorGems/system/Time.h"
-
 #include "minorGems/game/doublePair.h"
-
 #include "minorGems/util/log/AppLog.h"
 #include "minorGems/util/log/FileLog.h"
-
 #include "minorGems/formats/encodingUtils.h"
-
 #include "minorGems/io/file/File.h"
 
 #include "map.h"
@@ -111,7 +105,6 @@ extern int requireTicketServerCheck;
 extern char *clientPassword;
 extern char *ticketServerURL;
 extern char *reflectorURL;
-static int versionNumber = 1;// larger of dataVersionNumber.txt or serverCodeVersionNumber.txt
 extern double childSameRaceLikelihood;
 extern int familySpan;
 
@@ -311,20 +304,33 @@ int readIntFromFile( const char *inFileName, int inDefaultValue )
 int main()
 {
 	OneLife::server::Settings settings;
+	settings.codeVersion = readIntFromFile( "serverCodeVersionNumber.txt", 20289 );
+	settings.dataVersion = readIntFromFile( "dataVersionNumber.txt", 1 );
+	settings.flushLookTimes = SettingsManager::getIntSetting("flushLookTimes", 0);
+	settings.forceShutdownMode = SettingsManager::getIntSetting( "forceShutdownMode", 0 );
+	settings.shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
+	settings.skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
+	settings.lookTimeDbName = SettingsManager::getStringSetting( "lookTimeDB_name", "lookTime.db" );//!Settings lookTimeDB
+	settings.mapBiomeOrder = SettingsManager::getIntSettingMulti("biomeOrder");
+	settings.mapBiomeWeight = SettingsManager::getFloatSettingMulti("biomeWeights");
+	settings.mapBiomeSpecial = SettingsManager::getIntSettingMulti("specialBiomes");
+	settings.maxLoadForOpenCalls = (double)SettingsManager::getFloatSetting( "maxLoadForOpenCalls", 0.80 );
+	settings.staleSec = SettingsManager::getIntSetting("mapCellForgottenSeconds", 0);
 
 
-
-    if( checkReadOnly() ) {
+    if( checkReadOnly() )
+    {
         printf( "File system read-only.  Server exiting.\n" );
         return 1;
-        }
+	}
     
     familyDataLogFile = fopen( "familyDataLog.txt", "a" );
 
-    if( familyDataLogFile != NULL ) {
+    if( familyDataLogFile != NULL )
+    {
         fprintf( familyDataLogFile, "%.2f server starting up\n",
                  Time::getCurrentTime() );
-        }
+	}
 
 
     memset( allowedSayCharMap, false, 256 );
@@ -335,8 +341,7 @@ int main()
         }
     
 
-    nextID = 
-        SettingsManager::getIntSetting( "nextPlayerID", 2 );
+    nextID = SettingsManager::getIntSetting( "nextPlayerID", 2 );
 
 
     // make backup and delete old backup every day
@@ -344,14 +349,6 @@ int main()
 
     AppLog::setLoggingLevel( Log::DETAIL_LEVEL );
     AppLog::printAllMessages( true );
-
-    printf( "\n" );
-    AppLog::info( "Server starting up" );
-
-    printf( "\n" );
-    
-    
-    
 
     nextSequenceNumber = 
         SettingsManager::getIntSetting( "sequenceNumber", 1 );
@@ -364,22 +361,6 @@ int main()
     
     clientPassword = 
         SettingsManager::getStringSetting( "clientPassword" );
-
-
-    int dataVer = readIntFromFile( "dataVersionNumber.txt", 1 );
-    int codVer = readIntFromFile( "serverCodeVersionNumber.txt", 1 );
-    
-    versionNumber = dataVer;
-    if( codVer > versionNumber ) {
-        versionNumber = codVer;
-        }
-    
-    printf( "\n" );
-    AppLog::infoF( "Server using version number %d", versionNumber );
-
-    printf( "\n" );
-    
-
 
 
     minFoodDecrementSeconds = 
@@ -572,7 +553,8 @@ int main()
     initTriggers();
 
 
-    if( false ) {
+    if( false )
+    {
         
         printf( "Running map sampling\n" );
     
@@ -623,9 +605,7 @@ int main()
     
         int readInt;
         scanf( "%d", &readInt );
-        }
-
-
+	}
 
 
     int port = SettingsManager::getIntSetting( "port", 5077 );
@@ -635,16 +615,11 @@ int main()
 
     AppLog::infoF( "Listening for connection on port %d", port );
 
-    settings.versionNumber = versionNumber;
-
 
     // if we received one the last time we looped, don't sleep when
     // polling for socket being ready, because there could be more data
     // waiting in the buffer for a given socket
     settings.someClientMessageReceived = false;
-
-	settings.shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
-    settings.forceShutdownMode = SettingsManager::getIntSetting( "forceShutdownMode", 0 );
 
 
     // test code for printing sample eve locations
@@ -667,11 +642,15 @@ int main()
         }
     */
 
-    settings.map.topography.biomeOrderList = SettingsManager::getIntSettingMulti("biomeOrder");
-    settings.map.topography.biomeWeightList = SettingsManager::getFloatSettingMulti("biomeWeights");
-    settings.map.topography.specialBiomeList = SettingsManager::getIntSettingMulti("specialBiomes");
+
 
 	oneLifeServer = new OneLife::Server(settings);
+	oneLife::server::game::application::Information serverInformation = oneLifeServer->getInformation();
+
+	//!
+	AppLog::info("\n\nServer starting up" );
+	AppLog::info("\n\tabout:");
+	AppLog::infoF("\n\t\tServer using version number %d", serverInformation.about.versionNumber);
 
 	oneLifeServer->loadObjects();
 	oneLifeServer->initBiomes();
@@ -684,9 +663,10 @@ int main()
 	oneLifeServer->start();
 
 	//!clean settings
-	delete settings.map.topography.biomeOrderList;
-	delete settings.map.topography.biomeWeightList;
-	delete settings.map.topography.specialBiomeList;
+	if(settings.lookTimeDbName) delete settings.lookTimeDbName;
+	delete settings.mapBiomeOrder;
+	delete settings.mapBiomeWeight;
+	delete settings.mapBiomeSpecial;
 
 
     quitCleanup();

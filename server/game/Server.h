@@ -13,6 +13,38 @@
 #include "../dataType/Settings.h"
 #include "minorGems/network/Socket.h"
 #include "minorGems/network/SocketServer.h"
+#include "minorGems/util/SimpleVector.h"
+#include "registry/Player.h"
+
+namespace oneLife::server::game::application
+{
+	typedef struct{
+		struct{
+			int versionNumber;
+		}about;
+		int forceShutdownMode;
+		struct{
+			struct{
+				SimpleVector<int> *biomeOrderList;
+				SimpleVector<float> *biomeWeightList;
+				SimpleVector<int> *specialBiomeList;
+			}topography;
+		}map;
+		int port;
+		int shutdownMode;
+		struct{
+			struct{
+				struct{
+					char* url;
+				}lookTime;
+			}database;
+			int flushLookTimes;
+			double maxLoadForOpenCalls;
+			int skipLookTimeCleanup;
+			int staleSec;
+		}worldMap;
+	}Information;
+}
 
 namespace OneLife
 {
@@ -33,6 +65,7 @@ namespace OneLife
 			bool isLastSendingFailed();
 
 			const char* getErrorMessage();
+			oneLife::server::game::application::Information getInformation();
 
 			void sendAcceptanceMessage(FreshConnection *nextConnection);
 			void sendFirstMessages(LiveObject *nextPlayer);
@@ -54,7 +87,9 @@ namespace OneLife
 			SimpleVector<float> *biomeWeightList;
 
 		protected:
+			void init(OneLife::server::Settings settings);
 			void _procedureCreateNewConnection();//TODO: temporary function or code isolation don't keep it
+			oneLife::server::game::registry::Player* playerRegistry;
 
 		private:
 			double minMoveTime;
@@ -65,6 +100,7 @@ namespace OneLife
 				size_t size;
 			}errMsg;
 			int port;
+			oneLife::server::game::application::Information server;
 			int shutdownMode;
 			SocketServer *socket;
 			char someClientMessageReceived;

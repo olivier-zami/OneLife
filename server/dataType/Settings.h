@@ -32,16 +32,22 @@ namespace OneLife::server
 {
 	typedef struct Settings
 	{
+		int codeVersion;
+		int dataVersion;
+		int flushLookTimes;
+		char* lookTimeDbName;
+		SimpleVector<int> *mapBiomeOrder;
+		SimpleVector<float> *mapBiomeWeight;
+		SimpleVector<int> *mapBiomeSpecial;
+		double maxLoadForOpenCalls;
 		int shutdownMode;
 		char someClientMessageReceived;
+		int staleSec;
 		int forceShutdownMode;
 		int versionNumber;
 		int port;
+		int skipLookTimeCleanup;
 		std::string strInfertilitySuffix;
-
-		OneLife::server::settings::Map map;
-
-		OneLife::server::settings::WorldMap worldMap;
 	}Settings;
 }
 

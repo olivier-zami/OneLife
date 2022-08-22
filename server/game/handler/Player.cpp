@@ -88,9 +88,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 						   float inFitnessScore,
 						   int inForceParentID,
 						   int inForceDisplayID,
-						   GridPos *inForcePlayerPos) {
-
-
+						   GridPos *inForcePlayerPos)
+{
 	usePersonalCurses = SettingsManager::getIntSetting( "usePersonalCurses",0 );
 	if( usePersonalCurses )
 	{
@@ -114,8 +113,6 @@ int processLoggedInPlayer( char inAllowReconnect,
 			}
 		}
 	}
-
-
 
 	// new behavior:
 	// allow this new connection from same
