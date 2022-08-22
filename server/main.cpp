@@ -146,7 +146,6 @@ extern int trippingEmotionIndex;
 
 OneLife::Server* oneLifeServer = nullptr;
 
-extern SimpleVector<FreshConnection> newConnections;
 extern SimpleVector<FreshConnection> waitingForTwinConnections;
 extern SimpleVector<LiveObject> tutorialLoadingPlayers;
 

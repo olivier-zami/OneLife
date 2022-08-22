@@ -8,6 +8,11 @@
 namespace oneLife::server::game::registry
 {
 	class Player {
+		public:
+			Player();
+			~Player();
+
+			bool isAnyTicketServerRequestsOut();
 
 	};
 }

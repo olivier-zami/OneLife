@@ -69,82 +69,6 @@
 
 #define MAP_TIMESEC Time::timeSec()// can replace with frozenTime to freeze time or slowTime to slow it down
 
-extern SimpleVector<int> eveSecondaryLocObjectIDs;
-extern SimpleVector<double> recentlyUsedPrimaryEvePositionTimes;
-extern SimpleVector<GridPos> recentlyUsedPrimaryEvePositions;
-extern SimpleVector<int> recentlyUsedPrimaryEvePositionPlayerIDs;
-extern SimpleVector<int> barrierItemList;
-extern SimpleVector<GlobalTriggerState> globalTriggerStates;
-extern SimpleVector<GridPos> *speechPipesIn;
-extern SimpleVector<GridPos> *speechPipesOut;
-extern SimpleVector<int> *naturalMapIDs;// one vector per biome
-extern SimpleVector<float> *naturalMapChances;
-extern SimpleVector<int> allNaturalMapIDs;
-extern SimpleVector<MapGridPlacement> gridPlacements;
-extern RecentPlacement recentPlacements[];
-extern DBTimeCacheRecord dbTimeCache[];
-extern DBCacheRecord dbCache[];
-extern GridPos eveLocation;
-extern int barrierRadius;
-extern int barrierOn;
-extern float minEveCampRespawnAge;
-extern int longTermCullEnabled;
-extern int numSpeechPipes;
-extern int edgeObjectID;
-extern int eveRadius;
-extern char skipLookTimeCleanup;
-extern int nextPlacementIndex;
-extern char anyBiomesInDB;
-extern int cellsLookedAtToInit;
-extern int numBiomes;
-extern int* biomes;
-extern float* biomeWeights;
-extern float* biomeCumuWeights;
-extern float biomeTotalWeight;
-extern int regularBiomeLimit;
-extern int numSpecialBiomes;
-extern int* specialBiomes;
-extern float* specialBiomeCumuWeights;
-extern float specialBiomeTotalWeight;
-extern float* totalChanceWeight;
-extern int eveHomeMarkerObjectID;
-extern int randSeed;
-extern char skipRemovedObjectCleanup;
-extern char skipTrackingMapChanges;
-// extern JenkinsRandomSource randSource;
-extern CustomRandomSource randSource;
-extern SimpleVector<ChangePosition> mapChangePosSinceLastStep;
-extern char apocalypseTriggered;
-extern char monumentCallPending;
-extern int monumentCallID;
-extern int monumentCallX;
-extern int monumentCallY;
-extern WebRequest *apocalypseRequest;
-extern int canYumChainBreak;
-extern double minAgeForCravings;
-extern char lookTimeDBEmpty;
-extern char quit;
-
-
-extern DB lookTimeDB;
-extern char lookTimeDBOpen;
-extern DB   db;
-extern char dbOpen;
-extern DB   timeDB;
-extern char timeDBOpen;
-extern DB   biomeDB;
-extern char biomeDBOpen;
-extern DB   floorDB;
-extern char floorDBOpen;
-extern DB   floorTimeDB;
-extern char floorTimeDBOpen;
-extern DB   graveDB;
-extern char graveDBOpen;
-extern DB   eveDB;// per-player memory of where they should spawn as eve
-extern char eveDBOpen;
-extern DB   metaDB;
-extern char metaDBOpen;
-
 //2HOL additions for: password-protected objects
 int passwordTransitionsAllowed = 0;
 int passwordInvocationAndSettingAreSeparated = 0;
@@ -242,7 +166,6 @@ SimpleVector<char> newSpeechCurseFlags;
 SimpleVector<int> newSpeechPlayerIDs;
 SimpleVector<ChangePosition> newSpeechPos;
 SimpleVector<KillState> activeKillStates;
-SimpleVector<FreshConnection> newConnections;
 SimpleVector<FreshConnection> waitingForTwinConnections;
 SimpleVector<LiveObject> tutorialLoadingPlayers;
 SimpleVector<char*> tempTwinEmails;// fill this with emails that should also affect lineage ban// if any twin in group is banned, all should be
@@ -260,6 +183,83 @@ SimpleVector<char*> youForgivingPhrases;
 SimpleVector<char*> youGivingPhrases;
 SimpleVector<char*> namedGivingPhrases;
 SimpleVector<char*> curseWords;
+
+extern SimpleVector<int> eveSecondaryLocObjectIDs;
+extern SimpleVector<FreshConnection> newConnections;
+extern SimpleVector<double> recentlyUsedPrimaryEvePositionTimes;
+extern SimpleVector<GridPos> recentlyUsedPrimaryEvePositions;
+extern SimpleVector<int> recentlyUsedPrimaryEvePositionPlayerIDs;
+extern SimpleVector<int> barrierItemList;
+extern SimpleVector<GlobalTriggerState> globalTriggerStates;
+extern SimpleVector<GridPos> *speechPipesIn;
+extern SimpleVector<GridPos> *speechPipesOut;
+extern SimpleVector<int> *naturalMapIDs;// one vector per biome
+extern SimpleVector<float> *naturalMapChances;
+extern SimpleVector<int> allNaturalMapIDs;
+extern SimpleVector<MapGridPlacement> gridPlacements;
+extern RecentPlacement recentPlacements[];
+extern DBTimeCacheRecord dbTimeCache[];
+extern DBCacheRecord dbCache[];
+extern GridPos eveLocation;
+extern int barrierRadius;
+extern int barrierOn;
+extern float minEveCampRespawnAge;
+extern int longTermCullEnabled;
+extern int numSpeechPipes;
+extern int edgeObjectID;
+extern int eveRadius;
+extern char skipLookTimeCleanup;
+extern int nextPlacementIndex;
+extern char anyBiomesInDB;
+extern int cellsLookedAtToInit;
+extern int numBiomes;
+extern int* biomes;
+extern float* biomeWeights;
+extern float* biomeCumuWeights;
+extern float biomeTotalWeight;
+extern int regularBiomeLimit;
+extern int numSpecialBiomes;
+extern int* specialBiomes;
+extern float* specialBiomeCumuWeights;
+extern float specialBiomeTotalWeight;
+extern float* totalChanceWeight;
+extern int eveHomeMarkerObjectID;
+extern int randSeed;
+extern char skipRemovedObjectCleanup;
+extern char skipTrackingMapChanges;
+// extern JenkinsRandomSource randSource;
+extern CustomRandomSource randSource;
+extern SimpleVector<ChangePosition> mapChangePosSinceLastStep;
+extern char apocalypseTriggered;
+extern char monumentCallPending;
+extern int monumentCallID;
+extern int monumentCallX;
+extern int monumentCallY;
+extern WebRequest *apocalypseRequest;
+extern int canYumChainBreak;
+extern double minAgeForCravings;
+extern char lookTimeDBEmpty;
+extern char quit;
+
+
+extern DB lookTimeDB;
+extern char lookTimeDBOpen;
+extern DB   db;
+extern char dbOpen;
+extern DB   timeDB;
+extern char timeDBOpen;
+extern DB   biomeDB;
+extern char biomeDBOpen;
+extern DB   floorDB;
+extern char floorDBOpen;
+extern DB   floorTimeDB;
+extern char floorTimeDBOpen;
+extern DB   graveDB;
+extern char graveDBOpen;
+extern DB   eveDB;// per-player memory of where they should spawn as eve
+extern char eveDBOpen;
+extern DB   metaDB;
+extern char metaDBOpen;
 
 static char useTestMap = false;// if true, rest of natural map is blank
 
@@ -986,8 +986,7 @@ void OneLife::Server::start()
 								delete [] trueHash;
 							}
 
-							if( requireTicketServerCheck &&
-								! nextConnection->error ) {
+							if( requireTicketServerCheck && ! nextConnection->error ) {
 
 								char *encodedEmail =
 										URLUtils::urlEncode(
@@ -1005,8 +1004,7 @@ void OneLife::Server::start()
 
 								delete [] encodedEmail;
 
-								nextConnection->ticketServerRequest =
-										new WebRequest( "GET", url, NULL );
+								nextConnection->ticketServerRequest = new WebRequest( "GET", url, NULL );
 								nextConnection->ticketServerAccepted = false;
 
 								nextConnection->ticketServerRequestStartTime
@@ -10580,7 +10578,6 @@ void OneLife::Server::init(OneLife::server::Settings settings)
 void OneLife::Server::_procedureCreateNewConnection()
 {
 	this->someClientMessageReceived = false; //this->server.someClientMessageReceived;
-	int versionNumber = this->server.about.versionNumber;
 	SocketOrServer *readySock =  NULL;
 	double pollTimeout = 2;
 
@@ -10604,19 +10601,7 @@ void OneLife::Server::_procedureCreateNewConnection()
 		}
 	}
 
-	char anyTicketServerRequestsOut = false;
-
-	for( int i=0; i<newConnections.size(); i++ )
-	{
-		FreshConnection *nextConnection = newConnections.getElement( i );
-		if( nextConnection->ticketServerRequest != NULL )
-		{
-			anyTicketServerRequestsOut = true;
-			break;
-		}
-	}
-
-	if( anyTicketServerRequestsOut )
+	if(this->playerRegistry->isAnyTicketServerRequestsOut())
 	{
 		// need to step outstanding ticket server web requests
 		// sleep a tiny amount of time to avoid cpu spin
@@ -10730,7 +10715,7 @@ void OneLife::Server::_procedureCreateNewConnection()
 										"%i#",
 									   currentPlayers, maxPlayers,
 									   newConnection.sequenceNumberString,
-									   versionNumber,
+									   this->server.about.versionNumber,
 									   totalBiome);
 				newConnection.shutdownMode = false;
 			}
@@ -10762,7 +10747,7 @@ void OneLife::Server::_procedureCreateNewConnection()
 			{
 				// first message sent okay
 				newConnection.sockBuffer = new SimpleVector<char>();
-				sockPoll.addSocket( sock );
+				sockPoll.addSocket( sock );//create Connection
 				newConnections.push_back( newConnection );
 			}
 			AppLog::infoF( "Listening for another connection on port %d", this->port );
