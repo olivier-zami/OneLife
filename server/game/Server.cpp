@@ -274,7 +274,10 @@ OneLife::Server::Server(OneLife::server::Settings settings)
 	this->errMsg.content = nullptr;
 	this->errMsg.size = 0;
 	this->playerRegistry = new oneLife::server::game::registry::Player();
+
 	this->socketListener = new oneLife::server::game::listener::Socket();
+	this->socketListener->setMaximumConnectionListened(256);
+	this->socketListener->setPort(this->server.port);
 }
 
 OneLife::Server::~Server() {}
@@ -329,10 +332,6 @@ void OneLife::Server::start()
 
 	int forceShutdownMode = this->server.forceShutdownMode;
 	std::string strInfertilitySuffix = settings.strInfertilitySuffix;
-
-	this->port = this->server.port;
-	this->socket = new SocketServer( this->port, 256 );
-	sockPoll.addSocketServer( this->socket );
 
 	while( !quit )
 	{
@@ -9992,15 +9991,6 @@ printf( "\n" );
 			}
 		}
 	}
-
-	// stop listening on server socket immediately, before running
-	// cleanup steps.  Cleanup may take a while, and we don't want to leave
-	// server socket listening, because it will answer reflector and player
-	// connection requests but then just hang there.
-
-	// Closing the server socket makes these connection requests fail
-	// instantly (instead of relying on client timeouts).
-	delete this->socket;
 }
 
 
@@ -10579,7 +10569,6 @@ void OneLife::Server::init(OneLife::server::Settings settings)
 void OneLife::Server::_procedureCreateNewConnection()
 {
 	this->someClientMessageReceived = false; //this->server.someClientMessageReceived;
-	SocketOrServer *readySock =  NULL;
 	this->socketListener->pollTimeout = 2;
 
 	if( this->minMoveTime < this->socketListener->pollTimeout )
@@ -10638,122 +10627,120 @@ void OneLife::Server::_procedureCreateNewConnection()
 	// handled
 	this->socketListener->listen();
 
-	if(this->socketListener->isUnknownConnectionRequestReceived())
+	if(this->socketListener->isConnectionRequestAccepted())
 	{
-		// server ready
-		Socket *sock = this->socket->acceptConnection( 0 );
-
-		if( sock != NULL )
+		if(this->socketListener->isUnknownClientConnectionRequestReceived())
 		{
-			HostAddress *a = sock->getRemoteHostAddress();
+			AppLog::info( "Got connection from unknown address" );
+		}
+		else
+		{
+			AppLog::infoF( "Got connection from %s:%d",
+				  this->socketListener->getLastClientListenedAddress(),
+				  this->socketListener->getLastClientListenedPort());
+		}
 
-			if( a == NULL )
+		FreshConnection newConnection;
+		newConnection.connectionStartTimeSeconds = Time::getCurrentTime();
+		newConnection.email = NULL;
+		newConnection.sock = this->socketListener->getLastClientSocket();
+		newConnection.sequenceNumber = nextSequenceNumber;
+
+		char *secretString = SettingsManager::getStringSetting("statsServerSharedSecret", "sdfmlk3490sadfm3ug9324" );
+		char *numberString = autoSprintf( "%lu", newConnection.sequenceNumber );
+		char *nonce = hmac_sha1( secretString, numberString );
+
+		delete [] secretString;
+		delete [] numberString;
+		newConnection.sequenceNumberString = autoSprintf( "%s%lu", nonce, newConnection.sequenceNumber );
+		delete [] nonce;
+
+		newConnection.tutorialNumber = 0;
+		newConnection.curseStatus.curseLevel = 0;
+		newConnection.curseStatus.excessPoints = 0;
+		newConnection.twinCode = NULL;
+		newConnection.twinCount = 0;
+		nextSequenceNumber ++;
+
+		SettingsManager::setSetting( "sequenceNumber", (int)nextSequenceNumber );
+
+		char *message;
+		int maxPlayers = SettingsManager::getIntSetting( "maxPlayers", 200 );
+		int currentPlayers = players.size() + newConnections.size();
+
+		if( apocalypseTriggered || this->shutdownMode )
+		{
+			AppLog::info( "We are in shutdown mode, " "deflecting new connection" );
+			AppLog::infoF( "%d player(s) still alive on server.", players.size() );
+			message = autoSprintf( "SHUTDOWN\n"
+								   "%d/%d\n"
+								   "#",
+								   currentPlayers, maxPlayers );
+			newConnection.shutdownMode = true;
+		}
+		else if( currentPlayers >= maxPlayers )
+		{
+			AppLog::infoF( "%d of %d permitted players connected, "
+						   "deflecting new connection",
+						   currentPlayers, maxPlayers );
+
+			message = autoSprintf( "SERVER_FULL\n"
+								   "%d/%d\n"
+								   "#",
+								   currentPlayers, maxPlayers );
+			newConnection.shutdownMode = true;
+		}
+		else
+		{
+			int totalBiome = 15;
+			message = autoSprintf( "SN\n"
+								   "%d/%d\n"
+								   "%s\n"
+								   "%lu\n"
+									"%i#",
+								   currentPlayers, maxPlayers,
+								   newConnection.sequenceNumberString,
+								   this->server.about.versionNumber,
+								   totalBiome);
+			newConnection.shutdownMode = false;
+		}
+
+		// wait for email and hashes to come from client
+		// (and maybe ticket server check isn't required by settings)
+		newConnection.ticketServerRequest = NULL;
+		newConnection.ticketServerAccepted = false;
+		newConnection.lifeTokenSpent = false;
+		newConnection.error = false;
+		newConnection.errorCauseString = "";
+		newConnection.rejectedSendTime = 0;
+
+		int messageLength = strlen( message );
+		int numSent = this->socketListener->getLastClientSocket()->send( (unsigned char*)message,
+							messageLength,
+							false, false );
+
+		delete [] message;
+
+		if( numSent != messageLength )
+		{
+			// failed or blocked on our first send attempt
+			// reject it right away
+			Socket *sock = this->socketListener->getLastClientSocket();
+			if(sock)
 			{
-				AppLog::info( "Got connection from unknown address" );
-			}
-			else
-			{
-				AppLog::infoF( "Got connection from %s:%d", a->mAddressString, a->mPort );
-				delete a;
-			}
-
-			FreshConnection newConnection;
-			newConnection.connectionStartTimeSeconds = Time::getCurrentTime();
-			newConnection.email = NULL;
-			newConnection.sock = sock;
-			newConnection.sequenceNumber = nextSequenceNumber;
-
-			char *secretString = SettingsManager::getStringSetting("statsServerSharedSecret", "sdfmlk3490sadfm3ug9324" );
-			char *numberString = autoSprintf( "%lu", newConnection.sequenceNumber );
-			char *nonce = hmac_sha1( secretString, numberString );
-
-			delete [] secretString;
-			delete [] numberString;
-			newConnection.sequenceNumberString = autoSprintf( "%s%lu", nonce, newConnection.sequenceNumber );
-			delete [] nonce;
-
-			newConnection.tutorialNumber = 0;
-			newConnection.curseStatus.curseLevel = 0;
-			newConnection.curseStatus.excessPoints = 0;
-			newConnection.twinCode = NULL;
-			newConnection.twinCount = 0;
-			nextSequenceNumber ++;
-
-			SettingsManager::setSetting( "sequenceNumber", (int)nextSequenceNumber );
-
-			char *message;
-			int maxPlayers = SettingsManager::getIntSetting( "maxPlayers", 200 );
-			int currentPlayers = players.size() + newConnections.size();
-
-			if( apocalypseTriggered || this->shutdownMode )
-			{
-				AppLog::info( "We are in shutdown mode, " "deflecting new connection" );
-				AppLog::infoF( "%d player(s) still alive on server.", players.size() );
-				message = autoSprintf( "SHUTDOWN\n"
-									   "%d/%d\n"
-									   "#",
-									   currentPlayers, maxPlayers );
-				newConnection.shutdownMode = true;
-			}
-			else if( currentPlayers >= maxPlayers )
-			{
-				AppLog::infoF( "%d of %d permitted players connected, "
-							   "deflecting new connection",
-							   currentPlayers, maxPlayers );
-
-				message = autoSprintf( "SERVER_FULL\n"
-									   "%d/%d\n"
-									   "#",
-									   currentPlayers, maxPlayers );
-				newConnection.shutdownMode = true;
-			}
-			else
-			{
-				int totalBiome = 15;
-				message = autoSprintf( "SN\n"
-									   "%d/%d\n"
-									   "%s\n"
-									   "%lu\n"
-										"%i#",
-									   currentPlayers, maxPlayers,
-									   newConnection.sequenceNumberString,
-									   this->server.about.versionNumber,
-									   totalBiome);
-				newConnection.shutdownMode = false;
-			}
-
-			// wait for email and hashes to come from client
-			// (and maybe ticket server check isn't required by settings)
-			newConnection.ticketServerRequest = NULL;
-			newConnection.ticketServerAccepted = false;
-			newConnection.lifeTokenSpent = false;
-			newConnection.error = false;
-			newConnection.errorCauseString = "";
-			newConnection.rejectedSendTime = 0;
-
-			int messageLength = strlen( message );
-			int numSent = sock->send( (unsigned char*)message,
-								messageLength,
-								false, false );
-
-			delete [] message;
-
-			if( numSent != messageLength )
-			{
-				// failed or blocked on our first send attempt
-				// reject it right away
 				delete sock;
 				sock = NULL;
 			}
-			else
-			{
-				// first message sent okay
-				newConnection.sockBuffer = new SimpleVector<char>();
-				sockPoll.addSocket( sock );//create Connection
-				newConnections.push_back( newConnection );
-			}
-			AppLog::infoF( "Listening for another connection on port %d", this->port );
 		}
+		else
+		{
+			// first message sent okay
+			newConnection.sockBuffer = new SimpleVector<char>();
+			sockPoll.addSocket( this->socketListener->getLastClientSocket() );//create Connection
+			newConnections.push_back( newConnection );
+		}
+		AppLog::infoF( "Listening for another connection on port %d", this->socketListener->getPort() );
+		//}
 	}
 }
 
