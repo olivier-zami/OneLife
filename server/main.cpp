@@ -19,7 +19,6 @@
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/network/SocketServer.h"
-#include "minorGems/network/SocketPoll.h"
 #include "minorGems/network/web/WebRequest.h"
 #include "minorGems/network/web/URLUtils.h"
 #include "minorGems/crypto/hashes/sha1.h"

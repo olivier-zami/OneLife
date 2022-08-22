@@ -5,13 +5,14 @@
 #include "Tcp.h"
 
 #include "../../../third_party/minorGems/io/file/File.h"
-#include "../../../third_party/minorGems/network/SocketPoll.h"
 #include "../../../third_party/minorGems/util/log/AppLog.h"
 #include "../../../third_party/minorGems/util/SettingsManager.h"
 #include "../../../third_party/minorGems/util/SimpleVector.h"
-#include "../Map.h"
+#include "../../game/listener/Socket.h"
 #include "../../game/Server.h"
 #include "../feature/Diet.h"
+#include "../Map.h"
+
 
 extern int chunkDimensionX;
 extern int chunkDimensionY;

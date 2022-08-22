@@ -55,7 +55,6 @@
 #include "../../third_party/minorGems/crypto/hashes/sha1.h"
 #include "../../third_party/minorGems/formats/encodingUtils.h"
 #include "../../third_party/minorGems/io/file/File.h"
-#include "../../third_party/minorGems/network/SocketPoll.h"
 #include "../../third_party/minorGems/network/web/URLUtils.h"
 #include "../../third_party/minorGems/system/Time.h"
 #include "../../third_party/minorGems/util/crc32.h"
@@ -86,7 +85,7 @@ double fertileAge = 14;
 // important that it's a whole number of pixels for smooth camera movement
 double baseWalkSpeed = 3.75;
 
-SocketPoll sockPoll;
+
 HashTable<timeSec_t> liveDecayRecordLastLookTimeHashTable(1024);// times in seconds that a tracked live decay map cell or slot// was last looked at
 HashTable<double> liveMovementEtaTimes(1024, 0);// clock time in fractional seconds of destination ETA indexed as x, y, 0
 int evePrimaryLocObjectID = -1;
@@ -189,6 +188,7 @@ extern SimpleVector<FreshConnection> newConnections;
 extern SimpleVector<double> recentlyUsedPrimaryEvePositionTimes;
 extern SimpleVector<GridPos> recentlyUsedPrimaryEvePositions;
 extern SimpleVector<int> recentlyUsedPrimaryEvePositionPlayerIDs;
+extern SocketPoll sockPoll; //TODO remove this when no occurences (used in listener::Socket)
 extern SimpleVector<int> barrierItemList;
 extern SimpleVector<GlobalTriggerState> globalTriggerStates;
 extern SimpleVector<GridPos> *speechPipesIn;
@@ -274,6 +274,7 @@ OneLife::Server::Server(OneLife::server::Settings settings)
 	this->errMsg.content = nullptr;
 	this->errMsg.size = 0;
 	this->playerRegistry = new oneLife::server::game::registry::Player();
+	this->socketListener = new oneLife::server::game::listener::Socket();
 }
 
 OneLife::Server::~Server() {}
@@ -10579,24 +10580,24 @@ void OneLife::Server::_procedureCreateNewConnection()
 {
 	this->someClientMessageReceived = false; //this->server.someClientMessageReceived;
 	SocketOrServer *readySock =  NULL;
-	double pollTimeout = 2;
+	this->socketListener->pollTimeout = 2;
 
-	if( this->minMoveTime < pollTimeout )
+	if( this->minMoveTime < this->socketListener->pollTimeout )
 	{
 		// shorter timeout if we have to wake up for a move
 		// HOWEVER, always keep max timout at 2 sec
 		// so we always wake up periodically to catch quit signals, etc
-		pollTimeout = this->minMoveTime;
+		this->socketListener->pollTimeout = this->minMoveTime;
 	}
 
-	if( pollTimeout > 0 )
+	if( this->socketListener->pollTimeout > 0 )
 	{
 		int shortestDecay = getNextDecayDelta();
 		if( shortestDecay != -1 )
 		{
-			if( shortestDecay < pollTimeout )
+			if( shortestDecay < this->socketListener->pollTimeout )
 			{
-				pollTimeout = shortestDecay;
+				this->socketListener->pollTimeout = shortestDecay;
 			}
 		}
 	}
@@ -10605,38 +10606,39 @@ void OneLife::Server::_procedureCreateNewConnection()
 	{
 		// need to step outstanding ticket server web requests
 		// sleep a tiny amount of time to avoid cpu spin
-		pollTimeout = 0.01;
+		this->socketListener->pollTimeout = 0.01;
 	}
 
 	if( areTriggersEnabled() )
 	{
-		pollTimeout = 0.01;// need to handle trigger timing
+		this->socketListener->pollTimeout = 0.01;// need to handle trigger timing
 	}
 
 	if( this->someClientMessageReceived )
 	{
-		pollTimeout = 0;// don't wait at all. We need to check for next message right away
+		this->socketListener->pollTimeout = 0;// don't wait at all. We need to check for next message right away
 	}
 
 	if( tutorialLoadingPlayers.size() > 0 )
 	{
-		pollTimeout = 0;// don't wait at all if there are tutorial maps to load
+		this->socketListener->pollTimeout = 0;// don't wait at all if there are tutorial maps to load
 	}
 
-	if( pollTimeout > 0.1 && activeKillStates.size() > 0 )
+	if( this->socketListener->pollTimeout > 0.1 && activeKillStates.size() > 0 )
 	{
 		// we have active kill requests pending
 		// want a short timeout so that we can catch kills
 		// when player's paths cross
-		pollTimeout = 0.1;
+		this->socketListener->pollTimeout = 0.1;
 	}
 
+	//!cf listen()
 	// we thus use zero CPU as long as no messages or new connections
 	// come in, and only wake up when some timed action needs to be
 	// handled
-	readySock = sockPoll.wait( (int)( pollTimeout * 1000 ) );
+	this->socketListener->listen();
 
-	if( readySock != NULL && !readySock->isSocket )
+	if(this->socketListener->isUnknownConnectionRequestReceived())
 	{
 		// server ready
 		Socket *sock = this->socket->acceptConnection( 0 );
