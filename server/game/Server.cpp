@@ -10540,6 +10540,81 @@ oneLife::server::game::application::Information OneLife::Server::getInformation(
 	return this->server;
 }
 
+
+FreshConnection OneLife::Server::createConnection(Socket* clientSocket)
+{
+	FreshConnection newConnection;
+	newConnection.connectionStartTimeSeconds = Time::getCurrentTime();
+	newConnection.email = NULL;
+	newConnection.sock = clientSocket;
+	newConnection.sequenceNumber = nextSequenceNumber;
+	char *secretString = this->server.secretString;
+	char *numberString = autoSprintf( "%lu", newConnection.sequenceNumber );
+	char *nonce = hmac_sha1( secretString, numberString );
+	newConnection.sequenceNumberString = autoSprintf( "%s%lu", nonce, newConnection.sequenceNumber );
+	if(secretString) { delete [] secretString; secretString = nullptr; }
+	if(numberString) { delete [] numberString; numberString = nullptr; }
+	if(nonce) { delete [] nonce; nonce = nullptr; }
+	newConnection.tutorialNumber = 0;
+	newConnection.curseStatus.curseLevel = 0;
+	newConnection.curseStatus.excessPoints = 0;
+	newConnection.twinCode = NULL;
+	newConnection.twinCount = 0;
+	nextSequenceNumber ++;
+	SettingsManager::setSetting( "sequenceNumber", (int)nextSequenceNumber );
+	/*
+	int currentPlayers = players.size() + newConnections.size();
+	char *message;
+	if( apocalypseTriggered || this->shutdownMode )
+	{
+		AppLog::info( "We are in shutdown mode, " "deflecting new connection" );
+		AppLog::infoF( "%d player(s) still alive on server.", players.size() );
+		message = autoSprintf( "SHUTDOWN\n"
+							   "%d/%d\n"
+							   "#",
+							   currentPlayers, maxPlayers );
+		newConnection.shutdownMode = true;
+	}
+	else if( currentPlayers >= maxPlayers )
+	{
+		AppLog::infoF( "%d of %d permitted players connected, "
+					   "deflecting new connection",
+					   currentPlayers, maxPlayers );
+
+		message = autoSprintf( "SERVER_FULL\n"
+							   "%d/%d\n"
+							   "#",
+							   currentPlayers, maxPlayers );
+		newConnection.shutdownMode = true;
+	}
+	else
+	{
+		int totalBiome = 15;
+		message = autoSprintf( "SN\n"
+							   "%d/%d\n"
+							   "%s\n"
+							   "%lu\n"
+							   "%i#",
+							   currentPlayers, maxPlayers,
+							   newConnection.sequenceNumberString,
+							   this->server.about.versionNumber,
+							   totalBiome);
+		newConnection.shutdownMode = false;
+	}
+
+	// wait for email and hashes to come from client
+	// (and maybe ticket server check isn't required by settings)
+	newConnection.ticketServerRequest = NULL;
+	newConnection.ticketServerAccepted = false;
+	newConnection.lifeTokenSpent = false;
+	newConnection.error = false;
+	newConnection.errorCauseString = "";
+	newConnection.rejectedSendTime = 0;
+	*/
+
+	return newConnection;
+}
+
 void OneLife::Server::init(OneLife::server::Settings settings)
 {
 	//!larger of dataVersionNumber.txt or serverCodeVersionNumber.txt
@@ -10548,14 +10623,14 @@ void OneLife::Server::init(OneLife::server::Settings settings)
 	if(settings.codeVersion > versionNumber) versionNumber = settings.codeVersion;
 	this->server.about.versionNumber = versionNumber;
 
+	this->server.secretString = settings.secretString;
 	this->server.shutdownMode = settings.shutdownMode;
 	this->server.forceShutdownMode = settings.forceShutdownMode;
-	this->server.port = settings.port;
-
 	this->server.map.topography.biomeOrderList = settings.mapBiomeOrder;
 	this->server.map.topography.biomeWeightList = settings.mapBiomeWeight;
 	this->server.map.topography.specialBiomeList = settings.mapBiomeSpecial;
-
+	this->server.maxPlayers = settings.maxPlayers;
+	this->server.port = settings.port;
 	this->server.worldMap.flushLookTimes = settings.flushLookTimes;
 	this->server.worldMap.skipLookTimeCleanup = settings.skipLookTimeCleanup;
 	this->server.worldMap.maxLoadForOpenCalls = settings.maxLoadForOpenCalls;
@@ -10640,34 +10715,10 @@ void OneLife::Server::_procedureCreateNewConnection()
 				  this->socketListener->getLastClientListenedPort());
 		}
 
-		FreshConnection newConnection;
-		newConnection.connectionStartTimeSeconds = Time::getCurrentTime();
-		newConnection.email = NULL;
-		newConnection.sock = this->socketListener->getLastClientSocket();
-		newConnection.sequenceNumber = nextSequenceNumber;
+		FreshConnection newConnection = this->createConnection(this->socketListener->getLastClientSocket());
 
-		char *secretString = SettingsManager::getStringSetting("statsServerSharedSecret", "sdfmlk3490sadfm3ug9324" );
-		char *numberString = autoSprintf( "%lu", newConnection.sequenceNumber );
-		char *nonce = hmac_sha1( secretString, numberString );
-
-		delete [] secretString;
-		delete [] numberString;
-		newConnection.sequenceNumberString = autoSprintf( "%s%lu", nonce, newConnection.sequenceNumber );
-		delete [] nonce;
-
-		newConnection.tutorialNumber = 0;
-		newConnection.curseStatus.curseLevel = 0;
-		newConnection.curseStatus.excessPoints = 0;
-		newConnection.twinCode = NULL;
-		newConnection.twinCount = 0;
-		nextSequenceNumber ++;
-
-		SettingsManager::setSetting( "sequenceNumber", (int)nextSequenceNumber );
-
-		char *message;
-		int maxPlayers = SettingsManager::getIntSetting( "maxPlayers", 200 );
 		int currentPlayers = players.size() + newConnections.size();
-
+		char *message;
 		if( apocalypseTriggered || this->shutdownMode )
 		{
 			AppLog::info( "We are in shutdown mode, " "deflecting new connection" );
@@ -10675,19 +10726,19 @@ void OneLife::Server::_procedureCreateNewConnection()
 			message = autoSprintf( "SHUTDOWN\n"
 								   "%d/%d\n"
 								   "#",
-								   currentPlayers, maxPlayers );
+								   currentPlayers, this->server.maxPlayers );
 			newConnection.shutdownMode = true;
 		}
-		else if( currentPlayers >= maxPlayers )
+		else if( currentPlayers >= this->server.maxPlayers )
 		{
 			AppLog::infoF( "%d of %d permitted players connected, "
 						   "deflecting new connection",
-						   currentPlayers, maxPlayers );
+						   currentPlayers, this->server.maxPlayers );
 
 			message = autoSprintf( "SERVER_FULL\n"
 								   "%d/%d\n"
 								   "#",
-								   currentPlayers, maxPlayers );
+								   currentPlayers, this->server.maxPlayers );
 			newConnection.shutdownMode = true;
 		}
 		else
@@ -10698,7 +10749,7 @@ void OneLife::Server::_procedureCreateNewConnection()
 								   "%s\n"
 								   "%lu\n"
 									"%i#",
-								   currentPlayers, maxPlayers,
+								   currentPlayers, this->server.maxPlayers,
 								   newConnection.sequenceNumberString,
 								   this->server.about.versionNumber,
 								   totalBiome);
@@ -10714,33 +10765,8 @@ void OneLife::Server::_procedureCreateNewConnection()
 		newConnection.errorCauseString = "";
 		newConnection.rejectedSendTime = 0;
 
-		int messageLength = strlen( message );
-		int numSent = this->socketListener->getLastClientSocket()->send( (unsigned char*)message,
-							messageLength,
-							false, false );
-
-		delete [] message;
-
-		if( numSent != messageLength )
-		{
-			// failed or blocked on our first send attempt
-			// reject it right away
-			Socket *sock = this->socketListener->getLastClientSocket();
-			if(sock)
-			{
-				delete sock;
-				sock = NULL;
-			}
-		}
-		else
-		{
-			// first message sent okay
-			newConnection.sockBuffer = new SimpleVector<char>();
-			sockPoll.addSocket( this->socketListener->getLastClientSocket() );//create Connection
-			newConnections.push_back( newConnection );
-		}
+		this->socketListener->sendMessage(message)->to(newConnection);
 		AppLog::infoF( "Listening for another connection on port %d", this->socketListener->getPort() );
-		//}
 	}
 }
 

@@ -5,8 +5,11 @@
 #include "Socket.h"
 
 #include "../../../third_party/minorGems/network/HostAddress.h"
+#include "../../../third_party/minorGems/util/SimpleVector.h"
 
 SocketPoll sockPoll;
+
+extern SimpleVector<FreshConnection> newConnections;
 
 oneLife::server::game::listener::Socket::Socket()
 {
@@ -14,6 +17,7 @@ oneLife::server::game::listener::Socket::Socket()
 	this->lastClientListened = {nullptr, 0};
 	this->lastClientSocket = nullptr;
 	this->maxConnection = 0;
+	this->outputMessage = nullptr;
 	this->port = 0;
 	this->readySock = nullptr;
 	this->socketServer = nullptr;
@@ -106,6 +110,13 @@ bool oneLife::server::game::listener::Socket::isConnectionRequestAccepted()
 	return this->isLastConnectionAccepted;
 }
 
+oneLife::server::game::listener::Socket* oneLife::server::game::listener::Socket::sendMessage(char *message)
+{
+	printf("\n===send message==============>\n\t%s", message);
+	this->outputMessage = message;
+	return this;
+}
+
 bool oneLife::server::game::listener::Socket::isUnknownClientConnectionRequestReceived()
 {
 	return (bool) (this->isLastConnectionAccepted && !this->isClientKnown);
@@ -119,6 +130,33 @@ void oneLife::server::game::listener::Socket::setMaximumConnectionListened(int m
 void oneLife::server::game::listener::Socket::setPort(int port)
 {
 	this->port = port;
+}
+
+void oneLife::server::game::listener::Socket::to(FreshConnection newConnection)
+{
+	int messageLength = strlen(this->outputMessage);
+	int numSent = newConnection.sock->send((unsigned char*)this->outputMessage,
+							 messageLength,
+							 false,
+							 false);
+	delete [] this->outputMessage;
+	if( numSent != messageLength )
+	{
+		// failed or blocked on our first send attempt
+		// reject it right away
+		if(newConnection.sock)
+		{
+			delete newConnection.sock;
+			newConnection.sock = NULL;
+		}
+	}
+	else
+	{
+		// first message sent okay
+		newConnection.sockBuffer = new SimpleVector<char>();
+		sockPoll.addSocket( newConnection.sock );//create Connection
+		newConnections.push_back( newConnection );
+	}
 }
 
 void oneLife::server::game::listener::Socket::initSocketServer()

@@ -306,13 +306,15 @@ int main()
 	settings.dataVersion = readIntFromFile( "dataVersionNumber.txt", 1 );
 	settings.flushLookTimes = SettingsManager::getIntSetting("flushLookTimes", 0);
 	settings.forceShutdownMode = SettingsManager::getIntSetting( "forceShutdownMode", 0 );
-	settings.shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
-	settings.skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
 	settings.lookTimeDbName = SettingsManager::getStringSetting( "lookTimeDB_name", "lookTime.db" );//!Settings lookTimeDB
 	settings.mapBiomeOrder = SettingsManager::getIntSettingMulti("biomeOrder");
 	settings.mapBiomeWeight = SettingsManager::getFloatSettingMulti("biomeWeights");
 	settings.mapBiomeSpecial = SettingsManager::getIntSettingMulti("specialBiomes");
 	settings.maxLoadForOpenCalls = (double)SettingsManager::getFloatSetting( "maxLoadForOpenCalls", 0.80 );
+	settings.maxPlayers = SettingsManager::getIntSetting( "maxPlayers", 200 );
+	settings.secretString = SettingsManager::getStringSetting("statsServerSharedSecret", "sdfmlk3490sadfm3ug9324" );;
+	settings.shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
+	settings.skipLookTimeCleanup = SettingsManager::getIntSetting("skipLookTimeCleanup", 0);
 	settings.staleSec = SettingsManager::getIntSetting("mapCellForgottenSeconds", 0);
 
 
@@ -665,6 +667,7 @@ int main()
 	delete settings.mapBiomeOrder;
 	delete settings.mapBiomeWeight;
 	delete settings.mapBiomeSpecial;
+	if(settings.secretString) { delete [] settings.secretString; settings.secretString = nullptr; }
 
 
     quitCleanup();

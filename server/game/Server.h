@@ -30,7 +30,9 @@ namespace oneLife::server::game::application
 				SimpleVector<int> *specialBiomeList;
 			}topography;
 		}map;
+		int maxPlayers;
 		int port;
+		char* secretString;
 		int shutdownMode;
 		struct{
 			struct{
@@ -87,6 +89,9 @@ namespace OneLife
 			SimpleVector<float> *biomeWeightList;
 
 		protected:
+
+			FreshConnection createConnection(Socket* clientSocket);
+			void handle();
 			void init(OneLife::server::Settings settings);
 			void _procedureCreateNewConnection();//TODO: temporary function or code isolation don't keep it
 			oneLife::server::game::registry::Player* playerRegistry;

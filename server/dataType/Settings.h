@@ -40,6 +40,8 @@ namespace OneLife::server
 		SimpleVector<float> *mapBiomeWeight;
 		SimpleVector<int> *mapBiomeSpecial;
 		double maxLoadForOpenCalls;
+		int maxPlayers;
+		char* secretString;
 		int shutdownMode;
 		char someClientMessageReceived;
 		int staleSec;

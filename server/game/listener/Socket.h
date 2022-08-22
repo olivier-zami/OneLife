@@ -8,6 +8,7 @@
 #include "../../../third_party/minorGems/network/Socket.h"
 #include "../../../third_party/minorGems/network/SocketPoll.h"
 #include "../../../third_party/minorGems/network/SocketServer.h"
+#include "../../dataType/connection.h"
 
 namespace oneLife::server::game::listener
 {
@@ -25,8 +26,10 @@ namespace oneLife::server::game::listener
 			int getPort();
 			bool isConnectionRequestAccepted();
 			bool isUnknownClientConnectionRequestReceived();
+			Socket* sendMessage(char* message);
 			void setMaximumConnectionListened(int maxConnection);
 			void setPort(int port);
+			void to(FreshConnection newConnection);
 
 			void initSocketServer();
 
@@ -37,6 +40,7 @@ namespace oneLife::server::game::listener
 			bool isConnectionRequestReceived;
 			struct {char* address; int port;} lastClientListened;
 			::Socket* lastClientSocket;
+			char *outputMessage;
 			double pollTimeout;
 			int port;
 			SocketOrServer *readySock;
