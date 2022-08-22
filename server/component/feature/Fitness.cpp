@@ -6,7 +6,7 @@
 
 #include "../../../third_party/minorGems/util/SimpleVector.h"
 #include "../../fitnessScore.h"
-#include "../../Server.h"
+#include "../../game/Server.h"
 
 extern SimpleVector<LiveObject> players;
 extern double forceDeathAge;

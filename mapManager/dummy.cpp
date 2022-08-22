@@ -11,7 +11,7 @@
 #include "../server/CoordinateTimeTracking.h"
 #include "../server/map.h"
 #include "../server/monument.h"
-#include "../server/Server.h"
+#include "../server/game/Server.h"
 #include "../third_party/minorGems/util/log/AppLog.h"
 #include "../third_party/minorGems/util/SettingsManager.h"
 

@@ -10,7 +10,7 @@
 #include "../../../third_party/minorGems/util/SettingsManager.h"
 #include "../../../third_party/minorGems/util/SimpleVector.h"
 #include "../Map.h"
-#include "../../Server.h"
+#include "../../game/Server.h"
 #include "../feature/Diet.h"
 
 extern int chunkDimensionX;

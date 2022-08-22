@@ -5,12 +5,12 @@
 #ifndef ONELIFE_SERVER_H
 #define ONELIFE_SERVER_H
 
-#include "../gameSource/GridPos.h"
-#include "../gameSource/transitionBank.h"
-#include "component/Map.h"
-#include "dataType/connection.h"
-#include "dataType/LiveObject.h"
-#include "dataType/Settings.h"
+#include "../../gameSource/GridPos.h"
+#include "../../gameSource/transitionBank.h"
+#include "../component/Map.h"
+#include "../dataType/connection.h"
+#include "../dataType/LiveObject.h"
+#include "../dataType/Settings.h"
 #include "minorGems/network/Socket.h"
 #include "minorGems/network/SocketServer.h"
 
@@ -114,18 +114,6 @@ void holdingSomethingNew( LiveObject *inPlayer, int inOldHoldingID = 0 );
 char removeFromContainerToHold( LiveObject *inPlayer,int inContX, int inContY, int inSlotNumber );
 void clearPlayerHeldContained( LiveObject *inPlayer );
 void handleHoldingChange( LiveObject *inPlayer, int inNewHeldID );
-int processLoggedInPlayer( char inAllowReconnect,
-						   Socket *inSock,
-						   SimpleVector<char> *inSockBuffer,
-						   char *inEmail,
-						   uint32_t hashedSpawnSeed,
-						   int inTutorialNumber,
-						   CurseStatus inCurseStatus,
-						   float inFitnessScore,
-		// set to -2 to force Eve
-						   int inForceParentID = -1,
-						   int inForceDisplayID = -1,
-						   GridPos *inForcePlayerPos = NULL );
 double pickBirthCooldownSeconds();
 const char *getCurseWord( char *inSenderEmail, char *inEmail, int inWordIndex );
 int countYoungFemalesInLineage( int inLineageEveID );

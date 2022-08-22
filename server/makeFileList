@@ -24,7 +24,6 @@ CUSTOM_LINUX_LINK_FLAGS =
 
 LAYER_SOURCE = \
 main.cpp \
-Server.cpp \
 map.cpp \
 component/cache/Biome.cpp \
 component/cache/Blocking.cpp \
@@ -44,6 +43,8 @@ component/Speech.cpp \
 component/feature/apocalypse.cpp \
 component/Log.cpp \
 dataType/LiveObject.cpp \
+game/handler/Player.cpp \
+game/Server.cpp \
 objectType/bank/Cache.cpp \
 objectType/bank/LinearDB.cpp \
 objectType/bank/linearDB/lineardb3.cpp \

@@ -13,7 +13,7 @@
 //  <time.h> added to add time stamps to recorded data
 #include <time.h>
 
-#include "Server.h"
+#include "game/Server.h"
 
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"

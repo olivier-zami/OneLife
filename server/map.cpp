@@ -96,7 +96,7 @@
 #include "component/cache/Biome.h"
 #include "component/generator/Biome.h"
 #include "dbCommon.h"
-#include "Server.h"
+#include "game/Server.h"
 
 extern int getBaseMapCallCount;
 extern CustomRandomSource randSource;

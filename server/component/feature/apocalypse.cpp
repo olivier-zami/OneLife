@@ -14,7 +14,7 @@
 #include "../../dataType/info.h"
 #include "../../component/handler/Player.h"
 #include "../../component/Map.h"
-#include "../../Server.h"
+#include "../../game/Server.h"
 #include "../connection/Tcp.h"
 
 

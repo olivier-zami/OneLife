@@ -5,7 +5,7 @@
 #include "LiveObject.h"
 
 #include "../component/handler/Player.h"
-#include "../Server.h"
+#include "../game/Server.h"
 
 extern double oldAge;
 extern double adultAge;
