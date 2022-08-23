@@ -5,6 +5,8 @@
 #ifndef ONE_LIFE__GAME__APPLICATION_H
 #define ONE_LIFE__GAME__APPLICATION_H
 
+#include "handler/Socket.h"
+
 #include <map>
 #include <string>
 
@@ -19,8 +21,9 @@ namespace oneLife::game
 			const char* getDirectory(std::string name);
 			void setDirectory(std::string name, std::string path);
 
-		private:
+		protected:
 			std::map<std::string, std::string>* directory;
+			::oneLife::client::game::handler::Socket* socket;
 	};
 }
 

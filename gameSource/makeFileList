@@ -21,10 +21,10 @@ LAYER_SOURCE = \
 ../third_party/openLife/src/debug/Console.cpp \
 ../third_party/openLife/src/Debug.cpp \
 ../third_party/openLife/src/system/Console.cpp \
-component/Socket.cpp \
 minitech.cpp \
 game/Application.cpp \
 game/main.cpp \
+game/handler/Socket.cpp \
 game/ui/GameSceneHandler.cpp \
 game/ui/sdl.cpp \
 game/ui/panel/DemoCodePanel.cpp \

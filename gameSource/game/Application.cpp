@@ -9,15 +9,38 @@
 #include "minorGems/util/stringUtils.h"//stringDuplicate?
 
 char countingOnVsync = false;
-GameSceneHandler *sceneHandler;
 int idealTargetFrameRate = 60;
 int targetFrameRate = idealTargetFrameRate;
 char loadingDone = false;
 char loadingFailedFlag = false;
 char *loadingFailedMessage = NULL;
+GameSceneHandler *sceneHandler;
+oneLife::client::game::handler::Socket* socketHandler = nullptr;
 
 extern ScreenGL *screen;
 extern int targetFrameRate;
+
+oneLife::game::Application::Application()
+{
+	this->directory = new std::map<std::string, std::string>();
+	socketHandler = new oneLife::client::game::handler::Socket();
+	this->socket = socketHandler;
+}
+
+oneLife::game::Application::~Application() {}
+
+const char * oneLife::game::Application::getDirectory(std::string name)
+{
+	return this->directory->at(name).c_str();
+}
+
+void oneLife::game::Application::setDirectory(std::string name, std::string path)
+{
+	std::pair<std::string, std::string> newDirectory = {name, path};
+	this->directory->insert(newDirectory);
+}
+
+/**********************************************************************************************************************/
 
 char getCountingOnVsync()
 {
@@ -85,26 +108,4 @@ void saveFrameRateSettings()
 void wakeUpPauseFrameRate()
 {
 	sceneHandler->mPausedSleepTime = 0;
-}
-
-
-
-/**********************************************************************************************************************/
-
-oneLife::game::Application::Application()
-{
-	this->directory = new std::map<std::string, std::string>();
-}
-
-oneLife::game::Application::~Application() {}
-
-const char * oneLife::game::Application::getDirectory(std::string name)
-{
-	return this->directory->at(name).c_str();
-}
-
-void oneLife::game::Application::setDirectory(std::string name, std::string path)
-{
-	std::pair<std::string, std::string> newDirectory = {name, path};
-	this->directory->insert(newDirectory);
 }

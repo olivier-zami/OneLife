@@ -1,29 +1,16 @@
 #ifndef LIVING_LIFE_PAGE_INCLUDED
 #define LIVING_LIFE_PAGE_INCLUDED
 
-
-
-
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/util/SimpleVector.h"
-
 #include "minorGems/util/SettingsManager.h"
-
 #include "minorGems/game/game.h"
-
-
 #include "transitionBank.h"
-
 #include "GamePage.h"
-
 #include "Picker.h"
-
-
 #include "pathFind.h"
-
 #include "animationBank.h"
 #include "emotion.h"
-
 #include "TextField.h"
 
 
@@ -428,10 +415,6 @@ typedef struct ExtraMapObject {
         SimpleVector<int> containedStack;
         SimpleVector< SimpleVector<int> > subContainedStack;
     } ExtraMapObject;
-        
-        
-
-#include "component/Socket.h"
 
 class LivingLifePage :
 		public GamePage,
@@ -524,29 +507,18 @@ class LivingLifePage :
         
 
     protected:
-		oneLife::game::component::Socket* socket;
-
         int mServerSocket;
-        
         int mRequiredVersion;
-
         char mForceRunTutorial;
         int mTutorialNumber;
-
         char mGlobalMessageShowing;
         double mGlobalMessageStartTime;
         SimpleVector<char*>mGlobalMessagesToDestroy;
-        
-
         int mFirstServerMessagesReceived;
-        
         char mStartedLoadingFirstObjectSet;
         char mDoneLoadingFirstObjectSet;
         double mStartedLoadingFirstObjectSetStartTime;
-
         float mFirstObjectSetLoadingProgress;
-        
-        
 
         // an offset that we apply to all server-recieved coordinates
         // before storing them locally, and reverse-apply to all local
@@ -962,17 +934,12 @@ class LivingLifePage :
 
 
         void handleOurDeath( char inDisconnect = false );
-        
 
         char *mDeathReason;
-        
-
         double mRemapDelay;
         double mRemapPeak;
         double mRemapDirection;
         double mCurrentRemapFraction;
-        
-        
 
         ExtraMapObject copyFromMap( int inMapI );
         

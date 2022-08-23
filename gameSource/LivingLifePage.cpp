@@ -1,5 +1,6 @@
 #include "LivingLifePage.h"
 
+#include "game/handler/Socket.h"
 #include "objectBank.h"
 #include "spriteBank.h"
 #include "transitionBank.h"
@@ -8,27 +9,17 @@
 #include "whiteSprites.h"
 #include "message.h"
 #include "groundSprites.h"
-
 #include "accountHmac.h"
-
 #include "liveObjectSet.h"
 #include "ageControl.h"
 #include "musicPlayer.h"
-
 #include "emotion.h"
-
 #include "photos.h"
-
-
 #include "liveAnimationTriggers.h"
-
 #include "../commonSource/fractalNoise.h"
 #include "../commonSource/sayLimit.h"
-
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/MinPriorityQueue.h"
-
-
 #include "minorGems/game/Font.h"
 #include "minorGems/util/stringUtils.h"
 #include "minorGems/util/SettingsManager.h"
@@ -36,15 +27,10 @@
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/gameGraphics.h"
 #include "zoomView.h"
-
 #include "minorGems/io/file/File.h"
-
 #include "minorGems/formats/encodingUtils.h"
-
 #include "minorGems/system/Thread.h"
-
 #include "minorGems/util/log/AppLog.h"
-
 #include "minorGems/crypto/hashes/sha1.h"
 
 #include <stdlib.h>//#include <math.h>
@@ -61,10 +47,21 @@ static ObjectPickable objectPickable;
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096
 
-extern int versionNumber;
+extern int bytesOutCount;
+extern int bytesInCount;
+extern double connectedTime;
 extern int dataVersionNumber;
-
+extern char forceDisconnect;
 extern double frameRateFactor;
+extern char *lastMessageSentToServer;
+extern int messagesOutCount;
+extern int numServerBytesRead;
+extern int numServerBytesSent;
+extern int overheadServerBytesSent;
+extern char serverSocketConnected;
+extern SimpleVector<unsigned char> serverSocketBuffer;
+extern double timeLastMessageSent;
+extern int versionNumber;
 
 extern Font *mainFont;
 extern Font *numbersFontFixed;
@@ -87,27 +84,19 @@ static char shouldMoveCamera = true;
 
 extern double viewWidth;
 extern double viewHeight;
-
 extern int screenW, screenH;
-
 extern char usingCustomServer;
 extern char *serverIP;
 extern int serverPort;
-
+extern oneLife::client::game::handler::Socket* socketHandler;
 extern char useSpawnSeed;
 extern char *userEmail;
 extern char *userTwinCode;
 extern int userTwinCount;
-
 extern char userReconnect;
-
 static char vogMode = false;
 static doublePair vogPos = { 0, 0 };
-
 static char vogPickerOn = false;
-
-    
-
 extern float musicLoudness;
 
 //KB
@@ -142,7 +131,6 @@ unsigned char charKey_Eat = 'e';
 unsigned char charKey_Baby = 'c';
 
 static bool waitForDoorToOpen;
-
 //FOV
 extern int gui_hud_mode;
 extern float gui_fov_scale;
@@ -153,34 +141,20 @@ extern int gui_fov_offset_y;
 static SpriteHandle guiPanelLeftSprite;
 static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
-
-
 static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
-
-
 static int lastScreenMouseX, lastScreenMouseY;
 static char mouseDown = false;
 static int mouseDownFrames = 0;
-
 static int minMouseDownFrames = 30;
-
-
 static int screenCenterPlayerOffsetX, screenCenterPlayerOffsetY;
-
-
 static float lastMouseX = 0;
 static float lastMouseY = 0;
 
-
 // set to true to render for teaser video
 static char teaserVideo = false;
-
-
 static int showBugMessage = 0;
 static const char *bugEmail = "jason" "rohrer" "@" "fastmail.fm";
-
-
 
 // if true, pressing S key (capital S)
 // causes current speech and mask to be saved to the screenShots folder
@@ -188,29 +162,21 @@ static char savingSpeechEnabled = false;
 static char savingSpeech = false;
 static char savingSpeechColor = false;
 static char savingSpeechMask = false;
-
 static char savingSpeechNumber = 1;
-
 static char takingPhoto = false;
 static GridPos takingPhotoGlobalPos;
 static char takingPhotoFlip = false;
 static int photoSequenceNumber = -1;
 static char waitingForPhotoSig = false;
 static char *photoSig = NULL;
-
-
 static double emotDuration = 10;
-
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
-
 static int historyGraphLength = 100;
-
 static char showFPS = false;
 static double frameBatchMeasureStartTime = -1;
 static int framesInBatch = 0;
 static double fpsToDraw = -1;
-
 static SimpleVector<double> fpsHistoryGraph;
 
 
@@ -221,9 +187,6 @@ static int messagesOutPerSec = -1;
 static int bytesInPerSec = -1;
 static int bytesOutPerSec = -1;
 static int messagesInCount = 0;
-static int messagesOutCount = 0;
-static int bytesInCount = 0;
-static int bytesOutCount = 0;
 
 static SimpleVector<double> messagesInHistoryGraph;
 static SimpleVector<double> messagesOutHistoryGraph;
@@ -706,140 +669,36 @@ char *getRelationName( LiveObject *inOurObject, LiveObject *inTheirObject ) {
     }
 
 
-
-
-
-
-
-
 // base speed for animations that aren't speeded up or slowed down
 // when player moving at a different speed, anim speed is modified
 #define BASE_SPEED 3.75
 
-
-int numServerBytesRead = 0;
-int numServerBytesSent = 0;
-
-int overheadServerBytesSent = 0;
 int overheadServerBytesRead = 0;
-
-
 static char hideGuiPanel = false;
-
-
-
-
-static char *lastMessageSentToServer = NULL;
-
-
-// destroyed internally if not NULL
-static void replaceLastMessageSent( char *inNewMessage ) {
-    if( lastMessageSentToServer != NULL ) {
-        delete [] lastMessageSentToServer;
-        }
-    lastMessageSentToServer = inNewMessage;
-    }
-
-
-
-
-SimpleVector<unsigned char> serverSocketBuffer;
-
-static char serverSocketConnected = false;
 static float connectionMessageFade = 1.0f;
-static double connectedTime = 0;
 
-static char forceDisconnect = false;
-
-
-// reads all waiting data from socket and stores it in buffer
-// returns false on socket error
-static char readServerSocketFull( int inServerSocket ) {
-
-    if( forceDisconnect ) {
-        forceDisconnect = false;
-        return false;
-        }
-    
-
-    unsigned char buffer[512];
-    
-    int numRead = readFromSocket( inServerSocket, buffer, 512 );
-    
-    
-    while( numRead > 0 ) {
-        if( ! serverSocketConnected ) {    
-            serverSocketConnected = true;
-            connectedTime = game_getCurrentTime();
-            }
-        
-        serverSocketBuffer.appendArray( buffer, numRead );
-        numServerBytesRead += numRead;
-        bytesInCount += numRead;
-        
-        numRead = readFromSocket( inServerSocket, buffer, 512 );
-        }    
-
-    if( numRead == -1 ) {
-        printf( "Failed to read from server socket at time %f\n",
-                game_getCurrentTime() );
-        return false;
-        }
-    
-    return true;
-    }
-
-
-
-static double timeLastMessageSent = 0;
-
-
-
-void LivingLifePage::sendToServerSocket( char *inMessage ) {
-    timeLastMessageSent = game_getCurrentTime();
-    
-    printf( "Sending message to server: %s\n", inMessage );
-    
-    replaceLastMessageSent( stringDuplicate( inMessage ) );    
-
-    int len = strlen( inMessage );
-    
-    int numSent = sendToSocket( mServerSocket, (unsigned char*)inMessage, len );
-    
-    if( numSent == len ) {
-        numServerBytesSent += len;
-        overheadServerBytesSent += 52;
-        
-        messagesOutCount++;
-        bytesOutCount += len;
-        }
-    else {
-        printf( "Failed to send message to server socket "
-                "at time %f "
-                "(tried to send %d, but numSent=%d)\n", 
-                game_getCurrentTime(), len, numSent );
-        closeSocket( mServerSocket );
-        mServerSocket = -1;
-
-        if( mFirstServerMessagesReceived  ) {
-            
-            if( mDeathReason != NULL ) {
-                delete [] mDeathReason;
-                }
-            mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
-            
-            handleOurDeath( true );
-            }
-        else {
-            setWaiting( false );
-            setSignal( "loginFailed" );
-            }
-        }
-    
-    }
-
-
-
+void LivingLifePage::sendToServerSocket( char *inMessage )
+{
+	socketHandler->sendMessage(inMessage);
+	if(!socketHandler->isLastSendSucceed())
+	{
+		socketHandler->close();
+		if(this->mFirstServerMessagesReceived)
+		{
+			if(this->mDeathReason != NULL)
+			{
+				delete [] this->mDeathReason;
+			}
+			this->mDeathReason = stringDuplicate(translate("reasonDisconnected"));
+			handleOurDeath( true );
+		}
+		else
+		{
+			setWaiting( false );
+			setSignal( "loginFailed" );
+		}
+	}
+}
 
 static char equal( GridPos inA, GridPos inB ) {
     if( inA.x == inB.x && inA.y == inB.y ) {
@@ -2454,8 +2313,7 @@ LivingLifePage::LivingLifePage()
           mZKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 )
 {
-	this->socket = new oneLife::game::component::Socket();
-
+	socketHandler->mServerSocket = &mServerSocket;
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
         mUsingSteam = true;
@@ -12153,7 +12011,8 @@ void LivingLifePage::step() {
                 setNewCraving( foodID, bonus );
                 }
             }
-        else if( type == SEQUENCE_NUMBER ) {
+        else if( type == SEQUENCE_NUMBER )
+        {
             // need to respond with LOGIN message
             
             char challengeString[200];
@@ -12302,7 +12161,7 @@ void LivingLifePage::step() {
             
             delete [] message;
             return;
-            }
+		}
         else if( type == ACCEPTED ) {
             // logged in successfully, wait for next message
             

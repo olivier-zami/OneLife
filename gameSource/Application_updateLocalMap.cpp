@@ -2,8 +2,6 @@
 // Created by olivier on 21/03/2022.
 //
 
-this->socket->readMessage(message);
-
 int sizeX = 0;
 int sizeY = 0;
 int x     = 0;
