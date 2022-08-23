@@ -20,8 +20,3 @@ oneLife::handler::message::SequenceNumber* oneLife::handler::message::SequenceNu
 	printf("\ngenerate sequence number: %s", this->outputMessage);
 	return this;
 }
-
-char* oneLife::handler::message::SequenceNumber::getString()
-{
-	return this->outputMessage;
-}
