@@ -5,13 +5,13 @@
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/game/game.h"
-#include "transitionBank.h"
-#include "GamePage.h"
-#include "Picker.h"
-#include "pathFind.h"
-#include "animationBank.h"
-#include "emotion.h"
-#include "TextField.h"
+#include "../transitionBank.h"
+#include "../GamePage.h"
+#include "../Picker.h"
+#include "../pathFind.h"
+#include "../animationBank.h"
+#include "../emotion.h"
+#include "../TextField.h"
 
 
 #define NUM_HUNGER_BOX_SPRITES 20

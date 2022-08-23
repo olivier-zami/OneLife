@@ -55,7 +55,7 @@ CustomRandomSource randSource( 34957197 );
 #include "FinalMessagePage.h"
 #include "LoadingPage.h"
 #include "AutoUpdatePage.h"
-#include "LivingLifePage.h"
+#include "game/LivingLifePage.h"
 #include "ExistingAccountPage.h"
 #include "ExtendedMessagePage.h"
 #include "RebirthChoicePage.h"

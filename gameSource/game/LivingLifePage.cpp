@@ -1,23 +1,23 @@
 #include "LivingLifePage.h"
 
-#include "game/handler/Socket.h"
-#include "objectBank.h"
-#include "spriteBank.h"
-#include "transitionBank.h"
-#include "categoryBank.h"
-#include "soundBank.h"
-#include "whiteSprites.h"
-#include "message.h"
-#include "groundSprites.h"
-#include "accountHmac.h"
-#include "liveObjectSet.h"
-#include "ageControl.h"
-#include "musicPlayer.h"
-#include "emotion.h"
-#include "photos.h"
-#include "liveAnimationTriggers.h"
-#include "../commonSource/fractalNoise.h"
-#include "../commonSource/sayLimit.h"
+#include "handler/Socket.h"
+#include "../objectBank.h"
+#include "../spriteBank.h"
+#include "../transitionBank.h"
+#include "../categoryBank.h"
+#include "../soundBank.h"
+#include "../whiteSprites.h"
+#include "../message.h"
+#include "../groundSprites.h"
+#include "../accountHmac.h"
+#include "../liveObjectSet.h"
+#include "../ageControl.h"
+#include "../musicPlayer.h"
+#include "../emotion.h"
+#include "../photos.h"
+#include "../liveAnimationTriggers.h"
+#include "../../commonSource/fractalNoise.h"
+#include "../../commonSource/sayLimit.h"
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/util/MinPriorityQueue.h"
 #include "minorGems/game/Font.h"
@@ -26,7 +26,7 @@
 #include "minorGems/util/random/JenkinsRandomSource.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/gameGraphics.h"
-#include "zoomView.h"
+#include "../zoomView.h"
 #include "minorGems/io/file/File.h"
 #include "minorGems/formats/encodingUtils.h"
 #include "minorGems/system/Thread.h"
@@ -38,11 +38,11 @@
 
 
 #define OHOL_NON_EDITOR 1
-#include "ObjectPickable.h"
+#include "../ObjectPickable.h"
 
 static ObjectPickable objectPickable;
 
-#include "minitech.h"
+#include "../minitech.h"
 
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096
@@ -12678,7 +12678,7 @@ void LivingLifePage::step() {
             }
         else if( type == MAP_CHUNK )
         {
-#include "Application_updateLocalMap.cpp"
+#include "GameScreen_MapChunkMessage.cpp"
 		}
         else if( type == MAP_CHANGE ) {
             int numLines;

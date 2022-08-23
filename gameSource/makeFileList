@@ -25,6 +25,7 @@ minitech.cpp \
 game/Application.cpp \
 game/main.cpp \
 game/handler/Socket.cpp \
+game/LivingLifePage.cpp \
 game/ui/GameSceneHandler.cpp \
 game/ui/sdl.cpp \
 game/ui/panel/DemoCodePanel.cpp \
@@ -39,7 +40,6 @@ serialWebRequests.cpp \
 accountHmac.cpp \
 PageComponent.cpp \
 GamePage.cpp \
-LivingLifePage.cpp \
 pathFind.cpp \
 ageControl.cpp \
 ExtendedMessagePage.cpp \

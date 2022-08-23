@@ -9,7 +9,7 @@
 #include "../../FinalMessagePage.h"
 #include "../../LoadingPage.h"
 #include "../../AutoUpdatePage.h"
-#include "../../LivingLifePage.h"
+#include "../LivingLifePage.h"
 #include "../../ExistingAccountPage.h"
 #include "../../ExtendedMessagePage.h"
 #include "../../RebirthChoicePage.h"
