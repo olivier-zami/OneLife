@@ -110,13 +110,6 @@ bool oneLife::server::game::listener::Socket::isConnectionRequestAccepted()
 	return this->isLastConnectionAccepted;
 }
 
-oneLife::server::game::listener::Socket* oneLife::server::game::listener::Socket::sendMessage(char *message)
-{
-	printf("\n===send message==============>\n\t%s", message);
-	this->outputMessage = message;
-	return this;
-}
-
 bool oneLife::server::game::listener::Socket::isUnknownClientConnectionRequestReceived()
 {
 	return (bool) (this->isLastConnectionAccepted && !this->isClientKnown);
@@ -134,6 +127,8 @@ void oneLife::server::game::listener::Socket::setPort(int port)
 
 void oneLife::server::game::listener::Socket::to(FreshConnection newConnection)
 {
+	this->outputMessage = this->getOutputMessage();
+	printf("\nto: %s\n\n\n", this->outputMessage);
 	int messageLength = strlen(this->outputMessage);
 	int numSent = newConnection.sock->send((unsigned char*)this->outputMessage,
 							 messageLength,

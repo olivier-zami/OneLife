@@ -23,6 +23,14 @@ CUSTOM_LINUX_LINK_FLAGS =
 
 
 LAYER_SOURCE = \
+../commonSource/Debug.cpp \
+../commonSource/math/geometry.cpp \
+../commonSource/math/misc.cpp \
+../commonSource/math/GridPos.cpp \
+../commonSource/fractalNoise.cpp \
+../commonSource/sayLimit.cpp \
+../commonSource/handler/Message.cpp \
+../commonSource/handler/message/SequenceNumber.cpp \
 main.cpp \
 map.cpp \
 component/cache/Biome.cpp \
@@ -50,9 +58,6 @@ game/Server.cpp \
 objectType/bank/Cache.cpp \
 objectType/bank/LinearDB.cpp \
 objectType/bank/linearDB/lineardb3.cpp \
-../commonSource/Debug.cpp \
-../commonSource/math/geometry.cpp \
-../commonSource/math/misc.cpp \
 ../gameSource/transitionBank.cpp \
 ../gameSource/categoryBank.cpp \
 ../gameSource/objectBank.cpp \
@@ -62,9 +67,6 @@ objectType/bank/linearDB/lineardb3.cpp \
 ../gameSource/SoundUsage.cpp \
 ../gameSource/objectMetadata.cpp \
 ../gameSource/GridPos.cpp \
-../commonSource/math/GridPos.cpp \
-../commonSource/fractalNoise.cpp \
-../commonSource/sayLimit.cpp \
 ../third_party/openLife/src/Debug.cpp \
 kissdb.cpp \
 lifeLog.cpp \

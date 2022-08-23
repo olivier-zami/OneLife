@@ -64,6 +64,7 @@
 #include "../../third_party/minorGems/util/random/JenkinsRandomSource.h"
 #include "../../third_party/minorGems/util/SettingsManager.h"
 #include "../../third_party/minorGems/util/SimpleVector.h"
+#include "../../commonSource/dataType/message.h"
 #include "handler/Player.h"
 
 #define MAP_TIMESEC Time::timeSec()// can replace with frozenTime to freeze time or slowTime to slow it down
@@ -10522,6 +10523,11 @@ bool OneLife::Server::isLastSendingFailed()
 	return this->lastSendingFailed;
 }
 
+bool OneLife::Server::isShutdownMode()
+{
+	return this->shutdownMode;
+}
+
 /**
  *
  * @return
@@ -10540,6 +10546,10 @@ oneLife::server::game::application::Information OneLife::Server::getInformation(
 	return this->server;
 }
 
+int OneLife::Server::getTotalPlayers()
+{
+	return players.size() + newConnections.size();
+}
 
 FreshConnection OneLife::Server::createConnection(Socket* clientSocket)
 {
@@ -10562,55 +10572,13 @@ FreshConnection OneLife::Server::createConnection(Socket* clientSocket)
 	newConnection.twinCount = 0;
 	nextSequenceNumber ++;
 	SettingsManager::setSetting( "sequenceNumber", (int)nextSequenceNumber );
-	/*
-	int currentPlayers = players.size() + newConnections.size();
-	char *message;
-	if( apocalypseTriggered || this->shutdownMode )
-	{
-		AppLog::info( "We are in shutdown mode, " "deflecting new connection" );
-		AppLog::infoF( "%d player(s) still alive on server.", players.size() );
-		message = autoSprintf( "SHUTDOWN\n"
-							   "%d/%d\n"
-							   "#",
-							   currentPlayers, maxPlayers );
-		newConnection.shutdownMode = true;
-	}
-	else if( currentPlayers >= maxPlayers )
-	{
-		AppLog::infoF( "%d of %d permitted players connected, "
-					   "deflecting new connection",
-					   currentPlayers, maxPlayers );
-
-		message = autoSprintf( "SERVER_FULL\n"
-							   "%d/%d\n"
-							   "#",
-							   currentPlayers, maxPlayers );
-		newConnection.shutdownMode = true;
-	}
-	else
-	{
-		int totalBiome = 15;
-		message = autoSprintf( "SN\n"
-							   "%d/%d\n"
-							   "%s\n"
-							   "%lu\n"
-							   "%i#",
-							   currentPlayers, maxPlayers,
-							   newConnection.sequenceNumberString,
-							   this->server.about.versionNumber,
-							   totalBiome);
-		newConnection.shutdownMode = false;
-	}
-
-	// wait for email and hashes to come from client
-	// (and maybe ticket server check isn't required by settings)
+	// wait for email and hashes to come from client (and maybe ticket server check isn't required by settings)
 	newConnection.ticketServerRequest = NULL;
 	newConnection.ticketServerAccepted = false;
 	newConnection.lifeTokenSpent = false;
 	newConnection.error = false;
 	newConnection.errorCauseString = "";
 	newConnection.rejectedSendTime = 0;
-	*/
 
 	return newConnection;
 }
@@ -10717,55 +10685,46 @@ void OneLife::Server::_procedureCreateNewConnection()
 
 		FreshConnection newConnection = this->createConnection(this->socketListener->getLastClientSocket());
 
-		int currentPlayers = players.size() + newConnections.size();
-		char *message;
 		if( apocalypseTriggered || this->shutdownMode )
 		{
+			newConnection.shutdownMode = true;
+
+
 			AppLog::info( "We are in shutdown mode, " "deflecting new connection" );
 			AppLog::infoF( "%d player(s) still alive on server.", players.size() );
+			char *message;
 			message = autoSprintf( "SHUTDOWN\n"
 								   "%d/%d\n"
 								   "#",
-								   currentPlayers, this->server.maxPlayers );
-			newConnection.shutdownMode = true;
+								   this->getTotalPlayers(),
+								   this->server.maxPlayers );
+			delete [] message;
 		}
-		else if( currentPlayers >= this->server.maxPlayers )
+		else if( this->getTotalPlayers() >= this->server.maxPlayers )
 		{
-			AppLog::infoF( "%d of %d permitted players connected, "
-						   "deflecting new connection",
-						   currentPlayers, this->server.maxPlayers );
+			newConnection.shutdownMode = true;
 
+			AppLog::infoF( "%d of %d permitted players connected, deflecting new connection",
+						   this->getTotalPlayers(), this->server.maxPlayers );
+			char* message;
 			message = autoSprintf( "SERVER_FULL\n"
 								   "%d/%d\n"
 								   "#",
-								   currentPlayers, this->server.maxPlayers );
-			newConnection.shutdownMode = true;
+								   this->getTotalPlayers(), this->server.maxPlayers );
+			delete [] message;
 		}
-		else
+		else //send SequenceNumber message
 		{
-			int totalBiome = 15;
-			message = autoSprintf( "SN\n"
-								   "%d/%d\n"
-								   "%s\n"
-								   "%lu\n"
-									"%i#",
-								   currentPlayers, this->server.maxPlayers,
-								   newConnection.sequenceNumberString,
-								   this->server.about.versionNumber,
-								   totalBiome);
 			newConnection.shutdownMode = false;
+
+			AppLog::infoF("New player accepted");
+			oneLife::dataType::message::SequenceNumber sequenceNumber;
+			sequenceNumber.totalPlayers = this->getTotalPlayers();
+			sequenceNumber.maxPlayers = this->server.maxPlayers;
+			sequenceNumber.string = newConnection.sequenceNumberString;
+			sequenceNumber.serverVersion = this->server.about.versionNumber;
+			this->socketListener->sendMessage(sequenceNumber)->to(newConnection);
 		}
-
-		// wait for email and hashes to come from client
-		// (and maybe ticket server check isn't required by settings)
-		newConnection.ticketServerRequest = NULL;
-		newConnection.ticketServerAccepted = false;
-		newConnection.lifeTokenSpent = false;
-		newConnection.error = false;
-		newConnection.errorCauseString = "";
-		newConnection.rejectedSendTime = 0;
-
-		this->socketListener->sendMessage(message)->to(newConnection);
 		AppLog::infoF( "Listening for another connection on port %d", this->socketListener->getPort() );
 	}
 }
@@ -11175,7 +11134,7 @@ void OneLife::Server::sendStartingMap(LiveObject *inO)
 {
 	if(!inO->connected) return; // act like it was a successful send so we can move on until they reconnect later
 
-	OneLife::dataType::message::MapChunk mapChunk;
+	oneLife::dataType::message::MapChunk mapChunk;
 	mapChunk.origin.x = inO->xd - (chunkDimensionX/2);
 	mapChunk.origin.y = inO->yd - (chunkDimensionY/2);
 	mapChunk.dimension.width = chunkDimensionX;

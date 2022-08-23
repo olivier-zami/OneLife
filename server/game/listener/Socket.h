@@ -8,11 +8,14 @@
 #include "../../../third_party/minorGems/network/Socket.h"
 #include "../../../third_party/minorGems/network/SocketPoll.h"
 #include "../../../third_party/minorGems/network/SocketServer.h"
+#include "../../../commonSource/dataType/message.h"
+#include "../../../commonSource/handler/message/SequenceNumber.h"
 #include "../../dataType/connection.h"
 
 namespace oneLife::server::game::listener
 {
-	class Socket
+	class Socket:
+		public oneLife::handler::message::SequenceNumber
 	{
 		public:
 			Socket();
@@ -26,7 +29,7 @@ namespace oneLife::server::game::listener
 			int getPort();
 			bool isConnectionRequestAccepted();
 			bool isUnknownClientConnectionRequestReceived();
-			Socket* sendMessage(char* message);
+			//using oneLife::handler::message::SequenceNumber::sendMessage;
 			void setMaximumConnectionListened(int maxConnection);
 			void setPort(int port);
 			void to(FreshConnection newConnection);

@@ -65,9 +65,11 @@ namespace OneLife
 
 			bool isLastSendingCanceled();
 			bool isLastSendingFailed();
+			bool isShutdownMode();
 
 			const char* getErrorMessage();
 			oneLife::server::game::application::Information getInformation();
+			int getTotalPlayers();
 
 			void sendAcceptanceMessage(FreshConnection *nextConnection);
 			void sendFirstMessages(LiveObject *nextPlayer);
