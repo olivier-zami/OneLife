@@ -2,10 +2,10 @@
 // Created by olivier on 04/05/2022.
 //
 
-#ifndef ONELIFE_SERVER_DATATYPE_MESSAGE_H
-#define ONELIFE_SERVER_DATATYPE_MESSAGE_H
+#ifndef oneLife_common_dataType_message_H
+#define oneLife_common_dataType_message_H
 
-namespace OneLife::dataType::message
+namespace oneLife::dataType::message
 {
 	typedef struct
 	{
@@ -18,6 +18,14 @@ namespace OneLife::dataType::message
 			int height;
 		}dimension;
 	}MapChunk;
+
+	typedef struct
+	{
+		int totalPlayers;
+		int maxPlayers;
+		char* string;
+		int serverVersion;
+	}SequenceNumber;
 }
 
-#endif //ONELIFE_SERVER_DATATYPE_MESSAGE_H
+#endif //oneLife_common_dataType_message_H
