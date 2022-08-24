@@ -8,11 +8,13 @@
 #include "../../../third_party/minorGems/network/Socket.h"
 #include "../../../server/dataType/connection.h"
 #include "../../dataType/message.h"
+#include "../Message.h"
 
 
 namespace oneLife::handler::message
 {
-	class SequenceNumber
+	class SequenceNumber:
+		public ::oneLife::handler::Message
 	{
 		public:
 			SequenceNumber();
@@ -20,11 +22,6 @@ namespace oneLife::handler::message
 
 			oneLife::handler::message::SequenceNumber* sendMessage(oneLife::dataType::message::SequenceNumber sequenceNumber);
 			virtual void to(FreshConnection newConnection) = 0;
-
-			char* getString();
-
-		//protected:
-			char *outputMessage;
 	};
 }
 
