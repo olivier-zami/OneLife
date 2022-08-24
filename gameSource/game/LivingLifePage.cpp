@@ -1,5 +1,18 @@
 #include "LivingLifePage.h"
 
+#include "minorGems/util/SimpleVector.h"
+#include "minorGems/util/MinPriorityQueue.h"
+#include "minorGems/game/Font.h"
+#include "minorGems/util/stringUtils.h"
+#include "minorGems/util/SettingsManager.h"
+#include "minorGems/util/random/JenkinsRandomSource.h"
+#include "minorGems/game/drawUtils.h"
+#include "minorGems/game/gameGraphics.h"
+#include "minorGems/io/file/File.h"
+#include "minorGems/formats/encodingUtils.h"
+#include "minorGems/system/Thread.h"
+#include "minorGems/util/log/AppLog.h"
+#include "minorGems/crypto/hashes/sha1.h"
 #include "handler/Socket.h"
 #include "../objectBank.h"
 #include "../spriteBank.h"
@@ -18,20 +31,7 @@
 #include "../liveAnimationTriggers.h"
 #include "../../commonSource/fractalNoise.h"
 #include "../../commonSource/sayLimit.h"
-#include "minorGems/util/SimpleVector.h"
-#include "minorGems/util/MinPriorityQueue.h"
-#include "minorGems/game/Font.h"
-#include "minorGems/util/stringUtils.h"
-#include "minorGems/util/SettingsManager.h"
-#include "minorGems/util/random/JenkinsRandomSource.h"
-#include "minorGems/game/drawUtils.h"
-#include "minorGems/game/gameGraphics.h"
 #include "../zoomView.h"
-#include "minorGems/io/file/File.h"
-#include "minorGems/formats/encodingUtils.h"
-#include "minorGems/system/Thread.h"
-#include "minorGems/util/log/AppLog.h"
-#include "minorGems/crypto/hashes/sha1.h"
 #include "../../commonSource/handler/Message.h"
 
 #include <stdlib.h>//#include <math.h>
@@ -1762,8 +1762,6 @@ bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
 	return (c == key || c == toupper(tKey));
 }
 
-
-
 static Image *expandToPowersOfTwoWhite( Image *inImage ) {
     
     int w = 1;
@@ -1778,8 +1776,6 @@ static Image *expandToPowersOfTwoWhite( Image *inImage ) {
     
     return inImage->expandImage( w, h, true );
     }
-
-
 
 static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
                                    SpriteHandle *inDestArray ) {
@@ -1809,8 +1805,6 @@ static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
         }
 
     }
-
-
 
 void LivingLifePage::clearMap() {
     for( int i=0; i<mMapD *mMapD; i++ ) {
@@ -2252,14 +2246,9 @@ LivingLifePage::LivingLifePage()
 		mMapSubContainedStacks);
     }
 
-
-
-
 void LivingLifePage::runTutorial() {
     mForceRunTutorial = true;
     }
-
-
 
 void LivingLifePage::clearLiveObjects() {
     for( int i=0; i<gameObjects.size(); i++ ) {
@@ -2299,9 +2288,6 @@ void LivingLifePage::clearLiveObjects() {
     
     gameObjects.deleteAll();
     }
-
-
-
 
 LivingLifePage::~LivingLifePage() {
     printf( "Total received = %d bytes (+%d in headers), "
@@ -2512,9 +2498,6 @@ LivingLifePage::~LivingLifePage() {
         }
     }
 
-
-
-
 void LivingLifePage::clearOwnerInfo() {
     
     for( int i=0; i<mOwnerInfo.size(); i++ ) {
@@ -2523,13 +2506,9 @@ void LivingLifePage::clearOwnerInfo() {
     mOwnerInfo.deleteAll();
     }
 
-
-
 char LivingLifePage::isMapBeingPulled() {
     return mapPullMode;
     }
-
-
 
 void LivingLifePage::adjustAllFrameCounts( double inOldFrameRateFactor,
                                            double inNewFrameRateFactor ) {
@@ -2578,15 +2557,10 @@ void LivingLifePage::adjustAllFrameCounts( double inOldFrameRateFactor,
         }
     }
 
-
-
 LiveObject *LivingLifePage::getOurLiveObject() {
     
     return getLiveObject( ourID );
     }
-
-
-
 
 LiveObject *LivingLifePage::getLiveObject( int inID ) {
     
@@ -2603,7 +2577,6 @@ LiveObject *LivingLifePage::getLiveObject( int inID ) {
         }
     return obj;
     }
-
 
 bool LivingLifePage::tileBlocked( int x, int y ) {
 	int oid = getObjId( x, y );
@@ -2624,8 +2597,6 @@ bool LivingLifePage::tileBlocked( int x, int y ) {
 	if( blocked_center || blocked_from_right || blocked_from_left ) return true;
 	return false;
 	}
-	
-
 
 void LivingLifePage::drunkWalk( GridPos *path, int pathLen, bool actionMove ) {
 	
@@ -2682,7 +2653,6 @@ void LivingLifePage::drunkWalk( GridPos *path, int pathLen, bool actionMove ) {
 		}
 	
 	}
-	
 
 bool LivingLifePage::isTripping() {
 	LiveObject *ourLiveObject = getOurLiveObject();
@@ -2693,8 +2663,6 @@ bool LivingLifePage::isTripping() {
 		strcmp( ourLiveObject->currentEmot->triggerWord, 
 		getEmotion( trippingEmotionIndex )->triggerWord ) == 0;
 	}
-
-
 
 SimpleVector<char*> *splitLines( const char *inString,
                                  double inMaxWidth ) {

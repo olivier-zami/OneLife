@@ -29,5 +29,6 @@ char *getNextServerMessage();
 char *getNextServerMessageRaw();
 char readServerSocketFull( int inServerSocket );
 void replaceLastMessageSent( char *inNewMessage );
+void startConnecting();
 
 #endif //oneLife_client_game_handler_socket_H

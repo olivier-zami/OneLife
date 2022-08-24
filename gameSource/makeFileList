@@ -23,8 +23,8 @@ LAYER_SOURCE = \
 ../third_party/openLife/src/Debug.cpp \
 ../third_party/openLife/src/system/Console.cpp \
 minitech.cpp \
+game/mainFunction.cpp \
 game/Application.cpp \
-game/main.cpp \
 game/handler/Socket.cpp \
 game/LivingLifePage.cpp \
 game/ui/GameSceneHandler.cpp \

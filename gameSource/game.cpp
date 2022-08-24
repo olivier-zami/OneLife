@@ -41,6 +41,8 @@ CustomRandomSource randSource( 34957197 );
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
+#include "game/handler/Socket.h"
+#include "game/LivingLifePage.h"
 #include "spriteBank.h"
 #include "objectBank.h"
 #include "categoryBank.h"
@@ -55,7 +57,6 @@ CustomRandomSource randSource( 34957197 );
 #include "FinalMessagePage.h"
 #include "LoadingPage.h"
 #include "AutoUpdatePage.h"
-#include "game/LivingLifePage.h"
 #include "ExistingAccountPage.h"
 #include "ExtendedMessagePage.h"
 #include "RebirthChoicePage.h"
@@ -65,15 +66,10 @@ CustomRandomSource randSource( 34957197 );
 #include "PollPage.h"
 #include "GeneticHistoryPage.h"
 //#include "TestPage.h"
-
 #include "ServerActionPage.h"
-
 #include "ageControl.h"
-
 #include "musicPlayer.h"
-
 #include "whiteSprites.h"
-
 #include "message.h"
 
 char *currentUserTypedMessage = NULL;
@@ -84,37 +80,13 @@ static char autoLogIn = 0;
 char loginEditOverride = false;
 
 // start at reflector URL
-char *reflectorURL = NULL;
-char usingCustomServer = false;
-char *serverIP = NULL;
-int serverPort = 0;
 char useSpawnSeed;
-char *userEmail = NULL;
 char *accountKey = NULL;
-char *userTwinCode = NULL;
 int userTwinCount = 0;
-char userReconnect = false;
 
 // these are needed by ServerActionPage, but we don't use them
 int userID = -1;
 int serverSequenceNumber = 0;
-
-FinalMessagePage *finalMessagePage;
-ServerActionPage *getServerAddressPage;
-LoadingPage *loadingPage;
-AutoUpdatePage *autoUpdatePage;
-LivingLifePage *livingLifePage;
-ExistingAccountPage *existingAccountPage;
-ExtendedMessagePage *extendedMessagePage;
-RebirthChoicePage *rebirthChoicePage;
-SettingsPage *settingsPage;
-ReviewPage *reviewPage;
-TwinPage *twinPage;
-PollPage *pollPage;
-GeneticHistoryPage *geneticHistoryPage;
-//TestPage *testPage = NULL;
-
-GamePage *currentGamePage = NULL;
 int loadingPhase = 0;
 int loadingStepBatchSize = 1;
 double loadingPhaseStartTime;
@@ -142,6 +114,29 @@ double viewHeight = 720;
 // Usually, if screen is not 16:9, it will be taller, not wider,
 // and we will put letterbox bars on the top and bottom 
 double visibleViewWidth = viewWidth;
+
+extern char *reflectorURL;
+extern char *serverIP;
+extern int serverPort;
+extern oneLife::client::game::handler::Socket* socketHandler;
+extern char *userEmail;
+extern char userReconnect;
+extern char *userTwinCode;
+
+extern FinalMessagePage *finalMessagePage;
+extern ServerActionPage *getServerAddressPage;
+extern LoadingPage *loadingPage;
+extern AutoUpdatePage *autoUpdatePage;
+extern LivingLifePage *livingLifePage;
+extern ExistingAccountPage *existingAccountPage;
+extern ExtendedMessagePage *extendedMessagePage;
+extern RebirthChoicePage *rebirthChoicePage;
+extern SettingsPage *settingsPage;
+extern ReviewPage *reviewPage;
+extern TwinPage *twinPage;
+extern PollPage *pollPage;
+extern GeneticHistoryPage *geneticHistoryPage;
+extern GamePage *currentGamePage;
 
 void setFOVScale() {
 
@@ -941,56 +936,6 @@ void deleteCharFromUserTypedMessage() {
             currentUserTypedMessage[ length - 1 ] = '\0';
             }
         }
-    }
-
-static void startConnecting() {
-    userReconnect = false;
-    
-    if( SettingsManager::getIntSetting( "useCustomServer", 0 ) ) {
-        usingCustomServer = true;
-        
-        if( serverIP != NULL ) {
-            delete [] serverIP;
-            serverIP = NULL;
-            }
-        serverIP = SettingsManager::getStringSetting( 
-            "customServerAddress" );
-        if( serverIP == NULL ) {
-            serverIP = stringDuplicate( "127.0.0.1" );
-            }
-        serverPort = SettingsManager::getIntSetting( 
-            "customServerPort", 8005 );
-
-        printf( "Using custom server address: %s:%d\n", 
-                serverIP, serverPort );
-                    
-        currentGamePage = livingLifePage;
-        currentGamePage->base_makeActive( true );
-        }
-    else {
-        usingCustomServer = false;
-        
-        printf( "Starting fetching server URL from reflector %s\n",
-                reflectorURL );
-                
-        getServerAddressPage->clearActionParameters();
-        
-            
-        getServerAddressPage->setActionParameter( "email", 
-                                                  userEmail );
-        
-        if( userTwinCode != NULL ) {
-            char *codeHash = computeSHA1Digest( userTwinCode );
-            getServerAddressPage->setActionParameter( "twin_code", 
-                                                      codeHash );
-            delete [] codeHash;
-            }
-        
-                    
-        currentGamePage = getServerAddressPage;
-        currentGamePage->base_makeActive( true );
-        }
-
     }
 
 void showDiedPage() {

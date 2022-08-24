@@ -4,9 +4,6 @@
 
 #include "Application.h"
 #include "../../third_party/minorGems/game/game.h"
-#include "ui/GameSceneHandler.h"
-#include "ui/sdl.h"
-#include "ui/panel/DemoCodePanel.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/io/file/File.h"
 #include "minorGems/sound/audioNoClip.h"
@@ -15,6 +12,10 @@
 #include "minorGems/util/log/FileLog.h"
 #include "minorGems/util/SettingsManager.h"
 #include "minorGems/util/TranslationManager.h"
+#include "dataType/Settings.h"
+#include "ui/GameSceneHandler.h"
+#include "ui/sdl.h"
+#include "ui/panel/DemoCodePanel.h"
 
 //#include "minorGems/game/platforms/SDL/demoCodePanel.h"
 
@@ -239,7 +240,14 @@ int mainFunction( int inNumArgs, char **inArgs )
         }
 #endif
 
-    appGame = new oneLife::game::Application();
+    oneLife::game::dataType::Settings gameSettings;
+	if((gameSettings.useCustomServer = (bool)SettingsManager::getIntSetting( "useCustomServer", 0 )))
+	{
+		gameSettings.server.ip = SettingsManager::getStringSetting("customServerAddress" );
+		gameSettings.server.port = SettingsManager::getIntSetting("customServerPort", 8005 );
+	}
+
+    appGame = new oneLife::game::Application(gameSettings);
     appGame->setDirectory("graphics", "path/to/graphics");
     printf("\ntest affichage path graphics : %s", appGame->getDirectory("graphics"));
 

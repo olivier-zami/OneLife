@@ -7,9 +7,14 @@
 #include "../../../third_party/minorGems/formats/encodingUtils.h"
 #include "../../../third_party/minorGems/game/game.h"
 #include "../../../third_party/minorGems/util/SimpleVector.h"
+#include "../../../third_party/minorGems/crypto/hashes/sha1.h"
 #include "../../../third_party/minorGems/util/stringUtils.h"
 
 #include "../../../commonSource/handler/Message.h"
+#include "../../GamePage.h"
+#include "../../ServerActionPage.h"
+#include "../Application.h"
+#include "../LivingLifePage.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -33,12 +38,24 @@ int pendingCMDecompressedSize = 0;
 int pendingCompressedChunkSize;
 char *pendingMapChunkMessage = NULL;
 SimpleVector<char*> readyPendingReceivedMessages;
+char *reflectorURL = NULL;
 SimpleVector<char*> serverFrameMessages;
 char serverFrameReady;
+char *serverIP = NULL;
+int serverPort = 0;
 char serverSocketConnected = false;
 SimpleVector<unsigned char> serverSocketBuffer;
 double timeLastMessageSent = 0;
+char *userEmail = NULL;
+char userReconnect = false;
+char *userTwinCode = NULL;
 char waitForFrameMessages = false;
+
+extern oneLife::game::Application *appGame;//TODO: used for refactoring purpose delete after finish
+extern GamePage *currentGamePage;
+extern ServerActionPage *getServerAddressPage;
+extern LivingLifePage *livingLifePage;//TODO: remove after refactoring
+extern char usingCustomServer;
 
 namespace oneLife::debug
 {
@@ -317,6 +334,8 @@ oneLife::client::game::handler::Socket* oneLife::client::game::handler::Socket::
 				"(tried to send %d, but numSent=%d)\n",
 				game_getCurrentTime(), len, numSent );
 	}
+
+	return this;
 }
 
 /**
@@ -372,4 +391,44 @@ void replaceLastMessageSent( char *inNewMessage )
 		delete [] lastMessageSentToServer;
 	}
 	lastMessageSentToServer = inNewMessage;
+}
+
+/**
+ *
+ * @note from gameSource/game.cpp
+ */
+void startConnecting()
+{
+	userReconnect = false;
+
+	if(appGame->getSettings().useCustomServer)
+	{
+		usingCustomServer = true;
+		if( serverIP != NULL )
+		{
+			delete [] serverIP;
+			serverIP = NULL;
+		}
+		serverIP = appGame->getSettings().server.ip;
+		if( serverIP == NULL ) serverIP = stringDuplicate( "127.0.0.1" );
+
+		serverPort = appGame->getSettings().server.port;
+		currentGamePage = livingLifePage;
+		currentGamePage->base_makeActive( true );
+	}
+	else
+	{
+		usingCustomServer = false;
+		printf( "Starting fetching server URL from reflector %s\n", reflectorURL );
+		getServerAddressPage->clearActionParameters();
+		getServerAddressPage->setActionParameter( "email", userEmail );
+		if( userTwinCode != NULL )
+		{
+			char *codeHash = computeSHA1Digest( userTwinCode );
+			getServerAddressPage->setActionParameter( "twin_code", codeHash );
+			delete [] codeHash;
+		}
+		currentGamePage = getServerAddressPage;
+		currentGamePage->base_makeActive( true );
+	}
 }
