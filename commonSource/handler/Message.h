@@ -5,7 +5,8 @@
 #ifndef oneLife_common_handler_message_H
 #define oneLife_common_handler_message_H
 
-#include "../../server/dataType/connection.h"
+#include "../../server/dataType/connection.h"//TODO: merge the content with message.h and remove
+//#include "../dataType/message.h"
 
 namespace oneLife::handler
 {
