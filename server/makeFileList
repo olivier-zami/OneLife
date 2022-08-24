@@ -23,6 +23,7 @@ CUSTOM_LINUX_LINK_FLAGS =
 
 
 LAYER_SOURCE = \
+main.cpp \
 ../commonSource/Debug.cpp \
 ../commonSource/math/geometry.cpp \
 ../commonSource/math/misc.cpp \
@@ -31,7 +32,6 @@ LAYER_SOURCE = \
 ../commonSource/sayLimit.cpp \
 ../commonSource/handler/Message.cpp \
 ../commonSource/handler/message/SequenceNumber.cpp \
-main.cpp \
 map.cpp \
 component/cache/Biome.cpp \
 component/cache/Blocking.cpp \
