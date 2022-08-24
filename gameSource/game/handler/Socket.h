@@ -5,6 +5,8 @@
 #ifndef oneLife_client_game_handler_socket_H
 #define oneLife_client_game_handler_socket_H
 
+//#include "../../../commonSource/handler/Message.h"TODO merge message_client.h with message in common/dataType
+
 namespace oneLife::client::game::handler
 {
 	class Socket
@@ -23,6 +25,8 @@ namespace oneLife::client::game::handler
 	};
 }
 
+char *getNextServerMessage();
+char *getNextServerMessageRaw();
 char readServerSocketFull( int inServerSocket );
 void replaceLastMessageSent( char *inNewMessage );
 

@@ -16,6 +16,7 @@ ROOT_PATH = ../third_party
 LAYER_SOURCE = \
 ../commonSource/Debug.cpp \
 ../commonSource/fractalNoise.cpp \
+../commonSource/handler/Message.cpp \
 ../commonSource/math/GridPos.cpp \
 ../commonSource/sayLimit.cpp \
 ../third_party/openLife/src/debug/Console.cpp \
