@@ -1,3 +1,5 @@
+#define APPLICATION_TYPE_SERVER
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
