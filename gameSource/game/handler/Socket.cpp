@@ -9,7 +9,7 @@
 #include "../../../third_party/minorGems/util/SimpleVector.h"
 #include "../../../third_party/minorGems/util/stringUtils.h"
 
-#include "../../../commonSource/dataType/message_client.h"//TODO merge message_client.h with message.h
+#include "../../../commonSource/handler/Message.h"
 
 #include <cstdio>
 #include <cstdlib>
