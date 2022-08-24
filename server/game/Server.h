@@ -8,7 +8,7 @@
 #include "../../gameSource/GridPos.h"
 #include "../../gameSource/transitionBank.h"
 #include "../component/Map.h"
-#include "../dataType/connection.h"
+#include "dataType/connection.h"
 #include "../dataType/LiveObject.h"
 #include "../dataType/Settings.h"
 #include "minorGems/network/Socket.h"

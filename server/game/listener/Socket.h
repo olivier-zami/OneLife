@@ -10,7 +10,7 @@
 #include "../../../third_party/minorGems/network/SocketServer.h"
 #include "../../../commonSource/dataType/message.h"
 #include "../../../commonSource/handler/message/SequenceNumber.h"
-#include "../../dataType/connection.h"
+#include "../dataType/connection.h"
 
 namespace oneLife::server::game::listener
 {

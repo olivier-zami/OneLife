@@ -6,7 +6,7 @@
 
 #include "minorGems/util/SimpleVector.h"
 
-#include "../../dataType/connection.h"
+#include "../dataType/connection.h"
 
 SimpleVector<FreshConnection> newConnections;
 
