@@ -3,8 +3,7 @@
 //
 
 #include "Message.h"
-
-//#include "../dataType/message_client.h"
+#include "../dataType/messageType.h"
 
 oneLife::handler::Message::Message() {}
 
