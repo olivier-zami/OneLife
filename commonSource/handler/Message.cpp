@@ -4,6 +4,8 @@
 
 #include "Message.h"
 
+#include <cstring>
+
 oneLife::handler::Message::Message() {}
 
 oneLife::handler::Message::~Message() {}
