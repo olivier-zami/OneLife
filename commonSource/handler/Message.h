@@ -5,8 +5,8 @@
 #ifndef oneLife_common_handler_message_H
 #define oneLife_common_handler_message_H
 
-#include "../../server/game/dataType/connection.h"//TODO: merge the content with message.h and remove
 #include "../dataType/messageType.h"
+#include "../dataType/socket.h"
 
 namespace oneLife::handler
 {
