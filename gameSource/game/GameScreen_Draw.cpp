@@ -59,23 +59,19 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 		setDrawColor( 1, 1, 1, 1 );
 
-		if( usingCustomServer ) {
+		if( usingCustomServer )
+		{
 			char *upperIP = stringToUpperCase( serverIP );
-
-			char *message = autoSprintf( translate( "customServerMesssage" ),
-										 upperIP, serverPort );
+			char *message = autoSprintf( translate( "customServerMesssage" ), upperIP, serverPort );
 			delete [] upperIP;
-
 			doublePair custPos = pos;
 			custPos.y += 192;
 			drawMessage( message, custPos );
-
 			delete [] message;
 		}
 
-
-
-		if( ! serverSocketConnected ) {
+		if( ! serverSocketConnected )
+		{
 			// don't draw waiting message, not connected yet
 			if( userReconnect ) {
 				drawMessage( "waitingReconnect", pos );

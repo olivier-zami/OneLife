@@ -51,6 +51,7 @@ GamePage *currentGamePage = NULL;
 
 extern ScreenGL *screen;
 extern int targetFrameRate;
+extern char *serverIP;
 
 oneLife::game::Application::Application(::oneLife::game::dataType::Settings settings)
 {

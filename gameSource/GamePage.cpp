@@ -460,26 +460,27 @@ void GamePage::base_keyDown( unsigned char inASCII ) {
 
 
 void GamePage::base_makeActive( char inFresh ){
-    if( inFresh ) {    
-        for( int i=0; i<mComponents.size(); i++ ) {
+    if( inFresh )
+    {
+        for( int i=0; i<mComponents.size(); i++ )
+		{
             PageComponent *c = *( mComponents.getElement( i ) );
             
             c->base_clearState();
-            }
+		}
 
         // don't show lingering tool tips from last time page was shown
         mLastTipFade = 0;
-        if( mTip != NULL ) {
+        if( mTip != NULL )
+        {
             delete [] mTip;
             mTip = NULL;
-            }
+		}
 
         clearSignal();
-        }
-    
-
+	}
     makeActive( inFresh );
-    }
+}
 
 
 

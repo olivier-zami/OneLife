@@ -278,23 +278,15 @@ typedef struct {
         char ancient;
     } HomePos;
 
-    
-
 static SimpleVector<HomePos> homePosStack;
-
 static SimpleVector<HomePos> oldHomePosStack;
-
-// used on reconnect to decide whether to delete old home positions
-static int lastPlayerID = -1;
-
-
+static int lastPlayerID = -1;// used on reconnect to decide whether to delete old home positions
 static bool isTrippingEffectOn;
-
-
 
 // returns pointer to record, NOT destroyed by caller, or NULL if 
 // home unknown
-static  GridPos *getHomeLocation() {
+static  GridPos *getHomeLocation()
+{
     int num = homePosStack.size();
     if( num > 0 ) {
         return &( homePosStack.getElement( num - 1 )->pos );
@@ -302,11 +294,10 @@ static  GridPos *getHomeLocation() {
     else {
         return NULL;
         }
-    }
+}
 
-
-
-static void removeHomeLocation( int inX, int inY ) {
+static void removeHomeLocation( int inX, int inY )
+{
     for( int i=0; i<homePosStack.size(); i++ ) {
         GridPos p = homePosStack.getElementDirect( i ).pos;
         
@@ -315,11 +306,10 @@ static void removeHomeLocation( int inX, int inY ) {
             break;
             }
         }
-    }
+}
 
-
-
-static void addHomeLocation( int inX, int inY ) {
+static void addHomeLocation( int inX, int inY )
+{
     removeHomeLocation( inX, inY );
     GridPos newPos = { inX, inY };
     HomePos p;
@@ -327,10 +317,10 @@ static void addHomeLocation( int inX, int inY ) {
     p.ancient = false;
     
     homePosStack.push_back( p );
-    }
+}
 
-
-static void addAncientHomeLocation( int inX, int inY ) {
+static void addAncientHomeLocation( int inX, int inY )
+{
     removeHomeLocation( inX, inY );
 
     // remove all ancient pos
@@ -348,79 +338,71 @@ static void addAncientHomeLocation( int inX, int inY ) {
     p.ancient = true;
     
     homePosStack.push_front( p );
-    }
-
-
-
-
+}
 
 
 // returns if -1 no home needs to be shown (home unknown)
 // otherwise, returns 0..7 index of arrow
 static int getHomeDir( doublePair inCurrentPlayerPos, 
                        double *outTileDistance = NULL,
-                       char *outTooClose = NULL ) {
+                       char *outTooClose = NULL )
+{
     GridPos *p = getHomeLocation();
-    
-    if( p == NULL ) {
+    if( p == NULL )
+    {
         return -1;
-        }
-    
-    
-    if( outTooClose != NULL ) {
+	}
+
+    if( outTooClose != NULL )
+    {
         *outTooClose = false;
-        }
-    
+    }
 
     doublePair homePos = { (double)p->x, (double)p->y };
-    
     doublePair vector = sub( homePos, inCurrentPlayerPos );
-
     double dist = length( vector );
 
-    if( outTileDistance != NULL ) {
+    if( outTileDistance != NULL )
+    {
         *outTileDistance = dist;
-        }
+	}
 
-    if( dist < 5 ) {
+    if( dist < 5 )
+    {
         // too close
-
-        if( outTooClose != NULL ) {
+        if( outTooClose != NULL )
+        {
             *outTooClose = true;
-            }
+        }
         
-        if( dist == 0 ) {
+        if( dist == 0 )
+        {
             // can't compute angle
             return -1;
-            }
-        }
-    
-    
+		}
+	}
+
     double a = angle( vector );
 
     // north is 0
     a -= M_PI / 2; 
 
-    
-    if( a <  - M_PI / 8 ) {
+    if( a <  - M_PI / 8 )
+    {
         a += 2 * M_PI;
-        }
+	}
     
     int index = lrint( 8 * a / ( 2 * M_PI ) );
-    
     return index;
-    }
-
-
-
-
+}
 
 char *getRelationName( SimpleVector<int> *ourLin, 
                        SimpleVector<int> *theirLin, 
                        int ourID, int theirID,
                        int ourDisplayID, int theirDisplayID,
                        double ourAge, double theirAge,
-                       int ourEveID, int theirEveID ) {
+                       int ourEveID, int theirEveID )
+{
     
 
     ObjectRecord *theirDisplayO = getObject( theirDisplayID );
@@ -660,7 +642,8 @@ char *getRelationName( SimpleVector<int> *ourLin,
 
 
 
-char *getRelationName( LiveObject *inOurObject, LiveObject *inTheirObject ) {
+char *getRelationName( LiveObject *inOurObject, LiveObject *inTheirObject )
+{
     SimpleVector<int> *ourLin = &( inOurObject->lineage );
     SimpleVector<int> *theirLin = &( inTheirObject->lineage );
     
@@ -674,7 +657,7 @@ char *getRelationName( LiveObject *inOurObject, LiveObject *inTheirObject ) {
                             inTheirObject->age,
                             inOurObject->lineageEveID,
                             inTheirObject->lineageEveID );
-    }
+}
 
 
 // base speed for animations that aren't speeded up or slowed down
@@ -5943,14 +5926,15 @@ void LivingLifePage::step() {
         mouseDownFrames++;
         }
     
-    if( mServerSocket == -1 ) {
+    if(!socketHandler->isConnected())
+    {
         serverSocketConnected = false;
         connectionMessageFade = 1.0f;
-        mServerSocket = openSocketConnection( serverIP, serverPort );
+        socketHandler->connect(serverIP, serverPort);
+        //mServerSocket = openSocketConnection( serverIP, serverPort );
         timeLastMessageSent = game_getCurrentTime();
-        
         return;
-        }
+    }
 
     double pageLifeTime = game_getCurrentTime() - mPageStartTime;
     
@@ -5959,11 +5943,13 @@ void LivingLifePage::step() {
         return;
         }
 
-    if( serverSocketConnected ) {
+    if( serverSocketConnected )
+    {
         // we've heard from server, not waiting to connect anymore
         setWaiting( false );
-        }
-    else {
+	}
+    else
+	{
         
         if( pageLifeTime > 10 ) {
             // having trouble connecting.
@@ -5975,7 +5961,7 @@ void LivingLifePage::step() {
             
             return;
             }
-        }
+	}
 
     // first, read all available data from server
     char readSuccess = readServerSocketFull( mServerSocket );
@@ -6174,7 +6160,6 @@ void LivingLifePage::step() {
             }
         }
 
-
     for( int i=0; i<mPrevMouseClickCellFades.size(); i++ ) {
         float f = mPrevMouseClickCellFades.getElementDirect( i );
         
@@ -6190,7 +6175,6 @@ void LivingLifePage::step() {
             *( mPrevMouseClickCellFades.getElement( i ) ) = f;
             }
         }
-    
     
     if( ! equal( mNotePaperPosOffset, mNotePaperPosTargetOffset ) ) {
         doublePair delta = 
@@ -6365,8 +6349,7 @@ void LivingLifePage::step() {
             addNewAnim( ourObject, ground );
             }
         }
-    
-    
+
     if( ourObject != NULL && mNextHintObjectID != 0 &&
         getNumHints( mNextHintObjectID ) > 0 ) {
         
@@ -6781,7 +6764,6 @@ void LivingLifePage::step() {
             }
 	}
 
-
     // move all toward their targets
     for( int i=0; i<3; i++ )
     {
@@ -6838,9 +6820,7 @@ void LivingLifePage::step() {
             }
 	}
 
-
     double curTime = game_getCurrentTime();
-
 
     // after 5 seconds of waiting, send PING
     if( playerActionPending && 
@@ -6891,7 +6871,6 @@ void LivingLifePage::step() {
             
         handleOurDeath( true );
 	}
-    
 
     // after 10 seconds of waiting, if we HAVE received our PONG back
     if( playerActionPending && 
@@ -6978,8 +6957,7 @@ void LivingLifePage::step() {
 	}
     
     
-    if( serverSocketConnected && 
-        game_getCurrentTime() - timeLastMessageSent > 15 ) {
+    if( serverSocketConnected && game_getCurrentTime() - timeLastMessageSent > 15 ) {
         // more than 15 seconds without client making a move
         // send KA to keep connection open
         sendToServerSocket( (char*)"KA 0 0#" );
@@ -6990,8 +6968,6 @@ void LivingLifePage::step() {
 	minitech::livingLifeStep();
 
     char *message = getNextServerMessage();
-
-
     while( message != NULL )
     {
         overheadServerBytesRead += 52;
@@ -8158,7 +8134,6 @@ void LivingLifePage::step() {
         // process next message if there is one
         message = getNextServerMessage();
 	}
-    
 
     if( mapPullMode && mapPullCurrentSaved && ! mapPullCurrentSent )
     {
@@ -8170,11 +8145,8 @@ void LivingLifePage::step() {
         mapPullCurrentSent = true;
 	}
 
-        
     // check if we're about to move off the screen
     LiveObject *ourLiveObject = getOurLiveObject();
-
-
     
     if( !mapPullMode && mDoneLoadingFirstObjectSet && ourLiveObject != NULL )
     {
@@ -8559,7 +8531,6 @@ void LivingLifePage::step() {
             ourLiveObject->lastFlipSent = ourLiveObject->holdingFlip;
             }
 	}
-
     if( mFirstServerMessagesReceived == 3 )
     {
 
@@ -8819,159 +8790,133 @@ void LivingLifePage::makeActive( char inFresh )
     mZKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
-    
     screenCenterPlayerOffsetX = 0;
     screenCenterPlayerOffsetY = 0;
-    
-
     mLastMouseOverID = 0;
     mCurMouseOverID = 0;
     mCurMouseOverFade = 0;
     mCurMouseOverBehind = false;
     mCurMouseOverPerson = false;
     mCurMouseOverSelf = false;
-
     mPrevMouseOverSpots.deleteAll();
     mPrevMouseOverSpotFades.deleteAll();
     mPrevMouseOverSpotsBehind.deleteAll();
-    
     mCurMouseOverCell.x = -1;
     mCurMouseOverCell.y = -1;
     mCurMouseOverCellFade = 0;
     mLastClickCell.x = -1;
     mLastClickCell.y = -1;
-    
-    
     mPrevMouseOverCells.deleteAll();
     mPrevMouseOverCellFades.deleteAll();
-
     mPrevMouseClickCells.deleteAll();
     mPrevMouseClickCellFades.deleteAll();
 
-    
-
-    if( !inFresh ) {
-        return;
-        }
+    if( !inFresh ) return;
 
     mGlobalMessageShowing = false;
     mGlobalMessageStartTime = 0;
     mGlobalMessagesToDestroy.deallocateStringElements();
-    
-    
     offScreenSounds.deleteAll();
-    
     oldHomePosStack.deleteAll();
-    
     oldHomePosStack.push_back_other( &homePosStack );
-    
-
     takingPhoto = false;
     photoSequenceNumber = -1;
     waitingForPhotoSig = false;
-    if( photoSig != NULL ) {
+    if( photoSig != NULL )
+    {
         delete [] photoSig;
         photoSig = NULL;
-        }
-
-
+	}
     graveRequestPos.deleteAll();
     ownerRequestPos.deleteAll();
-    
     clearOwnerInfo();
-
     clearLocationSpeech();
-
     mPlayerInFlight = false;
-    
     vogMode = false;
-    
     showFPS = false;
     showNet = false;
     showPing = false;
 	showHelp = false;
-    
     waitForFrameMessages = false;
-
     serverSocketConnected = false;
     connectionMessageFade = 1.0f;
     connectedTime = 0;
-
-    
     mPreviousHomeDistStrings.deallocateStringElements();
     mPreviousHomeDistFades.deleteAll();
-
     mForceHintRefresh = false;
     mLastHintSortedSourceID = 0;
     mLastHintSortedList.deleteAll();
 
-    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+    for( int i=0; i<NUM_HINT_SHEETS; i++ )
+    {
         mHintTargetOffset[i] = mHintHideOffset[i];
         mHintPosOffset[i] = mHintHideOffset[i];
-        }
+	}
 
     mCurrentHintObjectID = 0;
     mCurrentHintIndex = 0;
-    
     mNextHintObjectID = 0;
     mNextHintIndex = 0;
     
-    
-    if( mHintFilterString != NULL ) {
+    if( mHintFilterString != NULL )
+    {
         delete [] mHintFilterString;
         mHintFilterString = NULL;
-        }
+	}
 
-    if( mLastHintFilterString != NULL ) {
+    if( mLastHintFilterString != NULL )
+    {
         delete [] mLastHintFilterString;
         mLastHintFilterString = NULL;
-        }
+	}
 
-    if( mPendingFilterString != NULL ) {
+    if( mPendingFilterString != NULL )
+    {
         delete [] mPendingFilterString;
         mPendingFilterString = NULL;
-        }
-
+	}
 
     int tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 );
     
-    if( ! tutorialDone ) {
+    if( ! tutorialDone )
+    {
         mTutorialNumber = 1;
-        }
-    else {
+	}
+    else
+	{
         mTutorialNumber = 0;
-        }
+	}
     
-    if( mForceRunTutorial ) {
+    if( mForceRunTutorial )
+    {
         mTutorialNumber = 1;
         mForceRunTutorial = false;
-        }
+    }
 
     mLiveTutorialSheetIndex = -1;
     mLiveCravingSheetIndex = -1;
     
-    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {    
+    for( int i=0; i<NUM_HINT_SHEETS; i++ )
+    {
         mTutorialTargetOffset[i] = mTutorialHideOffset[i];
         mTutorialPosOffset[i] = mTutorialHideOffset[i];
         mTutorialMessage[i] = "";
 
         mCravingTargetOffset[i] = mCravingHideOffset[i];
         mCravingPosOffset[i] = mCravingHideOffset[i];
-        if( mCravingMessage[i] != NULL ) {
+        if( mCravingMessage[i] != NULL )
+        {
             delete [] mCravingMessage[i];
             mCravingMessage[i] = NULL;
-            }
-        }
-    
-    
+		}
+	}
 
-    savingSpeechEnabled = SettingsManager::getIntSetting( "allowSavingSpeech",
-                                                          0 );
+    savingSpeechEnabled = SettingsManager::getIntSetting( "allowSavingSpeech", 0 );
 
-
-    for( int i=0; i<mGraveInfo.size(); i++ ) {
+    for( int i=0; i<mGraveInfo.size(); i++ )
+    {
         delete [] mGraveInfo.getElement(i)->relationName;
-        }
+	}
     mGraveInfo.deleteAll();
 
     clearOwnerInfo();
@@ -8989,21 +8934,15 @@ void LivingLifePage::makeActive( char inFresh )
     mMapExtraMovingObjects.deleteAll();
     mMapExtraMovingObjectsDestWorldPos.deleteAll();
     mMapExtraMovingObjectsDestObjectIDs.deleteAll();
-            
 
     mMapGlobalOffsetSet = false;
     mMapGlobalOffset.x = 0;
     mMapGlobalOffset.y = 0;
     
-    
     mNotePaperPosOffset = mNotePaperHideOffset;
-
     mNotePaperPosTargetOffset = mNotePaperPosOffset;
-
-    
     mHomeSlipPosOffset = mHomeSlipHideOffset;
     mHomeSlipPosTargetOffset = mHomeSlipPosOffset;
-    
 
     mLastKnownNoteLines.deallocateStringElements();
     mErasedNoteChars.deleteAll();
@@ -9012,11 +8951,12 @@ void LivingLifePage::makeActive( char inFresh )
     
     mSentChatPhrases.deallocateStringElements();
 
-    for( int i=0; i<3; i++ ) {    
+    for( int i=0; i<3; i++ )
+    {
         mHungerSlipPosOffset[i] = mHungerSlipHideOffsets[i];
         mHungerSlipPosTargetOffset[i] = mHungerSlipPosOffset[i];
         mHungerSlipWiggleTime[i] = 0;
-        }
+	}
     mHungerSlipVisible = -1;
 
     mSayField.setText( "" );
@@ -9037,25 +8977,27 @@ void LivingLifePage::makeActive( char inFresh )
     mOldYumBonusFades.deleteAll();
     
     mYumMultiplier = 0;
-    
-    
-    for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
+
+    for( int i=0; i<NUM_YUM_SLIPS; i++ )
+    {
         mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
         mYumSlipPosTargetOffset[i] = mYumSlipHideOffset[i];
         mYumSlipNumberToShow[i] = 0;
-        }
+    }
     
 
     mCurrentArrowI = 0;
     mCurrentArrowHeat = -1;
-    if( mCurrentDes != NULL ) {
+    if( mCurrentDes != NULL )
+    {
         delete [] mCurrentDes;
-        }
+    }
     mCurrentDes = NULL;
 
-    if( mCurrentLastAteString != NULL ) {
+    if( mCurrentLastAteString != NULL )
+    {
         delete [] mCurrentLastAteString;
-        }
+    }
     mCurrentLastAteString = NULL;
 
 
@@ -9085,24 +9027,22 @@ void LivingLifePage::makeActive( char inFresh )
     mFirstObjectSetLoadingProgress = 0;
 
     playerActionPending = false;
-    
     waitingForPong = false;
     lastPingSent = 0;
     lastPongReceived = 0;
-    
-
     serverSocketBuffer.deleteAll();
-
-    if( nextActionMessageToSend != NULL ) {    
+    if( nextActionMessageToSend != NULL )
+    {
         delete [] nextActionMessageToSend;
         nextActionMessageToSend = NULL;
-        }
+    }
     
 
-    for( int i=0; i<NUM_HOME_ARROWS; i++ ) {
+    for( int i=0; i<NUM_HOME_ARROWS; i++ )
+    {
         mHomeArrowStates[i].solid = false;
         mHomeArrowStates[i].fade = 0;
-        }
+    }
 }
 
 void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord, float inX, float inY )

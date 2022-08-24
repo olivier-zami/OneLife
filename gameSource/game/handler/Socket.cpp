@@ -88,13 +88,29 @@ namespace oneLife::debug
 oneLife::client::game::handler::Socket::Socket()
 {
 	this->lastSendSuccess = false;
+	this->socketId = -1;
+	this->mServerSocket = nullptr;
 }
 
 oneLife::client::game::handler::Socket::~Socket() {}
 
+
 void oneLife::client::game::handler::Socket::close()
 {
+}
 
+bool oneLife::client::game::handler::Socket::isConnected()
+{
+	return (bool)(this->socketId != -1);
+}
+
+void oneLife::client::game::handler::Socket::connect(char *ip, int port)
+{
+	this->socketId = openSocketConnection(ip, port);
+	if(this->mServerSocket)
+	{
+		*(this->mServerSocket) = this->socketId;
+	}
 }
 
 

@@ -16,12 +16,19 @@ namespace oneLife::client::game::handler
 			~Socket();
 
 			void close();
+			void connect(char *ip, int port);
 			bool isClosed();
+			bool isConnected();
 			bool isLastSendSucceed();
 			Socket* sendMessage(char* message);
 
+			struct{
+				char* ip;
+				int port;
+			}address;
 			bool lastSendSuccess;
 			int* mServerSocket;//TODO: remove all LivingLifePage instance and convert to int
+			int socketId;
 	};
 }
 

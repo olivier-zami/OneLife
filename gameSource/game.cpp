@@ -1149,9 +1149,10 @@ void drawFrame( char inUpdate ) {
         currentGamePage->base_step();
 
 
-        if( currentGamePage == loadingPage ) {
-            
-            switch( loadingPhase ) {
+        if( currentGamePage == loadingPage )
+        {
+            switch( loadingPhase )
+            {
                 case 0: {
                     float progress;
                     for( int i=0; i<loadingStepBatchSize; i++ ) {    
@@ -1876,22 +1877,16 @@ void drawFrame( char inUpdate ) {
                 }
             }
         }
-    
-
 
     // now draw stuff AFTER all updates
     drawFrameNoUpdate( true );
-
-
-
-
 
 
     // draw tail end of pause screen, if it is still visible
     if( pauseScreenFade > 0 ) {
         drawPauseScreen();
         }
-    }
+}
 
 void drawFrameNoUpdate( char inUpdate ) {
     if( currentGamePage != NULL ) {

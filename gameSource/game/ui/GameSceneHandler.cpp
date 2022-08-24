@@ -146,6 +146,9 @@ void GameSceneHandler::initFromFiles() {
 
 }
 
+/**
+ * TODO: check for connecting routine
+ */
 void GameSceneHandler::drawScene() {
 	numPixelsDrawn = 0;
 	/*
@@ -198,18 +201,12 @@ void GameSceneHandler::drawScene() {
 		}
 	}
 
-
-
-
-
 	redoDrawMatrix();
-
-
 	glDisable( GL_CULL_FACE );
 	glDisable( GL_DEPTH_TEST );
 
-
-	if( demoMode ) {
+	if( demoMode )
+	{
 
 		if( ! isDemoCodePanelShowing() ) {
 
@@ -222,121 +219,104 @@ void GameSceneHandler::drawScene() {
 			screen->startRecordingOrPlayback();
 		}
 	}
-	else if( writeFailed ) {
+	else if( writeFailed )
+	{
 		drawString( translate( "writeFailed" ), true );
 	}
-	else if( !screen->isPlayingBack() && measureFrameRate ) {
-		if( !measureRecorded ) {
+	else if( !screen->isPlayingBack() && measureFrameRate )
+	{
+		if( !measureRecorded )
+		{
 			screen->useFrameSleep( false );
 		}
 
-
-		if( numFramesSkippedBeforeMeasure < numFramesToSkipBeforeMeasure ) {
+		if( numFramesSkippedBeforeMeasure < numFramesToSkipBeforeMeasure )
+		{
 			numFramesSkippedBeforeMeasure++;
 
 			drawString( translate( "measuringFPS" ), true );
 		}
-		else if( ! startMeasureTimeRecorded ) {
+		else if( ! startMeasureTimeRecorded )
+		{
 			startMeasureTime = Time::getCurrentTime();
 			startMeasureTimeRecorded = true;
 
 			drawString( translate( "measuringFPS" ), true );
 		}
-		else {
-
+		else
+		{
 			numFramesMeasured++;
-
 			double totalTime = Time::getCurrentTime() - startMeasureTime;
-
 			double timePerFrame = totalTime / ( numFramesMeasured );
-
 			double frameRate = 1 / timePerFrame;
-
-
 			int closestTargetFrameRate = 0;
 			double closestFPSDiff = 9999999;
-
-			for( int i=0; i<possibleFrameRates.size(); i++ ) {
-
+			for( int i=0; i<possibleFrameRates.size(); i++ )
+			{
 				int v = possibleFrameRates.getElementDirect( i );
-
 				double diff = fabs( frameRate - v );
-
-				if( diff < closestFPSDiff ) {
+				if( diff < closestFPSDiff )
+				{
 					closestTargetFrameRate = v;
 					closestFPSDiff = diff;
 				}
 			}
 
 			double overAllowFactor = 1.05;
-
-
-
-			if( numFramesMeasured > 10 &&
-				frameRate > overAllowFactor * closestTargetFrameRate ) {
-
+			if( numFramesMeasured > 10 && frameRate > overAllowFactor * closestTargetFrameRate )
+			{
 				secondsToMeasure = warningSecondsToMeasure;
 			}
-			else {
+			else
+			{
 				secondsToMeasure = noWarningSecondsToMeasure;
 			}
 
-			if( totalTime <= secondsToMeasure ) {
+			if( totalTime <= secondsToMeasure )
+			{
 				char *message = autoSprintf( "%s\n%0.2f\nFPS",
 											 translate( "measuringFPS" ),
 											 frameRate );
-
-
 				drawString( message, true );
-
 				delete [] message;
 			}
 
-			if( totalTime > secondsToMeasure ) {
-
-				if( ! measureRecorded ) {
-
-					if( targetFrameRate == idealTargetFrameRate ) {
+			if( totalTime > secondsToMeasure )
+			{
+				if( ! measureRecorded )
+				{
+					if( targetFrameRate == idealTargetFrameRate )
+					{
 						// not invoking halfFrameRate
-
-						AppLog::infoF( "Measured frame rate = %f fps\n",
-									   frameRate );
-						AppLog::infoF(
-								"Closest possible frame rate = %d fps\n",
-								closestTargetFrameRate );
-
-						if( frameRate >
-							overAllowFactor * closestTargetFrameRate ) {
-
+						AppLog::infoF( "Measured frame rate = %f fps\n", frameRate );
+						AppLog::infoF("Closest possible frame rate = %d fps\n", closestTargetFrameRate );
+						if( frameRate > overAllowFactor * closestTargetFrameRate )
+						{
 							AppLog::infoF(
 									"Vsync to enforce closested frame rate of "
 									"%d fps doesn't seem to be in effect.\n",
 									closestTargetFrameRate );
-
 							AppLog::infoF(
 									"Will sleep each frame to enforce desired "
 									"frame rate of %d fps\n",
 									idealTargetFrameRate );
-
 							targetFrameRate = idealTargetFrameRate;
-
 							screen->useFrameSleep( true );
 							countingOnVsync = false;
 						}
-						else {
+						else
+						{
 							AppLog::infoF(
 									"Vsync seems to be enforcing an allowed frame "
 									"rate of %d fps.\n", closestTargetFrameRate );
-
 							targetFrameRate = closestTargetFrameRate;
-
 							screen->useFrameSleep( false );
 							countingOnVsync = true;
 						}
 					}
-					else {
+					else
+					{
 						// half frame rate must be set
-
 						AppLog::infoF(
 								"User has halfFrameRate set, so we're going "
 								"to manually sleep to enforce a target "
@@ -344,13 +324,12 @@ void GameSceneHandler::drawScene() {
 						screen->useFrameSleep( true );
 						countingOnVsync = false;
 					}
-
-
 					screen->setFullFrameRate( targetFrameRate );
 					measureRecorded = true;
 				}
 
-				if( !countingOnVsync ) {
+				if( !countingOnVsync )
+				{
 					// show warning message
 					char *message =
 							autoSprintf( "%s\n%s\n\n%s\n\n\n%s",
@@ -362,7 +341,8 @@ void GameSceneHandler::drawScene() {
 
 					delete [] message;
 				}
-				else {
+				else
+				{
 					// auto-save it now
 					saveFrameRateSettings();
 					screen->startRecordingOrPlayback();
@@ -373,15 +353,17 @@ void GameSceneHandler::drawScene() {
 
 		return;
 	}
-	else if( !loadingMessageShown ) {
+	else if( !loadingMessageShown )
+	{
 		drawString( translate( "loading" ), true );
-
 		loadingMessageShown = true;
 	}
-	else if( loadingFailedFlag ) {
+	else if( loadingFailedFlag )
+	{
 		drawString( loadingFailedMessage, true );
 	}
-	else if( !writeFailed && !loadingFailedFlag && !frameDrawerInited ) {
+	else if( !writeFailed && !loadingFailedFlag && !frameDrawerInited )
+	{
 		drawString( translate( "loading" ), true );
 
 		initFrameDrawer( pixelZoomFactor * gameWidth,
@@ -392,8 +374,8 @@ void GameSceneHandler::drawScene() {
 
 		int readCursorMode = SettingsManager::getIntSetting( "cursorMode", -1 );
 
-
-		if( readCursorMode < 0 ) {
+		if( readCursorMode < 0 )
+		{
 			// never set before
 
 			// check if we are ultrawidescreen
@@ -442,8 +424,6 @@ void GameSceneHandler::drawScene() {
 			}
 		}
 
-
-
 		frameDrawerInited = true;
 
 		// this is a good time, a while after launch, to do the post
@@ -452,22 +432,21 @@ void GameSceneHandler::drawScene() {
 	}
 	else if( !writeFailed && !loadingFailedFlag  ) {
 		// demo mode done or was never enabled
-
 		// carry on with game
 
-
 		// auto-pause when minimized
-		if( pauseOnMinimize && screen->isMinimized() ) {
+		if( pauseOnMinimize && screen->isMinimized() )
+		{
 			mPaused = true;
 		}
-
 
 		// don't update while paused
 		char update = !mPaused;
 
 		drawFrame( update );
 
-		if( cursorMode > 0 ) {
+		if( cursorMode > 0 )
+		{
 			// draw emulated cursor
 
 			// draw using same projection used to drawFrame
@@ -540,8 +519,8 @@ void GameSceneHandler::drawScene() {
 			drawQuads( 1, vertsD );
 		}
 
-
-		if( recordAudio ) {
+		if( recordAudio )
+		{
 			// frame-accurate audio recording
 			int samplesPerFrame = soundSampleRate / targetFrameRate;
 
@@ -566,31 +545,25 @@ void GameSceneHandler::drawScene() {
 			delete [] bytes;
 		}
 
-
-		if( screen->isPlayingBack() && screen->shouldShowPlaybackDisplay() ) {
-
+		if( screen->isPlayingBack() && screen->shouldShowPlaybackDisplay() )
+		{
 			char *progressString = autoSprintf(
 					"%s %.1f\n%s\n%s",
 					translate( "playbackTag" ),
 					screen->getPlaybackDoneFraction() * 100,
 					translate( "playbackToggleMessage" ),
 					translate( "playbackEndMessage" ) );
-
 			drawString( progressString );
-
 			delete [] progressString;
-
 		}
-
 
 		if( screen->isPlayingBack() &&
 			screen->shouldShowPlaybackDisplay() &&
-			showMouseDuringPlayback() ) {
-
-
+			showMouseDuringPlayback() )
+		{
 			// draw mouse position info
-
-			if( mouseDown ) {
+			if( mouseDown )
+			{
 				if( isLastMouseButtonRight() ) {
 					mouseRightDown = true;
 					setDrawColor( 1, 0, 1, 0.5 );
@@ -600,14 +573,14 @@ void GameSceneHandler::drawScene() {
 					setDrawColor( 1, 0, 0, 0.5 );
 				}
 			}
-			else {
+			else
+			{
 				setDrawColor( 1, 1, 1, 0.5 );
 			}
 
 			// step mouse click animation even after mouse released
 			// (too hard to see it otherwise for fast clicks)
 			mouseDownSteps ++;
-
 
 			float sizeFactor = 5.0f;
 			float clickSizeFactor = 5.0f;
@@ -616,28 +589,22 @@ void GameSceneHandler::drawScene() {
 
 			int mouseClickDisplayDuration = 20 * targetFrameRate / 60.0;
 
-			if( mouseDownSteps < mouseClickDisplayDuration ) {
-
-				float mouseClickProgress =
-						mouseDownSteps / (float)mouseClickDisplayDuration;
-
+			if( mouseDownSteps < mouseClickDisplayDuration )
+			{
+				float mouseClickProgress = mouseDownSteps / (float)mouseClickDisplayDuration;
 				clickSizeFactor *= 5 * mouseClickProgress;
 				showClick = true;
-
 				clickFade *= 1.0f - mouseClickProgress;
 			}
-
 
 			// mouse coordinates in screen space
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 
-
 			// viewport is square of largest dimension, centered on screen
-
 			int bigDimension = screenWidth;
-
-			if( screenHeight > bigDimension ) {
+			if( screenHeight > bigDimension )
+			{
 				bigDimension = screenHeight;
 			}
 
@@ -724,11 +691,10 @@ void GameSceneHandler::drawScene() {
 			drawQuads( 1, centerVerts );
 
 		}
-
 	}
 
-
-	if( visibleWidth != -1 && visibleHeight != -1 ) {
+	if( visibleWidth != -1 && visibleHeight != -1 )
+	{
 		// draw letterbox
 
 		// On most platforms, glViewport will clip image for us.
@@ -810,8 +776,8 @@ void GameSceneHandler::drawScene() {
 		}
 	}
 
-
-	if( shouldTakeScreenshot ) {
+	if( shouldTakeScreenshot )
+	{
 		takeScreenShot();
 
 		if( !outputAllFrames ) {
