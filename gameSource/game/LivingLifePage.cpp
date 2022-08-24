@@ -32,7 +32,7 @@
 #include "minorGems/system/Thread.h"
 #include "minorGems/util/log/AppLog.h"
 #include "minorGems/crypto/hashes/sha1.h"
-#include "../../commonSource/dataType/message_client.h"//TODO remove after merge with message.h
+#include "../../commonSource/dataType/messageType.h"//TODO remove after merge with message.h
 
 #include <stdlib.h>//#include <math.h>
 #include <string>
