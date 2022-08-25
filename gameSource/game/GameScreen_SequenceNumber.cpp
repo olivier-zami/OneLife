@@ -29,8 +29,7 @@ if( mRequiredVersion > versionNumber ||
 // if server is using an older version, check that
 // their version is not behind our data version at least
 
-closeSocket( mServerSocket );
-mServerSocket = -1;
+socketHandler->disconnect();
 
 setWaiting( false );
 

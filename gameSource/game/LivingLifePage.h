@@ -507,7 +507,6 @@ class LivingLifePage :
         
 
     protected:
-        int mServerSocket;
         int mRequiredVersion;
         char mForceRunTutorial;
         int mTutorialNumber;

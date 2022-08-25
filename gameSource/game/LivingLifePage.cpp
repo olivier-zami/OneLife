@@ -1828,9 +1828,8 @@ void LivingLifePage::clearMap() {
 
 
 
-LivingLifePage::LivingLifePage() 
-        : mServerSocket( -1 ), 
-          mForceRunTutorial( false ),
+LivingLifePage::LivingLifePage()
+        : mForceRunTutorial( false ),
           mTutorialNumber( 0 ),
           mGlobalMessageShowing( false ),
           mGlobalMessageStartTime( 0 ),
@@ -1860,8 +1859,6 @@ LivingLifePage::LivingLifePage()
           mZKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 )
 {
-	socketHandler->mServerSocket = &mServerSocket;
-
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
         mUsingSteam = true;
         }
@@ -2306,9 +2303,10 @@ LivingLifePage::~LivingLifePage() {
 
     mSentChatPhrases.deallocateStringElements();
     
-    if( mServerSocket != -1 ) {
-        closeSocket( mServerSocket );
-        }
+    if( socketHandler->isConnected() )
+    {
+		socketHandler->disconnect();//TODO : use close() ? formerly socketId != -1 at this point
+    }
     
     mPreviousHomeDistStrings.deallocateStringElements();
     mPreviousHomeDistFades.deleteAll();
@@ -5928,11 +5926,10 @@ void LivingLifePage::step() {
     
     if(!socketHandler->isConnected())
     {
-        serverSocketConnected = false;
         connectionMessageFade = 1.0f;
         socketHandler->connect(serverIP, serverPort);
-        //mServerSocket = openSocketConnection( serverIP, serverPort );
-        timeLastMessageSent = game_getCurrentTime();
+        timeLastMessageSent = game_getCurrentTime();//TODO: put this in socket handler
+
         return;
     }
 
@@ -5943,7 +5940,7 @@ void LivingLifePage::step() {
         return;
         }
 
-    if( serverSocketConnected )
+    if(socketHandler->isConnected())
     {
         // we've heard from server, not waiting to connect anymore
         setWaiting( false );
@@ -5951,52 +5948,40 @@ void LivingLifePage::step() {
     else
 	{
         
-        if( pageLifeTime > 10 ) {
+        if( pageLifeTime > 10 )
+        {
             // having trouble connecting.
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+			socketHandler->disconnect();
 
             setWaiting( false );
             setSignal( "connectionFailed" );
             
             return;
-            }
+		}
 	}
 
     // first, read all available data from server
-    char readSuccess = readServerSocketFull( mServerSocket );
+    socketHandler->read();
+    if(socketHandler->isClosed() && socketHandler->getClosePeriod() > 1)// let player at least see waiting page avoid flicker
+	{
+    	socketHandler->disconnect();
 
-    if( ! readSuccess ) {
-        
-        if( serverSocketConnected ) {    
-            double connLifeTime = game_getCurrentTime() - connectedTime;
-            
-            if( connLifeTime < 1 ) {
-                // let player at least see waiting page
-                // avoid flicker
-                return;
-                }
-            }
-        
-
-        closeSocket( mServerSocket );
-        mServerSocket = -1;
-
-        if( mFirstServerMessagesReceived  ) {
-            
-            if( mDeathReason != NULL ) {
-                delete [] mDeathReason;
-                }
-            mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
-            
-            handleOurDeath( true );
-            }
-        else {
-            setWaiting( false );
-            setSignal( "loginFailed" );
-            }
-        return;
-        }
+		if( mFirstServerMessagesReceived  )
+		{
+			if( mDeathReason != NULL )
+			{
+				delete [] mDeathReason;
+			}
+			mDeathReason = stringDuplicate( translate( "reasonDisconnected" ) );
+			handleOurDeath( true );
+		}
+		else
+		{
+			setWaiting( false );
+			setSignal( "loginFailed" );
+		}
+		return;
+	}
     
     if( mLastMouseOverID != 0 ) {
         mLastMouseOverFade -= 0.01 * frameRateFactor;
@@ -6861,8 +6846,7 @@ void LivingLifePage::step() {
                 curTime - ourObject->pendingActionAnimationStartTime,
                 curTime - lastServerMessageReceiveTime );
 
-        closeSocket( mServerSocket );
-        mServerSocket = -1;
+		socketHandler->disconnect();
         
         if( mDeathReason != NULL ) {
             delete [] mDeathReason;
@@ -6943,9 +6927,8 @@ void LivingLifePage::step() {
                 "from server for %.2f seconds, and no response received "
                 "for our PING.  Declaring connection broken.\n",
                 curTime - ourObject->pendingActionAnimationStartTime );
-            
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+
+			socketHandler->disconnect();
 
             if( mDeathReason != NULL ) {
                 delete [] mDeathReason;
@@ -6957,7 +6940,7 @@ void LivingLifePage::step() {
 	}
     
     
-    if( serverSocketConnected && game_getCurrentTime() - timeLastMessageSent > 15 ) {
+    if(socketHandler->isConnected() && game_getCurrentTime() - timeLastMessageSent > 15 ) {
         // more than 15 seconds without client making a move
         // send KA to keep connection open
         sendToServerSocket( (char*)"KA 0 0#" );
@@ -6985,8 +6968,7 @@ void LivingLifePage::step() {
 		}
         if( type == SHUTDOWN  || type == FORCED_SHUTDOWN )
         {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+			socketHandler->disconnect();
             
             setWaiting( false );
             setSignal( "serverShutdown" );
@@ -6996,8 +6978,7 @@ void LivingLifePage::step() {
 		}
         else if( type == SERVER_FULL )
         {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+			socketHandler->disconnect();
             
             setWaiting( false );
             setSignal( "serverFull" );
@@ -7135,8 +7116,7 @@ void LivingLifePage::step() {
 		}
         else if( type == REJECTED )
         {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+			socketHandler->disconnect();
             
             setWaiting( false );
             setSignal( "loginFailed" );
@@ -7146,8 +7126,7 @@ void LivingLifePage::step() {
 		}
         else if( type == NO_LIFE_TOKENS )
         {
-            closeSocket( mServerSocket );
-            mServerSocket = -1;
+			socketHandler->disconnect();
             
             setWaiting( false );
             setSignal( "noLifeTokens" );
@@ -9571,10 +9550,11 @@ void LivingLifePage::pointerMove( float inX, float inY )
         return;
         }
 
-    if( mServerSocket == -1 ) {
+    if(!socketHandler->isConnected())
+    {
         // dead
         return;
-        }
+	}
 
     if( mFirstServerMessagesReceived != 3 || ! mDoneLoadingFirstObjectSet ) {
         return;
@@ -9849,10 +9829,11 @@ void LivingLifePage::pointerDown( float inX, float inY )
         return;
         }
     
-    if( mServerSocket == -1 ) {
+    if(!socketHandler->isConnected())
+    {
         // dead
         return;
-        }
+    }
 	
 	int mouseButton = getLastMouseButton();
 	bool scaling = false;
@@ -11451,10 +11432,11 @@ void LivingLifePage::pointerUp( float inX, float inY )
         }
     
 
-    if( mServerSocket == -1 ) {
+    if(!socketHandler->isConnected())
+    {
         // dead
         return;
-        }
+    }
 
     if( mFirstServerMessagesReceived != 3 || ! mDoneLoadingFirstObjectSet ) {
         return;
@@ -11507,10 +11489,11 @@ void LivingLifePage::keyDown( unsigned char inASCII )
     registerTriggerKeyCommand( inASCII, this );
 
 
-    if( mServerSocket == -1 ) {
+    if(!socketHandler->isConnected())
+    {
         // dead
         return;
-        }
+    }
 
     if( showBugMessage ) {
         if( inASCII == '%' ) {
@@ -11652,8 +11635,7 @@ void LivingLifePage::keyDown( unsigned char inASCII )
             break;
         */
         case 'V':
-            if( ! mSayField.isFocused() &&
-                serverSocketConnected &&
+            if( ! mSayField.isFocused() && socketHandler->isConnected() &&
                 SettingsManager::getIntSetting( "vogModeOn", 0 ) ) {
                 
                 if( ! vogMode ) {
@@ -11698,14 +11680,14 @@ void LivingLifePage::keyDown( unsigned char inASCII )
             break;
         case 'N':
             if( ! mSayField.isFocused() &&
-                serverSocketConnected &&
+					socketHandler->isConnected() &&
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGP 0 0#" );
                 }
             break;
         case 'M':
             if( ! mSayField.isFocused() &&
-                serverSocketConnected &&
+					socketHandler->isConnected() &&
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGN 0 0#" );
                 }
@@ -11720,14 +11702,14 @@ void LivingLifePage::keyDown( unsigned char inASCII )
             break;
         case 'x':
             if( userTwinCode != NULL &&
-                ! mStartedLoadingFirstObjectSet ) {
-                
-                closeSocket( mServerSocket );
-                mServerSocket = -1;
+                ! mStartedLoadingFirstObjectSet )
+            {
+
+				socketHandler->disconnect();
                 
                 setWaiting( false );
                 setSignal( "twinCancel" );
-                }
+			}
             break;
         /*
         case 'b':
@@ -12073,10 +12055,11 @@ void LivingLifePage::specialKeyDown( int inKeyCode )
         return;
         }
     
-    if( mServerSocket == -1 ) {
+    if(!socketHandler->isConnected())
+    {
         // dead
         return;
-        }
+    }
 		
     //FOV
     if( inKeyCode == MG_KEY_F1) {

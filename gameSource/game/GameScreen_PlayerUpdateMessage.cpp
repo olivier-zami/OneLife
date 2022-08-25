@@ -1975,8 +1975,7 @@ if( ! anyLiveTriggersLeft() ) {
 // if we're in live trigger mode, leave
 // server connection open so we can see what happens
 // next
-closeSocket( mServerSocket );
-mServerSocket = -1;
+socketHandler->disconnect();
 handleOurDeath();
 }
 else {

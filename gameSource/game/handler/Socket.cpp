@@ -87,9 +87,9 @@ namespace oneLife::debug
 
 oneLife::client::game::handler::Socket::Socket()
 {
+	this->closeTime = 0;
 	this->lastSendSuccess = false;
 	this->socketId = -1;
-	this->mServerSocket = nullptr;
 }
 
 oneLife::client::game::handler::Socket::~Socket() {}
@@ -97,22 +97,91 @@ oneLife::client::game::handler::Socket::~Socket() {}
 
 void oneLife::client::game::handler::Socket::close()
 {
+	this->closeTime = game_getCurrentTime();
 }
 
+/**
+ *
+ */
+void oneLife::client::game::handler::Socket::disconnect()
+{
+	closeSocket(this->socketId);
+	this->socketId = -1;
+}
+
+/**
+ *
+ * @param ip
+ * @param port
+ */
+void oneLife::client::game::handler::Socket::connect(char *ip, int port)
+{
+	oneLife::debug::print("connecting", " ");
+	this->socketId = openSocketConnection(ip, port);
+}
+
+double oneLife::client::game::handler::Socket::getClosePeriod()
+{
+	double period = 0;
+	if(this->isClosed())
+	{
+		period = this->closeTime - game_getCurrentTime();
+	}
+	return period;
+}
+
+bool oneLife::client::game::handler::Socket::isClosed()
+{
+	return (bool)this->closeTime;
+}
+
+/**
+ *
+ * @return
+ */
 bool oneLife::client::game::handler::Socket::isConnected()
 {
 	return (bool)(this->socketId != -1);
 }
 
-void oneLife::client::game::handler::Socket::connect(char *ip, int port)
+bool oneLife::client::game::handler::Socket::isLastSendSucceed()
 {
-	this->socketId = openSocketConnection(ip, port);
-	if(this->mServerSocket)
-	{
-		*(this->mServerSocket) = this->socketId;
-	}
+	return this->lastSendSuccess;
 }
 
+void oneLife::client::game::handler::Socket::read()
+{
+	bool success = readServerSocketFull(this->socketId);
+	if(!success && !this->isClosed()) this->close();
+}
+
+oneLife::client::game::handler::Socket* oneLife::client::game::handler::Socket::sendMessage(char *message)
+{
+	this->lastSendSuccess = false;
+	timeLastMessageSent = game_getCurrentTime();
+	oneLife::debug::print("sendMessage", message);
+	replaceLastMessageSent( stringDuplicate( message ) );
+	int len = strlen( message );
+	int numSent = sendToSocket(this->socketId, (unsigned char*)message, len );
+
+	if( numSent == len )
+	{
+		numServerBytesSent += len;
+		overheadServerBytesSent += 52;
+		messagesOutCount++;
+		bytesOutCount += len;
+		this->lastSendSuccess = true;
+	}
+	else
+	{
+		printf( "Failed to send message to server socket "
+				"at time %f "
+				"(tried to send %d, but numSent=%d)\n",
+				game_getCurrentTime(), len, numSent );
+	}
+
+	return this;
+}
 
 /**
  *
@@ -319,39 +388,6 @@ char *getNextServerMessageRaw()
 		messagesInCount++;
 		return message;
 	}
-}
-
-bool oneLife::client::game::handler::Socket::isLastSendSucceed()
-{
-	return this->lastSendSuccess;
-}
-
-oneLife::client::game::handler::Socket* oneLife::client::game::handler::Socket::sendMessage(char *message)
-{
-	this->lastSendSuccess = false;
-	timeLastMessageSent = game_getCurrentTime();
-	oneLife::debug::print("sendMessage", message);
-	replaceLastMessageSent( stringDuplicate( message ) );
-	int len = strlen( message );
-	int numSent = sendToSocket( *(this->mServerSocket), (unsigned char*)message, len );
-
-	if( numSent == len )
-	{
-		numServerBytesSent += len;
-		overheadServerBytesSent += 52;
-		messagesOutCount++;
-		bytesOutCount += len;
-		this->lastSendSuccess = true;
-	}
-	else
-	{
-		printf( "Failed to send message to server socket "
-				"at time %f "
-				"(tried to send %d, but numSent=%d)\n",
-				game_getCurrentTime(), len, numSent );
-	}
-
-	return this;
 }
 
 /**

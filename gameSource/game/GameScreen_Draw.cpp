@@ -40,7 +40,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
-		if( connectionMessageFade > 0 ) {
+		if( connectionMessageFade > 0 )
+		{
 
 			if( serverSocketConnected ) {
 				connectionMessageFade -= 0.05 * frameRateFactor;
@@ -70,7 +71,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 			delete [] message;
 		}
 
-		if( ! serverSocketConnected )
+		if(!socketHandler->isConnected())
 		{
 			// don't draw waiting message, not connected yet
 			if( userReconnect ) {
