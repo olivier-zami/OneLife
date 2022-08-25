@@ -6,7 +6,7 @@
 
 #include "../../../gameSource/objectBank.h" //TODO: getRandomPersonObject(...) getRandomFemalePersonObject(...); ClothingSet getEmptyClothingSet(...)
 //TODO: getRaces(...) getRaceSize(...) getRandomFamilyMember(...) getRandomPersonObjectOfRace(...)
-#include "../../component/connection/Tcp.h"//TODO: setPlayerDisconnected
+//#include "Tcp.h"//TODO: setPlayerDisconnected
 #include "../../component/container/Player.h" //TODO: getLiveObject( inForceParentID ) pickBirthCooldownSeconds()
 #include "../../component/feature/apocalypse.h"
 #include "../../component/Map.h"//TODO remove getPlayerPos() getEvePosition()

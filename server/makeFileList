@@ -35,7 +35,6 @@ main.cpp \
 map.cpp \
 component/cache/Biome.cpp \
 component/cache/Blocking.cpp \
-component/connection/Tcp.cpp \
 component/container/Player.cpp \
 component/database/Biome.cpp \
 component/database/LookTime.cpp \

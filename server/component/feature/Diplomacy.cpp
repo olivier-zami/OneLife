@@ -6,7 +6,7 @@
 
 #include "../../../third_party/minorGems/system/Time.h"
 #include "../../../third_party/minorGems/util/SimpleVector.h"
-#include "../connection/Tcp.h"
+#include "../../game/handler/Socket.h"
 #include "../../dataType/LiveObject.h"
 
 extern SimpleVector<LiveObject> players;

@@ -22,7 +22,6 @@
 #include "../component/handler/Player.h"
 #include "../component/Log.h"
 #include "../component/Map.h"
-#include "../component/connection/Tcp.h"
 #include "../component/Speech.h"
 #include "../curseDB.h"
 #include "../curses.h"
