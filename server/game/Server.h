@@ -13,7 +13,7 @@
 #include "../dataType/Settings.h"
 #include "minorGems/network/Socket.h"
 #include "minorGems/util/SimpleVector.h"
-#include "listener/Socket.h"
+#include "handler/Socket.h"
 #include "registry/Player.h"
 
 namespace oneLife::server::game::application
@@ -109,7 +109,7 @@ namespace OneLife
 			int port;
 			oneLife::server::game::application::Information server;
 			int shutdownMode;
-			oneLife::server::game::listener::Socket* socketListener;
+			oneLife::server::game::handler::Socket* socketListener;
 			char someClientMessageReceived;
 	};
 }

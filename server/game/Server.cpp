@@ -277,7 +277,7 @@ OneLife::Server::Server(OneLife::server::Settings settings)
 	this->errMsg.size = 0;
 	this->playerRegistry = new oneLife::server::game::registry::Player();
 
-	this->socketListener = new oneLife::server::game::listener::Socket();
+	this->socketListener = new oneLife::server::game::handler::Socket();
 	this->socketListener->setMaximumConnectionListened(256);
 	this->socketListener->setPort(this->server.port);
 }

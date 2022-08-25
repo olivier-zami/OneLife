@@ -12,7 +12,7 @@
 #include "../../../commonSource/handler/message/SequenceNumber.h"
 #include "../dataType/connection.h"
 
-namespace oneLife::server::game::listener
+namespace oneLife::server::game::handler
 {
 	class Socket:
 		public oneLife::handler::message::SequenceNumber

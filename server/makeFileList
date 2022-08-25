@@ -52,7 +52,7 @@ component/feature/apocalypse.cpp \
 component/Log.cpp \
 dataType/LiveObject.cpp \
 game/handler/Player.cpp \
-game/listener/Socket.cpp \
+game/handler/Socket.cpp \
 game/registry/Player.cpp \
 game/Server.cpp \
 objectType/bank/Cache.cpp \

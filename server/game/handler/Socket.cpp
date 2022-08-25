@@ -11,7 +11,7 @@ SocketPoll sockPoll;
 
 extern SimpleVector<FreshConnection> newConnections;
 
-oneLife::server::game::listener::Socket::Socket()
+oneLife::server::game::handler::Socket::Socket()
 {
 	this->isConnectionRequestReceived = false;
 	this->lastClientListened = {nullptr, 0};
@@ -34,7 +34,7 @@ oneLife::server::game::listener::Socket::Socket()
 // Closing the server socket makes these connection requests fail
 // instantly (instead of relying on client timeouts).
  */
-oneLife::server::game::listener::Socket::~Socket()
+oneLife::server::game::handler::Socket::~Socket()
 {
 	if(this->lastClientListened.address)
 	{
@@ -44,7 +44,7 @@ oneLife::server::game::listener::Socket::~Socket()
 	if(this->socketServer) delete this->socketServer;
 }
 
-void oneLife::server::game::listener::Socket::listen()
+void oneLife::server::game::handler::Socket::listen()
 {
 	this->readySock = nullptr;
 	if(!this->socketServer) this->initSocketServer();
@@ -85,47 +85,47 @@ void oneLife::server::game::listener::Socket::listen()
 	}
 }
 
-const char* oneLife::server::game::listener::Socket::getLastClientListenedAddress()
+const char* oneLife::server::game::handler::Socket::getLastClientListenedAddress()
 {
 	return this->lastClientListened.address;
 }
 
-int oneLife::server::game::listener::Socket::getLastClientListenedPort()
+int oneLife::server::game::handler::Socket::getLastClientListenedPort()
 {
 	return this->lastClientListened.port;
 }
 
-::Socket * oneLife::server::game::listener::Socket::getLastClientSocket()
+::Socket * oneLife::server::game::handler::Socket::getLastClientSocket()
 {
 	return this->lastClientSocket;
 }
 
-int oneLife::server::game::listener::Socket::getPort()
+int oneLife::server::game::handler::Socket::getPort()
 {
 	return this->port;
 }
 
-bool oneLife::server::game::listener::Socket::isConnectionRequestAccepted()
+bool oneLife::server::game::handler::Socket::isConnectionRequestAccepted()
 {
 	return this->isLastConnectionAccepted;
 }
 
-bool oneLife::server::game::listener::Socket::isUnknownClientConnectionRequestReceived()
+bool oneLife::server::game::handler::Socket::isUnknownClientConnectionRequestReceived()
 {
 	return (bool) (this->isLastConnectionAccepted && !this->isClientKnown);
 }
 
-void oneLife::server::game::listener::Socket::setMaximumConnectionListened(int maxConnection)
+void oneLife::server::game::handler::Socket::setMaximumConnectionListened(int maxConnection)
 {
 	this->maxConnection = maxConnection;
 }
 
-void oneLife::server::game::listener::Socket::setPort(int port)
+void oneLife::server::game::handler::Socket::setPort(int port)
 {
 	this->port = port;
 }
 
-void oneLife::server::game::listener::Socket::to(FreshConnection newConnection)
+void oneLife::server::game::handler::Socket::to(FreshConnection newConnection)
 {
 	this->outputMessage = this->getOutputMessage();
 	printf("\nto: %s\n\n\n", this->outputMessage);
@@ -154,7 +154,7 @@ void oneLife::server::game::listener::Socket::to(FreshConnection newConnection)
 	}
 }
 
-void oneLife::server::game::listener::Socket::initSocketServer()
+void oneLife::server::game::handler::Socket::initSocketServer()
 {
 	this->socketServer = new SocketServer( this->port, this->maxConnection );
 	sockPoll.addSocketServer( this->socketServer );
