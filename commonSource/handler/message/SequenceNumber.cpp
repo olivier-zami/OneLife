@@ -17,6 +17,5 @@ oneLife::handler::message::SequenceNumber* oneLife::handler::message::SequenceNu
 		   sequenceNumber.maxPlayers,
 		   sequenceNumber.string,
 		   sequenceNumber.serverVersion);
-	printf("\ngenerate sequence number: %s", this->outputMessage);
 	return this;
 }

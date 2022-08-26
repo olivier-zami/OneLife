@@ -8,6 +8,7 @@
 typedef enum messageType {
 	SHUTDOWN,
 	SERVER_FULL,
+	SERVER_INFO,
 	SEQUENCE_NUMBER,
 	ACCEPTED,
 	NO_LIFE_TOKENS,

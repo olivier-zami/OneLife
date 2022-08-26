@@ -16,8 +16,8 @@ namespace oneLife::handler
 			Message();
 			~Message();
 
-			char* getInputMessage();
-			char* getOutputMessage();
+			virtual char* getInputMessage();
+			virtual char* getOutputMessage();
 			Message* sendMessage(char* message);
 			virtual void to(FreshConnection newConnection) = 0;
 
