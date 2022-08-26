@@ -5,7 +5,6 @@
 #include "Socket.h"
 
 #include "../../../third_party/minorGems/io/file/File.h"
-#include "../../../third_party/minorGems/network/HostAddress.h"
 #include "../../../third_party/minorGems/util/SimpleVector.h"
 #include "../../../third_party/minorGems/util/log/AppLog.h"
 #include "../../../third_party/minorGems/util/SettingsManager.h"
@@ -25,13 +24,13 @@ extern SocketPoll sockPoll;
 
 oneLife::server::game::handler::Socket::Socket()
 {
-	this->isConnectionRequestReceived = false;
-	this->lastClientListened = {nullptr, 0};
-	this->lastClientSocket = nullptr;
+	//this->lastClientListened = {nullptr, 0};
+	this->lastConnection = nullptr;
 	this->maxConnection = 0;
 	this->outputMessage = nullptr;
 	this->port = 0;
 	this->readySock = nullptr;
+	this->remoteHost = nullptr;
 	this->socketServer = nullptr;
 }
 
@@ -44,14 +43,21 @@ oneLife::server::game::handler::Socket::Socket()
 // connection requests but then just hang there.
 
 // Closing the server socket makes these connection requests fail
-// instantly (instead of relying on client timeouts).
+// instantly (instead of relying on this->remoteHost timeouts).
  */
 oneLife::server::game::handler::Socket::~Socket()
 {
+	/*
 	if(this->lastClientListened.address)
 	{
 		delete[] this->lastClientListened.address;
 		this->lastClientListened.address = nullptr;
+	}
+	 */
+	if(this->remoteHost)
+	{
+		delete this->remoteHost;
+		this->remoteHost = nullptr;
 	}
 	if(this->socketServer) delete this->socketServer;
 }
@@ -59,57 +65,48 @@ oneLife::server::game::handler::Socket::~Socket()
 void oneLife::server::game::handler::Socket::listen()
 {
 	this->readySock = nullptr;
+	this->lastConnection = nullptr;
+	if(this->remoteHost)
+	{
+		delete this->remoteHost;
+		this->remoteHost = nullptr;
+	}
+
 	if(!this->socketServer) this->initSocketServer();
 	this->readySock = sockPoll.wait((int)(this->pollTimeout * 1000));
 
-	this->isClientKnown = false;
-	this->isLastConnectionAccepted = false;
-	this->isConnectionRequestReceived = false;
+	/*
 	if(this->lastClientListened.address)
 	{
 		delete[] this->lastClientListened.address;
 		this->lastClientListened.address = nullptr;
 	}
 	this->lastClientListened.port = 0;
-	this->lastClientSocket = nullptr;
+	*/
 
-	if(this->readySock != NULL && !this->readySock->isSocket)
+	if(this->isConnectionReceived())
 	{
-		this->isConnectionRequestReceived = true;
-		this->lastClientSocket = this->socketServer->acceptConnection(0);
-		if(this->lastClientSocket)
+		this->lastConnection = this->socketServer->acceptConnection(0);
+		if(this->lastConnection)
 		{
-			this->isLastConnectionAccepted = true;
-			HostAddress *client = this->lastClientSocket->getRemoteHostAddress();
-			if(client)
+			this->remoteHost = this->lastConnection->getRemoteHostAddress();
+			/*
+			if(this->remoteHost)
 			{
 				this->isClientKnown = true;
-				this->lastClientListened.address = new char[strlen(client->mAddressString)+1];
-				strcpy(this->lastClientListened.address, client->mAddressString);
-				this->lastClientListened.port = client->mPort;
+				this->lastClientListened.address = new char[strlen(this->remoteHost->mAddressString)+1];
+				strcpy(this->lastClientListened.address, this->remoteHost->mAddressString);
+				this->lastClientListened.port = this->remoteHost->mPort;
 			}
 			else this->isClientKnown = false;
-		}
-		else
-		{
-			this->isLastConnectionAccepted = false;
+			 */
 		}
 	}
 }
 
-const char* oneLife::server::game::handler::Socket::getLastClientListenedAddress()
+Socket* oneLife::server::game::handler::Socket::getLastConnection()
 {
-	return this->lastClientListened.address;
-}
-
-int oneLife::server::game::handler::Socket::getLastClientListenedPort()
-{
-	return this->lastClientListened.port;
-}
-
-::Socket * oneLife::server::game::handler::Socket::getLastClientSocket()
-{
-	return this->lastClientSocket;
+	return this->lastConnection;
 }
 
 int oneLife::server::game::handler::Socket::getPort()
@@ -117,14 +114,25 @@ int oneLife::server::game::handler::Socket::getPort()
 	return this->port;
 }
 
-bool oneLife::server::game::handler::Socket::isConnectionRequestAccepted()
+oneLife::dataType::Connection oneLife::server::game::handler::Socket::getRemoteHost()
 {
-	return this->isLastConnectionAccepted;
+	oneLife::dataType::Connection remoteHost = {this->remoteHost->mAddressString, this->remoteHost->mPort};
+	return remoteHost;
 }
 
-bool oneLife::server::game::handler::Socket::isUnknownClientConnectionRequestReceived()
+bool oneLife::server::game::handler::Socket::isConnectionAccepted()
 {
-	return (bool) (this->isLastConnectionAccepted && !this->isClientKnown);
+	return (bool) this->lastConnection;
+}
+
+bool oneLife::server::game::handler::Socket::isConnectionReceived()
+{
+	return (bool) (this->readySock!=NULL && !this->readySock->isSocket);
+}
+
+bool oneLife::server::game::handler::Socket::isRemoteHostFound()
+{
+	return (bool) (this->remoteHost);
 }
 
 void oneLife::server::game::handler::Socket::setMaximumConnectionListened(int maxConnection)
@@ -137,10 +145,16 @@ void oneLife::server::game::handler::Socket::setPort(int port)
 	this->port = port;
 }
 
+/*
+char* oneLife::server::game::handler::Socket::getOutputMessage()
+{
+	this->outputMessage = oneLife::handler::Message::getOutputMessage();
+}
+*/
+
 void oneLife::server::game::handler::Socket::to(FreshConnection newConnection)
 {
 	this->outputMessage = this->getOutputMessage();
-	printf("\nto: %s\n\n\n", this->outputMessage);
 	int messageLength = strlen(this->outputMessage);
 	int numSent = newConnection.sock->send((unsigned char*)this->outputMessage,
 							 messageLength,
@@ -160,9 +174,11 @@ void oneLife::server::game::handler::Socket::to(FreshConnection newConnection)
 	else
 	{
 		// first message sent okay
+		/*
 		newConnection.sockBuffer = new SimpleVector<char>();
 		sockPoll.addSocket( newConnection.sock );//create Connection
 		newConnections.push_back( newConnection );
+		 */
 	}
 }
 
@@ -395,10 +411,10 @@ char *getNextClientMessage( SimpleVector<char> *inBuffer )
 
 		if( inBuffer->size() > 200 ) {
 			// 200 characters with no message terminator?
-			// client is sending us nonsense
+			// this->remoteHost is sending us nonsense
 			// cut it off here to avoid buffer overflow
 
-			AppLog::info( "More than 200 characters in client receive buffer "
+			AppLog::info( "More than 200 characters in this->remoteHost receive buffer "
 						  "with no messsage terminator present, "
 						  "generating NONSENSE message." );
 

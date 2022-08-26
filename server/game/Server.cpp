@@ -659,7 +659,6 @@ void OneLife::Server::start()
 			}
 		}
 
-		this->playerRegistry;
 		this->_procedureCreateNewConnection();
 
 
@@ -10579,6 +10578,7 @@ FreshConnection OneLife::Server::createConnection(Socket* clientSocket)
 	newConnection.error = false;
 	newConnection.errorCauseString = "";
 	newConnection.rejectedSendTime = 0;
+	newConnection.sockBuffer = new SimpleVector<char>();
 
 	return newConnection;
 }
@@ -10670,20 +10670,31 @@ void OneLife::Server::_procedureCreateNewConnection()
 	// handled
 	this->socketListener->listen();
 
-	if(this->socketListener->isConnectionRequestAccepted())
+	if(this->socketListener->isConnectionAccepted())
 	{
-		if(this->socketListener->isUnknownClientConnectionRequestReceived())
+		if(!this->socketListener->isRemoteHostFound())
 		{
 			AppLog::info( "Got connection from unknown address" );
 		}
 		else
 		{
 			AppLog::infoF( "Got connection from %s:%d",
-				  this->socketListener->getLastClientListenedAddress(),
-				  this->socketListener->getLastClientListenedPort());
+				  this->socketListener->getRemoteHost().address,
+				  this->socketListener->getRemoteHost().port);
 		}
 
-		FreshConnection newConnection = this->createConnection(this->socketListener->getLastClientSocket());
+		FreshConnection newConnection;
+		FreshConnection* knownConnection = this->playerRegistry->getNewConnection(this->socketListener->getRemoteHost().address);
+		if(!knownConnection)
+		{
+			newConnection = this->createConnection(this->socketListener->getLastConnection());
+			sockPoll.addSocket( newConnection.sock );//create Connection
+			newConnections.push_back( newConnection );
+		}
+		else
+		{
+			newConnection = *knownConnection;
+		}
 
 		if( apocalypseTriggered || this->shutdownMode )
 		{
@@ -10717,6 +10728,12 @@ void OneLife::Server::_procedureCreateNewConnection()
 		{
 			newConnection.shutdownMode = false;
 
+
+			AppLog::infoF("Send info to player");
+			oneLife::dataType::message::ServerInfo serverInfo;
+			serverInfo.totalBiomes = 9;
+			this->socketListener->sendMessage(serverInfo)->to(newConnection);
+
 			AppLog::infoF("New player accepted");
 			oneLife::dataType::message::SequenceNumber sequenceNumber;
 			sequenceNumber.totalPlayers = this->getTotalPlayers();
@@ -10724,6 +10741,9 @@ void OneLife::Server::_procedureCreateNewConnection()
 			sequenceNumber.string = newConnection.sequenceNumberString;
 			sequenceNumber.serverVersion = this->server.about.versionNumber;
 			this->socketListener->sendMessage(sequenceNumber)->to(newConnection);
+
+
+			this->playerRegistry->getNewConnection(this->socketListener->getRemoteHost().address);
 		}
 		AppLog::infoF( "Listening for another connection on port %d", this->socketListener->getPort() );
 	}

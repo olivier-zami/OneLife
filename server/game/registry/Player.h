@@ -5,6 +5,8 @@
 #ifndef oneLife_server_game_registry_player_H
 #define oneLife_server_game_registry_player_H
 
+#include "../../../commonSource/dataType/socket.h"
+
 namespace oneLife::server::game::registry
 {
 	class Player {
@@ -12,8 +14,10 @@ namespace oneLife::server::game::registry
 			Player();
 			~Player();
 
-			bool isAnyTicketServerRequestsOut();
+			void add();
 
+			FreshConnection* getNewConnection(char* address);
+			bool isAnyTicketServerRequestsOut();
 	};
 }
 

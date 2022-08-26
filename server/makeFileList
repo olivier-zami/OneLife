@@ -31,6 +31,7 @@ main.cpp \
 ../commonSource/fractalNoise.cpp \
 ../commonSource/sayLimit.cpp \
 ../commonSource/handler/Message.cpp \
+../commonSource/handler/message/ServerInfo.cpp \
 ../commonSource/handler/message/SequenceNumber.cpp \
 map.cpp \
 component/cache/Biome.cpp \

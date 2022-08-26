@@ -5,10 +5,13 @@
 #ifndef oneLife_server_game_listener_socket_H
 #define oneLife_server_game_listener_socket_H
 
+#include "../../../third_party/minorGems/network/HostAddress.h"
 #include "../../../third_party/minorGems/network/Socket.h"
 #include "../../../third_party/minorGems/network/SocketPoll.h"
 #include "../../../third_party/minorGems/network/SocketServer.h"
+#include "../../../commonSource/dataType/connection.h"
 #include "../../../commonSource/dataType/message.h"
+#include "../../../commonSource/handler/message/ServerInfo.h"
 #include "../../../commonSource/handler/message/SequenceNumber.h"
 #include "../../dataType/LiveObject.h"
 #include "../dataType/connection.h"
@@ -16,6 +19,7 @@
 namespace oneLife::server::game::handler
 {
 	class Socket:
+		public oneLife::handler::message::ServerInfo,
 		public oneLife::handler::message::SequenceNumber
 	{
 		public:
@@ -24,13 +28,14 @@ namespace oneLife::server::game::handler
 
 			void listen();
 
-			const char* getLastClientListenedAddress();
-			int getLastClientListenedPort();
-			::Socket* getLastClientSocket();
+			::Socket* getLastConnection();
 			int getPort();
-			bool isConnectionRequestAccepted();
-			bool isUnknownClientConnectionRequestReceived();
-			//using oneLife::handler::message::SequenceNumber::sendMessage;
+			::oneLife::dataType::Connection getRemoteHost();
+			bool isConnectionAccepted();
+			bool isConnectionReceived();
+			bool isRemoteHostFound();
+			using oneLife::handler::message::SequenceNumber::sendMessage;
+			using oneLife::handler::message::ServerInfo::sendMessage;
 			void setMaximumConnectionListened(int maxConnection);
 			void setPort(int port);
 			void to(FreshConnection newConnection);
@@ -39,15 +44,12 @@ namespace oneLife::server::game::handler
 
 		//protected:
 			int maxConnection;
-			bool isClientKnown;
-			bool isLastConnectionAccepted;
-			bool isConnectionRequestReceived;
-			struct {char* address; int port;} lastClientListened;
-			::Socket* lastClientSocket;
+			::Socket* lastConnection;
 			char *outputMessage;
 			double pollTimeout;
 			int port;
 			SocketOrServer *readySock;
+			HostAddress *remoteHost;
 			SocketServer *socketServer;
 	};
 }
