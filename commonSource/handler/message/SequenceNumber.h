@@ -6,7 +6,7 @@
 #define oneLife_common_handler_message_sequenceNumber_H
 
 #include "../../../third_party/minorGems/network/Socket.h"
-#include "../../../server/game/dataType/connection.h"
+//#include "../../../server/game/dataType/connection.h"
 #include "../../dataType/message.h"
 #include "../Message.h"
 
@@ -14,7 +14,7 @@
 namespace oneLife::handler::message
 {
 	class SequenceNumber:
-		public ::oneLife::handler::Message
+		virtual public ::oneLife::handler::Message
 	{
 		public:
 			SequenceNumber();

@@ -26,6 +26,10 @@ namespace oneLife::dataType::message
 		char* string;
 		int serverVersion;
 	}SequenceNumber;
+
+	typedef struct{
+		unsigned int totalBiomes;
+	}ServerInfo;
 }
 
 #endif //oneLife_common_dataType_message_H
